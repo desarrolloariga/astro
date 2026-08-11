@@ -1,0 +1,57 @@
+/*
+ * Tema visual del catálogo (interno y público) — especificación de diseño
+ * premium tipo e-commerce. Alcance limitado a .catalogo-tema: no afecta los
+ * tokens OKLCH globales de app/globals.css usados en el resto de la app.
+ */
+
+.catalogo-tema {
+  --cat-bg: #ffffff;
+  --cat-surface: #f7f9fd;
+  --cat-hueco: #f2f6fc;
+  --cat-borde: #e4eaf4;
+  --cat-borde-control: #dfe7f4;
+  --cat-accento: #2f5da8;
+  --cat-primario: #1b3a6b;
+  --cat-tinta: #0f1c30;
+  --cat-texto: #4b5f80;
+  --cat-meta: #6b7d9c;
+  --cat-rotulo: #8fa3c4;
+  --cat-hueco-texto: #9db0cd;
+  --cat-sombra-tarjeta: 0 10px 24px rgba(15, 28, 48, 0.08);
+  --cat-sombra-barra: 0 6px 18px rgba(15, 28, 48, 0.05);
+  --cat-sombra-panel: -20px 0 60px rgba(15, 28, 48, 0.22);
+  --cat-velo: rgba(15, 28, 48, 0.45);
+
+  background: var(--cat-bg);
+  color: var(--cat-tinta);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100%;
+}
+
+.catalogo-tema :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(47, 93, 168, 0.25);
+  border-radius: 2px;
+}
+
+.cat-placeholder-imagen {
+  background-color: var(--cat-hueco);
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(27, 58, 107, 0.06) 0 2px,
+    transparent 2px 12px
+  );
+}
+
+@keyframes cat-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cat-anim-entrada {
+  animation: cat-fade-in 300ms ease;
+}
