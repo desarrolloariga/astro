@@ -1,9 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Boxes, Gem, Coins, TrendingDown, ArrowLeftRight, Tag, X, Percent } from 'lucide-react'
+import { Boxes, Gem, Coins, TrendingDown, Tag, X, Percent } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
-import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearPrecio, formatearNumero, formatearFecha, formatearFechaCorta } from '@/lib/formato'
 import { EstadoPieza } from '@/components/app/estado-pieza'
 import { KpiCard } from '@/components/app/kpi-card'
@@ -106,14 +105,17 @@ export default async function InventarioPage({
 }) {
   if (!(await tienePermiso('inventario', 'ver'))) redirect('/inicio')
 
-  const usuario = await obtenerUsuarioActual()
   const verFinanzas = await tienePermiso('finanzas', 'ver')
   const puedeDescontar = await tienePermiso('inventario', 'marcar_descuento')
   const sp = await searchParams
   const filtros = parsearFiltrosInventario(sp)
   const supabase = await createClient()
 
-  const tiendaFiltro = usuario.rol === 'tienda' ? usuario.tienda_id : filtros.tiendaId
+  // Todo el inventario vive en el CEDI por defecto — las tiendas ya no
+  // tienen bodega propia, así que el rol tienda ve la red completa
+  // igual que coordinador/supervisor/contabilidad (en la práctica, eso
+  // siempre será "lo que hay en el CEDI").
+  const tiendaFiltro = filtros.tiendaId
 
   const [{ data: categoriasData }, { data: materialesData }] = await Promise.all([
     supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
@@ -147,10 +149,7 @@ export default async function InventarioPage({
   const { desde, hasta } = calcularRango(filtros.pagina)
   consultaPiezas = consultaPiezas.range(desde, hasta)
 
-  let consultaTiendas = supabase.from('tiendas').select('id, nombre, tipo').eq('activo', true).order('nombre')
-  if (usuario.rol === 'tienda' && usuario.tienda_id) {
-    consultaTiendas = consultaTiendas.eq('id', usuario.tienda_id)
-  }
+  const consultaTiendas = supabase.from('tiendas').select('id, nombre, tipo').eq('activo', true).order('nombre')
 
   // KPIs/gráficas — siempre acotados solo por bodega (nunca por los
   // filtros de texto/categoría/material de la tabla, para que buscar
@@ -246,18 +245,10 @@ export default async function InventarioPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventario</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {usuario.rol === 'tienda'
-              ? `Piezas en ${tiendas[0]?.nombre ?? 'tu bodega'}.`
-              : 'Piezas por bodega, valoración y costo en toda la red.'}
+            Piezas por bodega, valoración y costo en toda la red. Todo el inventario vive en el
+            CEDI y se despacha directamente desde ahí.
           </p>
         </div>
-        <Link
-          href="/inventario/transferencias"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
-        >
-          <ArrowLeftRight className="h-4 w-4" />
-          Transferencias
-        </Link>
       </div>
 
       <form className="flex flex-wrap items-center gap-2">
@@ -291,16 +282,14 @@ export default async function InventarioPage({
             </option>
           ))}
         </select>
-        {usuario.rol !== 'tienda' && (
-          <select name="tienda_id" defaultValue={filtros.tiendaId ?? ''} className={clasesCampo}>
-            <option value="">Todas las bodegas</option>
-            {tiendas.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nombre}
-              </option>
-            ))}
-          </select>
-        )}
+        <select name="tienda_id" defaultValue={filtros.tiendaId ?? ''} className={clasesCampo}>
+          <option value="">Todas las bodegas</option>
+          {tiendas.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.nombre}
+            </option>
+          ))}
+        </select>
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
