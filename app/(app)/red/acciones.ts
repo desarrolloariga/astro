@@ -34,6 +34,12 @@ export async function crearEmbajador(formData: FormData) {
   }
 
   const admin = createAdminClient()
+
+  const { data: rol } = await admin.from('roles').select('id').eq('nombre', 'embajador').maybeSingle()
+  if (!rol) {
+    redirect(`/red?error=${encodeURIComponent('Rol "embajador" no existe')}`)
+  }
+
   // Contraseña aleatoria que nadie necesita conocer: el embajador
   // activa su cuenta con "Olvidé mi contraseña" en el login.
   const { data: nuevoUsuario, error: errorAuth } = await admin.auth.admin.createUser({
@@ -48,22 +54,27 @@ export async function crearEmbajador(formData: FormData) {
     redirect(`/red?error=${encodeURIComponent(errorAuth?.message ?? 'No se pudo crear el embajador')}`)
   }
 
-  // El trigger trg_auth_alta_usuario ya insertó la fila en public.usuarios
-  // (nombre, correo, rol=embajador); aquí completamos teléfono, tipo y
-  // jerarquía — con el cliente admin porque un asesor no tiene permiso
-  // de UPDATE directo sobre usuarios (RLS es admin-only para escritura).
-  const { error: errorUpdate } = await admin
-    .from('usuarios')
-    .update({
+  // El trigger trg_auth_alta_usuario debería insertar la fila en public.usuarios
+  // al detectar app_metadata.app = 'ariga', pero se confirmó (2026-08-25) que no
+  // es confiable en este flujo — se asegura aquí explícitamente con upsert
+  // idempotente por correo, con el cliente admin (saltando RLS, ya que un
+  // asesor no tiene permiso de escritura directa sobre usuarios).
+  const { error: errorUsuario } = await admin.from('usuarios').upsert(
+    {
+      auth_uid: nuevoUsuario.user.id,
+      nombre,
+      correo,
+      rol_id: rol.id,
       telefono: telefono || null,
       superior_id: creador.id,
       asesor_contacto_id: creador.id,
       tipo_embajador: tipoEmbajador,
-    })
-    .eq('auth_uid', nuevoUsuario.user.id)
+    },
+    { onConflict: 'correo' },
+  )
 
-  if (errorUpdate) {
-    redirect(`/red?error=${encodeURIComponent(errorUpdate.message)}`)
+  if (errorUsuario) {
+    redirect(`/red?error=${encodeURIComponent(errorUsuario.message)}`)
   }
 
   revalidatePath('/red')

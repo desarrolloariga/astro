@@ -35,6 +35,12 @@ export async function crearUsuario(formData: FormData) {
   }
 
   const admin = createAdminClient()
+
+  const { data: rol } = await admin.from('roles').select('id').eq('nombre', rolNombre).maybeSingle()
+  if (!rol) {
+    redirect(`/admin/usuarios?error=${encodeURIComponent(`Rol "${rolNombre}" no existe`)}`)
+  }
+
   const { data: nuevoUsuario, error: errorAuth } = await admin.auth.admin.createUser({
     email: correo,
     password: contrasena,
@@ -47,15 +53,25 @@ export async function crearUsuario(formData: FormData) {
     redirect(`/admin/usuarios?error=${encodeURIComponent(errorAuth?.message ?? 'No se pudo crear el usuario')}`)
   }
 
-  // El trigger trg_auth_alta_usuario ya insertó la fila en public.usuarios
-  // (nombre, correo, rol) al detectar app_metadata.app = 'ariga'; aquí
-  // completamos tienda y jerarquía si se indicaron.
-  if (tiendaId || superiorId) {
-    const supabase = await createClient()
-    await supabase
-      .from('usuarios')
-      .update({ tienda_id: tiendaId, superior_id: superiorId })
-      .eq('auth_uid', nuevoUsuario.user.id)
+  // El trigger trg_auth_alta_usuario debería insertar la fila en public.usuarios
+  // al detectar app_metadata.app = 'ariga', pero se confirmó (2026-08-25) que no
+  // es confiable en este flujo — se asegura aquí explícitamente con upsert
+  // idempotente por correo, usando el cliente admin para saltar RLS igual que
+  // el trigger.
+  const { error: errorUsuario } = await admin.from('usuarios').upsert(
+    {
+      auth_uid: nuevoUsuario.user.id,
+      nombre,
+      correo,
+      rol_id: rol.id,
+      tienda_id: tiendaId,
+      superior_id: superiorId,
+    },
+    { onConflict: 'correo' },
+  )
+
+  if (errorUsuario) {
+    redirect(`/admin/usuarios?error=${encodeURIComponent(errorUsuario.message)}`)
   }
 
   revalidatePath('/admin/usuarios')
