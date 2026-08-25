@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { obtenerUsuarioActual } from '@/lib/usuario'
+import { prefijoDesdeCategoria } from '@/lib/productos'
 
 const BUCKET = 'ariga-productos'
 
@@ -20,15 +21,11 @@ function campoOpcional(formData: FormData, nombre: string): string | undefined {
   return texto || undefined
 }
 
-/** Prefijo de código: primeras 3 letras del nombre de la categoría (sin acentos/espacios). */
-function prefijoDesdeCategoria(nombreCategoria: string | null | undefined): string {
-  if (!nombreCategoria) return 'ART'
-  const limpio = nombreCategoria
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toUpperCase()
-    .replace(/[^A-Z]/g, '')
-  return limpio.slice(0, 3) || 'ART'
+function etiquetasDesdeTexto(valor: FormDataEntryValue | null): string[] {
+  return String(valor ?? '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
 }
 
 export async function crearPieza(formData: FormData) {
@@ -96,6 +93,12 @@ export async function crearPieza(formData: FormData) {
     atributos,
     moneda_id: moneda?.id ?? null,
     creado_por: usuario.id,
+    marca: campoOpcional(formData, 'marca') ?? null,
+    coleccion: campoOpcional(formData, 'coleccion') ?? null,
+    codigo_barras: campoOpcional(formData, 'codigo_barras') ?? null,
+    etiquetas: etiquetasDesdeTexto(formData.get('etiquetas')),
+    proveedor_id: aNumero(formData.get('proveedor_id')),
+    punto_reorden: aNumero(formData.get('punto_reorden')),
   }
 
   let pieza: { id: number } | null = null

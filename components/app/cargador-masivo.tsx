@@ -7,6 +7,7 @@ import { cargarPiezasMasivo } from '@/app/(app)/produccion/carga-masiva/acciones
 
 type Categoria = { id: number; nombre: string; grupo: string }
 type Material = { id: number; nombre: string }
+type Proveedor = { id: number; nombre: string }
 
 type FilaCsv = Record<string, string>
 
@@ -31,6 +32,12 @@ type FilaValidada = {
     modo_inventario: 'pieza_unica' | 'por_cantidad'
     cantidad_inicial: number | null
     atributos: Record<string, unknown>
+    marca: string | null
+    coleccion: string | null
+    codigo_barras: string | null
+    etiquetas: string[]
+    proveedor_id: number | null
+    punto_reorden: number | null
   } | null
 }
 
@@ -47,7 +54,13 @@ function aNumeroONull(valor: string | undefined): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-function validarFilas(filas: FilaCsv[], grupo: string, categorias: Categoria[], materiales: Material[]): FilaValidada[] {
+function validarFilas(
+  filas: FilaCsv[],
+  grupo: string,
+  categorias: Categoria[],
+  materiales: Material[],
+  proveedores: Proveedor[],
+): FilaValidada[] {
   return filas.map((raw, index) => {
     const errores: string[] = []
     const codigo = (raw.codigo ?? '').trim()
@@ -66,6 +79,14 @@ function validarFilas(filas: FilaCsv[], grupo: string, categorias: Categoria[], 
       const material = materiales.find((m) => m.nombre.toLowerCase() === materialTexto.toLowerCase())
       if (!material) errores.push(`Material "${materialTexto}" no existe`)
       else materialId = material.id
+    }
+
+    const proveedorTexto = (raw.proveedor ?? '').trim()
+    let proveedorId: number | null = null
+    if (proveedorTexto) {
+      const proveedor = proveedores.find((p) => p.nombre.toLowerCase() === proveedorTexto.toLowerCase())
+      if (!proveedor) errores.push(`Proveedor "${proveedorTexto}" no existe`)
+      else proveedorId = proveedor.id
     }
 
     const origenTexto = (raw.origen ?? '').trim().toLowerCase()
@@ -129,13 +150,30 @@ function validarFilas(filas: FilaCsv[], grupo: string, categorias: Categoria[], 
               modo_inventario: modoInventario,
               cantidad_inicial: modoInventario === 'por_cantidad' ? cantidadInicial : null,
               atributos,
+              marca: raw.marca?.trim() || null,
+              coleccion: raw.coleccion?.trim() || null,
+              codigo_barras: raw.codigo_barras?.trim() || null,
+              etiquetas: (raw.etiquetas ?? '')
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean),
+              proveedor_id: proveedorId,
+              punto_reorden: aNumeroONull(raw.punto_reorden),
             }
           : null,
     }
   })
 }
 
-export function CargadorMasivo({ categorias, materiales }: { categorias: Categoria[]; materiales: Material[] }) {
+export function CargadorMasivo({
+  categorias,
+  materiales,
+  proveedores,
+}: {
+  categorias: Categoria[]
+  materiales: Material[]
+  proveedores: Proveedor[]
+}) {
   const [grupo, setGrupo] = useState('joyeria')
   const [filas, setFilas] = useState<FilaValidada[]>([])
   const [nombreArchivo, setNombreArchivo] = useState('')
@@ -152,7 +190,7 @@ export function CargadorMasivo({ categorias, materiales }: { categorias: Categor
       header: true,
       skipEmptyLines: true,
       complete: (resultado) => {
-        setFilas(validarFilas(resultado.data, grupo, categorias, materiales))
+        setFilas(validarFilas(resultado.data, grupo, categorias, materiales, proveedores))
       },
     })
   }

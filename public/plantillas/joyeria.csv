@@ -1,3 +1,3 @@
-codigo,nombre,descripcion,categoria,material,origen,costo_produccion,peso_gramos,kilataje,piedras,modo_inventario,cantidad,atributos_json
-AR-0001,Anillo solitario diamante,Anillo clásico de compromiso,Anillos,Oro,local,1500.00,3.250,14k,Diamante 0.25 ct,pieza_unica,,{}
-AR-0002,Cadena básica 45cm,Cadena de cordón fino,Cadenas,Oro,local,180.00,1.800,14k,,por_cantidad,10,{}
+codigo,nombre,descripcion,categoria,material,origen,costo_produccion,peso_gramos,kilataje,piedras,modo_inventario,cantidad,marca,coleccion,codigo_barras,etiquetas,proveedor,punto_reorden,atributos_json
+AR-0001,Anillo solitario diamante,Anillo clásico de compromiso,Anillos,Oro,local,1500.00,3.250,14k,Diamante 0.25 ct,pieza_unica,,,Clásica,,"novedad,edición limitada",,,{}
+AR-0002,Cadena básica 45cm,Cadena de cordón fino,Cadenas,Oro,local,180.00,1.800,14k,,por_cantidad,10,,,,,,5,{}

@@ -39,7 +39,15 @@ export async function subirComprobante(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('comprobantes').insert({ pago_id: pagoId, url_archivo: ruta })
+  const { error } = await supabase.from('comprobantes').insert({
+    pago_id: pagoId,
+    url_archivo: ruta,
+    numero_referencia: String(formData.get('numero_referencia') ?? '').trim() || null,
+    banco_origen: String(formData.get('banco_origen') ?? '').trim() || null,
+    fecha_pago: String(formData.get('fecha_pago') ?? '').trim() || null,
+    monto_declarado: aNumero(formData.get('monto_declarado')),
+    subido_por: usuario.id,
+  })
 
   revalidatePath('/ventas')
   if (error) {

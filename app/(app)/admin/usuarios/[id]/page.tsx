@@ -1,10 +1,18 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, Mail, Phone, Store, Users, History } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Store, Users, History, IdCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
-import { formatearFecha } from '@/lib/formato'
-import { asignarSuperior } from '../acciones'
+import { formatearFecha, formatearPrecio } from '@/lib/formato'
+import { asignarSuperior, actualizarDatosLaborales } from '../acciones'
+import { Campo, BotonPrimario, clasesInput as clasesCampo } from '@/components/app/formulario'
+
+const nombresTipoContrato: Record<string, string> = {
+  planilla: 'Planilla',
+  honorarios: 'Honorarios',
+  temporal: 'Temporal',
+  comision_pura: 'Comisión pura',
+}
 
 export const metadata = { title: 'Perfil de usuario — ASTRO' }
 
@@ -32,6 +40,19 @@ type Usuario = {
 }
 
 type Cambio = { id: number; superior_id: number | null; fecha_inicio: string; fecha_fin: string | null }
+type DatosLaborales = {
+  dpi: string | null
+  nit: string | null
+  fecha_nacimiento: string | null
+  direccion: string | null
+  contacto_emergencia_nombre: string | null
+  contacto_emergencia_telefono: string | null
+  fecha_ingreso: string | null
+  tipo_contrato: string | null
+  salario_base: number | null
+  banco: string | null
+  cuenta_bancaria: string | null
+}
 
 export default async function PerfilUsuarioPage({
   params,
@@ -40,11 +61,13 @@ export default async function PerfilUsuarioPage({
 }) {
   if (!(await tienePermiso('usuarios', 'ver'))) redirect('/inicio')
   const puedeEditar = await tienePermiso('usuarios', 'editar')
+  const puedeVerLaboral = await tienePermiso('usuarios', 'ver_laboral')
+  const puedeEditarLaboral = await tienePermiso('usuarios', 'editar_laboral')
 
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: pieza }, { data: todosData }, { data: historialData }] = await Promise.all([
+  const [{ data: pieza }, { data: todosData }, { data: historialData }, { data: laboralData }] = await Promise.all([
     supabase
       .from('usuarios')
       .select('id, nombre, correo, telefono, activo, superior_id, fecha_creacion, roles ( nombre ), tiendas ( nombre )')
@@ -56,10 +79,20 @@ export default async function PerfilUsuarioPage({
       .select('id, superior_id, fecha_inicio, fecha_fin')
       .eq('usuario_id', id)
       .order('fecha_inicio', { ascending: false }),
+    puedeVerLaboral
+      ? supabase
+          .from('usuarios_datos_laborales')
+          .select(
+            'dpi, nit, fecha_nacimiento, direccion, contacto_emergencia_nombre, contacto_emergencia_telefono, fecha_ingreso, tipo_contrato, salario_base, banco, cuenta_bancaria',
+          )
+          .eq('usuario_id', id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   const usuario = pieza as unknown as Usuario | null
   if (!usuario) notFound()
+  const laboral = laboralData as DatosLaborales | null
 
   const todos = (todosData ?? []) as unknown as (Usuario & { id: number })[]
   const historial = (historialData ?? []) as Cambio[]
@@ -160,12 +193,7 @@ export default async function PerfilUsuarioPage({
                   </option>
                 ))}
             </select>
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Cambiar superior
-            </button>
+            <BotonPrimario className="px-4 py-2">Cambiar superior</BotonPrimario>
           </form>
         )}
 
@@ -189,6 +217,176 @@ export default async function PerfilUsuarioPage({
           </div>
         )}
       </div>
+
+      {puedeVerLaboral && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
+            <IdCard className="h-4 w-4 text-primary" />
+            Datos laborales
+          </h2>
+
+          {laboral ? (
+            <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              {laboral.dpi && (
+                <p>
+                  <span className="text-muted-foreground">DPI:</span>{' '}
+                  <span className="font-medium text-foreground">{laboral.dpi}</span>
+                </p>
+              )}
+              {laboral.nit && (
+                <p>
+                  <span className="text-muted-foreground">NIT:</span>{' '}
+                  <span className="font-medium text-foreground">{laboral.nit}</span>
+                </p>
+              )}
+              {laboral.fecha_nacimiento && (
+                <p>
+                  <span className="text-muted-foreground">Nacimiento:</span>{' '}
+                  <span className="font-medium text-foreground">{formatearFecha(laboral.fecha_nacimiento)}</span>
+                </p>
+              )}
+              {laboral.fecha_ingreso && (
+                <p>
+                  <span className="text-muted-foreground">Ingreso:</span>{' '}
+                  <span className="font-medium text-foreground">{formatearFecha(laboral.fecha_ingreso)}</span>
+                </p>
+              )}
+              {laboral.direccion && (
+                <p className="sm:col-span-2">
+                  <span className="text-muted-foreground">Dirección:</span>{' '}
+                  <span className="font-medium text-foreground">{laboral.direccion}</span>
+                </p>
+              )}
+              {(laboral.contacto_emergencia_nombre || laboral.contacto_emergencia_telefono) && (
+                <p className="sm:col-span-2">
+                  <span className="text-muted-foreground">Emergencia:</span>{' '}
+                  <span className="font-medium text-foreground">
+                    {laboral.contacto_emergencia_nombre}
+                    {laboral.contacto_emergencia_telefono && ` · ${laboral.contacto_emergencia_telefono}`}
+                  </span>
+                </p>
+              )}
+              {laboral.tipo_contrato && (
+                <p>
+                  <span className="text-muted-foreground">Contrato:</span>{' '}
+                  <span className="font-medium text-foreground">
+                    {nombresTipoContrato[laboral.tipo_contrato] ?? laboral.tipo_contrato}
+                  </span>
+                </p>
+              )}
+              {laboral.salario_base != null && (
+                <p>
+                  <span className="text-muted-foreground">Salario base:</span>{' '}
+                  <span className="font-medium text-foreground">{formatearPrecio(laboral.salario_base)}</span>
+                </p>
+              )}
+              {(laboral.banco || laboral.cuenta_bancaria) && (
+                <p className="sm:col-span-2">
+                  <span className="text-muted-foreground">Banco:</span>{' '}
+                  <span className="font-medium text-foreground">
+                    {laboral.banco}
+                    {laboral.cuenta_bancaria && ` · ${laboral.cuenta_bancaria}`}
+                  </span>
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin datos laborales registrados todavía.</p>
+          )}
+
+          {puedeEditarLaboral && (
+            <details className="mt-4 border-t border-border pt-3">
+              <summary className="cursor-pointer list-none text-xs font-semibold text-primary">
+                Editar datos laborales
+              </summary>
+              <form action={actualizarDatosLaborales} className="mt-3 flex flex-col gap-4">
+                <input type="hidden" name="usuario_id" value={usuario.id} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Campo label="DPI">
+                    <input name="dpi" defaultValue={laboral?.dpi ?? ''} className={clasesCampo} />
+                  </Campo>
+                  <Campo label="NIT">
+                    <input name="nit_laboral" defaultValue={laboral?.nit ?? ''} className={clasesCampo} />
+                  </Campo>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Campo label="Fecha de nacimiento">
+                    <input
+                      name="fecha_nacimiento"
+                      type="date"
+                      defaultValue={laboral?.fecha_nacimiento ?? ''}
+                      className={clasesCampo}
+                    />
+                  </Campo>
+                  <Campo label="Fecha de ingreso">
+                    <input
+                      name="fecha_ingreso"
+                      type="date"
+                      defaultValue={laboral?.fecha_ingreso ?? ''}
+                      className={clasesCampo}
+                    />
+                  </Campo>
+                </div>
+                <Campo label="Dirección">
+                  <input name="direccion_laboral" defaultValue={laboral?.direccion ?? ''} className={clasesCampo} />
+                </Campo>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Campo label="Contacto de emergencia">
+                    <input
+                      name="contacto_emergencia_nombre"
+                      defaultValue={laboral?.contacto_emergencia_nombre ?? ''}
+                      className={clasesCampo}
+                    />
+                  </Campo>
+                  <Campo label="Teléfono de emergencia">
+                    <input
+                      name="contacto_emergencia_telefono"
+                      defaultValue={laboral?.contacto_emergencia_telefono ?? ''}
+                      className={clasesCampo}
+                    />
+                  </Campo>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Campo label="Tipo de contrato">
+                    <select name="tipo_contrato" defaultValue={laboral?.tipo_contrato ?? ''} className={clasesCampo}>
+                      <option value="">Selecciona…</option>
+                      <option value="planilla">Planilla</option>
+                      <option value="honorarios">Honorarios</option>
+                      <option value="temporal">Temporal</option>
+                      <option value="comision_pura">Comisión pura</option>
+                    </select>
+                  </Campo>
+                  <Campo label="Salario base (GTQ)">
+                    <input
+                      name="salario_base"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={laboral?.salario_base ?? ''}
+                      className={clasesCampo}
+                    />
+                  </Campo>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Campo label="Banco">
+                    <input name="banco_laboral" defaultValue={laboral?.banco ?? ''} className={clasesCampo} />
+                  </Campo>
+                  <Campo label="Cuenta bancaria">
+                    <input
+                      name="cuenta_bancaria_laboral"
+                      defaultValue={laboral?.cuenta_bancaria ?? ''}
+                      className={clasesCampo}
+                    />
+                  </Campo>
+                </div>
+                <div>
+                  <BotonPrimario>Guardar datos laborales</BotonPrimario>
+                </div>
+              </form>
+            </details>
+          )}
+        </div>
+      )}
 
       {historial.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-5">

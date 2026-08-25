@@ -19,6 +19,12 @@ type PiezaCargaMasiva = {
   modo_inventario: 'pieza_unica' | 'por_cantidad'
   cantidad_inicial: number | null
   atributos: Record<string, unknown>
+  marca: string | null
+  coleccion: string | null
+  codigo_barras: string | null
+  etiquetas: string[]
+  proveedor_id: number | null
+  punto_reorden: number | null
 }
 
 export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
@@ -66,13 +72,20 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
     atributos: p.atributos ?? {},
     moneda_id: moneda?.id ?? null,
     creado_por: usuario.id,
+    marca: p.marca?.trim() || null,
+    coleccion: p.coleccion?.trim() || null,
+    codigo_barras: p.codigo_barras?.trim() || null,
+    etiquetas: p.etiquetas ?? [],
+    proveedor_id: p.proveedor_id,
+    punto_reorden: p.punto_reorden,
   }))
 
   const { data: creadas, error } = await supabase.from('productos').insert(filas).select('id, costo_produccion')
 
   revalidatePath('/produccion')
   if (error) {
-    const mensaje = error.code === '23505' ? 'Uno o más códigos ya existen' : error.message
+    const mensaje =
+      error.code === '23505' ? 'Uno o más códigos o códigos de barras ya existen' : error.message
     redirect(`/produccion/carga-masiva?error=${encodeURIComponent(mensaje)}`)
   }
 

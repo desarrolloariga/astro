@@ -1,13 +1,11 @@
 import { redirect } from 'next/navigation'
-import { AlertCircle, CheckCircle2, Truck, PlusCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Truck, PlusCircle, Building2, Contact, Landmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { crearProveedor, actualizarProveedor, alternarActivoProveedor } from './acciones'
+import { Campo, SeccionFormulario, BotonPrimario, clasesInput } from '@/components/app/formulario'
 
 export const metadata = { title: 'Proveedores — ASTRO' }
-
-const clasesCampo =
-  'rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none'
 
 const nombresTipo: Record<string, string> = { local: 'Local', importado: 'Importado' }
 
@@ -22,6 +20,10 @@ type Proveedor = {
   direccion: string | null
   activo: boolean
   pais_id: number | null
+  banco: string | null
+  cuenta_bancaria: string | null
+  terminos_pago_default: string | null
+  sitio_web: string | null
 }
 type Pais = { id: number; nombre: string }
 
@@ -39,7 +41,9 @@ export default async function AdminProveedoresPage({
   const [{ data: proveedores }, { data: paises }] = await Promise.all([
     supabase
       .from('proveedores')
-      .select('id, nombre, tipo, contacto_nombre, contacto_telefono, contacto_correo, nit, direccion, activo, pais_id')
+      .select(
+        'id, nombre, tipo, contacto_nombre, contacto_telefono, contacto_correo, nit, direccion, activo, pais_id, banco, cuenta_bancaria, terminos_pago_default, sitio_web',
+      )
       .order('nombre'),
     supabase.from('paises').select('id, nombre').order('nombre'),
   ])
@@ -70,44 +74,85 @@ export default async function AdminProveedoresPage({
       )}
 
       {puedeEditar && (
-        <details className="rounded-xl border border-border bg-card">
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+        <details className="rounded-xl border border-border bg-card shadow-xs">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-sm font-semibold text-foreground">
             <PlusCircle className="h-4 w-4 text-primary" />
             Nuevo proveedor
           </summary>
-          <form action={crearProveedor} className="flex flex-col gap-3 px-4 pb-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input name="nombre" required placeholder="Nombre" className={clasesCampo} />
-              <select name="tipo" required defaultValue="local" className={clasesCampo}>
-                <option value="local">Local</option>
-                <option value="importado">Importado</option>
-              </select>
+          <form action={crearProveedor} className="flex flex-col gap-4 px-5 pb-5">
+            <SeccionFormulario icon={Building2} titulo="Identificación" className="border-0 bg-secondary/30 p-4 shadow-none">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Campo label="Nombre" required>
+                  <input name="nombre" required className={clasesInput} />
+                </Campo>
+                <Campo label="Tipo">
+                  <select name="tipo" required defaultValue="local" className={clasesInput}>
+                    <option value="local">Local</option>
+                    <option value="importado">Importado</option>
+                  </select>
+                </Campo>
+                <Campo label="NIT">
+                  <input name="nit" className={clasesInput} />
+                </Campo>
+                <Campo label="País">
+                  <select name="pais_id" defaultValue="" className={clasesInput}>
+                    <option value="">Selecciona…</option>
+                    {listaPaises.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo label="Dirección" className="sm:col-span-2">
+                  <input name="direccion" className={clasesInput} />
+                </Campo>
+              </div>
+            </SeccionFormulario>
+
+            <SeccionFormulario icon={Contact} titulo="Contacto" className="border-0 bg-secondary/30 p-4 shadow-none">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Campo label="Nombre del contacto">
+                  <input name="contacto_nombre" className={clasesInput} />
+                </Campo>
+                <Campo label="Teléfono">
+                  <input name="contacto_telefono" className={clasesInput} />
+                </Campo>
+                <Campo label="Correo">
+                  <input name="contacto_correo" type="email" className={clasesInput} />
+                </Campo>
+                <Campo label="Sitio web">
+                  <input name="sitio_web" className={clasesInput} />
+                </Campo>
+              </div>
+            </SeccionFormulario>
+
+            <SeccionFormulario icon={Landmark} titulo="Datos financieros" className="border-0 bg-secondary/30 p-4 shadow-none">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Campo label="Banco">
+                  <input name="banco" className={clasesInput} />
+                </Campo>
+                <Campo label="Cuenta bancaria">
+                  <input name="cuenta_bancaria" className={clasesInput} />
+                </Campo>
+                <Campo label="Condiciones de pago por defecto" className="sm:col-span-2">
+                  <select name="terminos_pago_default" defaultValue="" className={clasesInput}>
+                    <option value="">Selecciona…</option>
+                    <option value="contado">Contado</option>
+                    <option value="15_dias">15 días</option>
+                    <option value="30_dias">30 días</option>
+                    <option value="45_dias">45 días</option>
+                    <option value="60_dias">60 días</option>
+                    <option value="90_dias">90 días</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </Campo>
+              </div>
+            </SeccionFormulario>
+
+            <div className="flex justify-end">
+              <BotonPrimario>Crear</BotonPrimario>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input name="contacto_nombre" placeholder="Contacto (opcional)" className={clasesCampo} />
-              <input name="contacto_telefono" placeholder="Teléfono (opcional)" className={clasesCampo} />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input name="contacto_correo" type="email" placeholder="Correo (opcional)" className={clasesCampo} />
-              <input name="nit" placeholder="NIT (opcional)" className={clasesCampo} />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input name="direccion" placeholder="Dirección (opcional)" className={clasesCampo} />
-              <select name="pais_id" defaultValue="" className={clasesCampo}>
-                <option value="">País (opcional)</option>
-                {listaPaises.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="w-fit rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Crear
-            </button>
           </form>
         </details>
       )}
@@ -120,7 +165,7 @@ export default async function AdminProveedoresPage({
       ) : (
         <div className="flex flex-col gap-2">
           {listaProveedores.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card">
+            <div key={p.id} className="rounded-xl border border-border bg-card shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-foreground">
@@ -160,61 +205,77 @@ export default async function AdminProveedoresPage({
                   <summary className="cursor-pointer list-none border-t border-border px-4 py-2 text-xs font-semibold text-primary">
                     Editar datos
                   </summary>
-                  <form action={actualizarProveedor} className="flex flex-col gap-3 border-t border-border px-4 py-3">
+                  <form action={actualizarProveedor} className="flex flex-col gap-4 border-t border-border p-4">
                     <input type="hidden" name="id" value={p.id} />
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <input name="nombre" defaultValue={p.nombre} required className={clasesCampo} />
-                      <select name="tipo" defaultValue={p.tipo} className={clasesCampo}>
-                        <option value="local">Local</option>
-                        <option value="importado">Importado</option>
-                      </select>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Campo label="Nombre" required>
+                        <input name="nombre" defaultValue={p.nombre} required className={clasesInput} />
+                      </Campo>
+                      <Campo label="Tipo">
+                        <select name="tipo" defaultValue={p.tipo} className={clasesInput}>
+                          <option value="local">Local</option>
+                          <option value="importado">Importado</option>
+                        </select>
+                      </Campo>
+                      <Campo label="Contacto">
+                        <input name="contacto_nombre" defaultValue={p.contacto_nombre ?? ''} className={clasesInput} />
+                      </Campo>
+                      <Campo label="Teléfono">
+                        <input name="contacto_telefono" defaultValue={p.contacto_telefono ?? ''} className={clasesInput} />
+                      </Campo>
+                      <Campo label="Correo">
+                        <input
+                          name="contacto_correo"
+                          type="email"
+                          defaultValue={p.contacto_correo ?? ''}
+                          className={clasesInput}
+                        />
+                      </Campo>
+                      <Campo label="NIT">
+                        <input name="nit" defaultValue={p.nit ?? ''} className={clasesInput} />
+                      </Campo>
+                      <Campo label="Dirección">
+                        <input name="direccion" defaultValue={p.direccion ?? ''} className={clasesInput} />
+                      </Campo>
+                      <Campo label="País">
+                        <select name="pais_id" defaultValue={p.pais_id ?? ''} className={clasesInput}>
+                          <option value="">Selecciona…</option>
+                          {listaPaises.map((pa) => (
+                            <option key={pa.id} value={pa.id}>
+                              {pa.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </Campo>
+                      <Campo label="Banco">
+                        <input name="banco" defaultValue={p.banco ?? ''} className={clasesInput} />
+                      </Campo>
+                      <Campo label="Cuenta bancaria">
+                        <input name="cuenta_bancaria" defaultValue={p.cuenta_bancaria ?? ''} className={clasesInput} />
+                      </Campo>
+                      <Campo label="Condiciones de pago por defecto">
+                        <select
+                          name="terminos_pago_default"
+                          defaultValue={p.terminos_pago_default ?? ''}
+                          className={clasesInput}
+                        >
+                          <option value="">Selecciona…</option>
+                          <option value="contado">Contado</option>
+                          <option value="15_dias">15 días</option>
+                          <option value="30_dias">30 días</option>
+                          <option value="45_dias">45 días</option>
+                          <option value="60_dias">60 días</option>
+                          <option value="90_dias">90 días</option>
+                          <option value="otro">Otro</option>
+                        </select>
+                      </Campo>
+                      <Campo label="Sitio web">
+                        <input name="sitio_web" defaultValue={p.sitio_web ?? ''} className={clasesInput} />
+                      </Campo>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <input
-                        name="contacto_nombre"
-                        defaultValue={p.contacto_nombre ?? ''}
-                        placeholder="Contacto"
-                        className={clasesCampo}
-                      />
-                      <input
-                        name="contacto_telefono"
-                        defaultValue={p.contacto_telefono ?? ''}
-                        placeholder="Teléfono"
-                        className={clasesCampo}
-                      />
+                    <div className="flex justify-end">
+                      <BotonPrimario>Guardar cambios</BotonPrimario>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <input
-                        name="contacto_correo"
-                        type="email"
-                        defaultValue={p.contacto_correo ?? ''}
-                        placeholder="Correo"
-                        className={clasesCampo}
-                      />
-                      <input name="nit" defaultValue={p.nit ?? ''} placeholder="NIT" className={clasesCampo} />
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <input
-                        name="direccion"
-                        defaultValue={p.direccion ?? ''}
-                        placeholder="Dirección"
-                        className={clasesCampo}
-                      />
-                      <select name="pais_id" defaultValue={p.pais_id ?? ''} className={clasesCampo}>
-                        <option value="">País</option>
-                        {listaPaises.map((pa) => (
-                          <option key={pa.id} value={pa.id}>
-                            {pa.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="submit"
-                      className="w-fit rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-                    >
-                      Guardar cambios
-                    </button>
                   </form>
                 </details>
               )}

@@ -14,6 +14,11 @@ type ComprobantePendiente = {
   id: number
   url_archivo: string
   fecha_creacion: string
+  numero_referencia: string | null
+  banco_origen: string | null
+  fecha_pago: string | null
+  monto_declarado: number | null
+  usuarios_subio: { nombre: string } | null
   pagos: {
     metodo: string
     monto: number
@@ -38,7 +43,8 @@ export default async function BandejaComprobantesPage({
   const { data } = await supabase
     .from('comprobantes')
     .select(
-      `id, url_archivo, fecha_creacion,
+      `id, url_archivo, fecha_creacion, numero_referencia, banco_origen, fecha_pago, monto_declarado,
+       usuarios_subio:usuarios!comprobantes_subido_por_fkey ( nombre ),
        pagos ( metodo, monto, ventas ( id, clientes ( nombre ), usuarios:vendedor_id ( nombre ) ) )`,
     )
     .eq('estado', 'pendiente')
@@ -99,14 +105,29 @@ export default async function BandejaComprobantesPage({
                     Venta #{c.pagos?.ventas?.id} · {c.pagos?.ventas?.clientes?.nombre ?? 'Cliente sin nombre'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Vendedor: {c.pagos?.ventas?.usuarios?.nombre ?? '—'} · Subido:{' '}
-                    {formatearFechaHora(c.fecha_creacion)}
+                    Vendedor: {c.pagos?.ventas?.usuarios?.nombre ?? '—'} · Subido por{' '}
+                    {c.usuarios_subio?.nombre ?? '—'} el {formatearFechaHora(c.fecha_creacion)}
                   </p>
                 </div>
-                <p className="text-lg font-bold text-foreground">
-                  {c.pagos ? formatearPrecio(c.pagos.monto) : '—'}
-                </p>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-foreground">
+                    {c.pagos ? formatearPrecio(c.pagos.monto) : '—'}
+                  </p>
+                  {c.monto_declarado != null && c.pagos && c.monto_declarado !== c.pagos.monto && (
+                    <p className="text-[11px] font-semibold text-destructive">
+                      Declarado {formatearPrecio(c.monto_declarado)} — no coincide
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {(c.numero_referencia || c.banco_origen || c.fecha_pago) && (
+                <p className="text-xs text-muted-foreground">
+                  {c.numero_referencia && `Ref. ${c.numero_referencia}`}
+                  {c.banco_origen && ` · ${c.banco_origen}`}
+                  {c.fecha_pago && ` · pagado ${c.fecha_pago}`}
+                </p>
+              )}
 
               {firmadas.get(c.url_archivo) && (
                 <a

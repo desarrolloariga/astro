@@ -13,6 +13,11 @@ function aNumero(valor: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+function aTexto(formData: FormData, nombre: string): string | null {
+  const texto = String(formData.get(nombre) ?? '').trim()
+  return texto || null
+}
+
 async function exigirPermiso(modulo: string, accion: string) {
   if (!(await tienePermiso(modulo, accion))) redirect('/inicio')
 }
@@ -22,6 +27,7 @@ export async function crearUsuario(formData: FormData) {
 
   const nombre = String(formData.get('nombre') ?? '').trim()
   const correo = String(formData.get('correo') ?? '').trim().toLowerCase()
+  const telefono = aTexto(formData, 'telefono')
   const contrasena = String(formData.get('contrasena') ?? '')
   const rolNombre = String(formData.get('rol_nombre') ?? '').trim()
   const tiendaId = aNumero(formData.get('tienda_id'))
@@ -58,20 +64,67 @@ export async function crearUsuario(formData: FormData) {
   // es confiable en este flujo — se asegura aquí explícitamente con upsert
   // idempotente por correo, usando el cliente admin para saltar RLS igual que
   // el trigger.
-  const { error: errorUsuario } = await admin.from('usuarios').upsert(
-    {
-      auth_uid: nuevoUsuario.user.id,
-      nombre,
-      correo,
-      rol_id: rol.id,
-      tienda_id: tiendaId,
-      superior_id: superiorId,
-    },
-    { onConflict: 'correo' },
-  )
+  const { data: filaUsuario, error: errorUsuario } = await admin
+    .from('usuarios')
+    .upsert(
+      {
+        auth_uid: nuevoUsuario.user.id,
+        nombre,
+        correo,
+        telefono,
+        rol_id: rol.id,
+        tienda_id: tiendaId,
+        superior_id: superiorId,
+      },
+      { onConflict: 'correo' },
+    )
+    .select('id')
+    .single()
 
   if (errorUsuario) {
     redirect(`/admin/usuarios?error=${encodeURIComponent(errorUsuario.message)}`)
+  }
+
+  // Datos laborales son opcionales y solo tienen sentido si quien crea
+  // la cuenta puede verlos/editarlos después — si no, se omiten en vez
+  // de escribir datos sensibles que su propio rol no podría gestionar.
+  if (await tienePermiso('usuarios', 'editar_laboral')) {
+    const dpi = aTexto(formData, 'dpi')
+    const nitLaboral = aTexto(formData, 'nit_laboral')
+    const fechaNacimiento = aTexto(formData, 'fecha_nacimiento')
+    const direccionLaboral = aTexto(formData, 'direccion_laboral')
+    const contactoEmergenciaNombre = aTexto(formData, 'contacto_emergencia_nombre')
+    const contactoEmergenciaTelefono = aTexto(formData, 'contacto_emergencia_telefono')
+    const fechaIngreso = aTexto(formData, 'fecha_ingreso')
+    const tipoContrato = aTexto(formData, 'tipo_contrato')
+    const salarioBase = aNumero(formData.get('salario_base'))
+    const bancoLaboral = aTexto(formData, 'banco_laboral')
+    const cuentaBancariaLaboral = aTexto(formData, 'cuenta_bancaria_laboral')
+
+    const hayDatosLaborales =
+      dpi || nitLaboral || fechaNacimiento || direccionLaboral || contactoEmergenciaNombre ||
+      contactoEmergenciaTelefono || fechaIngreso || tipoContrato || salarioBase != null ||
+      bancoLaboral || cuentaBancariaLaboral
+
+    if (hayDatosLaborales && filaUsuario) {
+      await admin.from('usuarios_datos_laborales').upsert(
+        {
+          usuario_id: filaUsuario.id,
+          dpi,
+          nit: nitLaboral,
+          fecha_nacimiento: fechaNacimiento,
+          direccion: direccionLaboral,
+          contacto_emergencia_nombre: contactoEmergenciaNombre,
+          contacto_emergencia_telefono: contactoEmergenciaTelefono,
+          fecha_ingreso: fechaIngreso,
+          tipo_contrato: tipoContrato,
+          salario_base: salarioBase,
+          banco: bancoLaboral,
+          cuenta_bancaria: cuentaBancariaLaboral,
+        },
+        { onConflict: 'usuario_id' },
+      )
+    }
   }
 
   revalidatePath('/admin/usuarios')
@@ -148,4 +201,34 @@ export async function alternarActivoUsuario(formData: FormData) {
   revalidatePath('/admin/usuarios')
   if (error) redirect(`/admin/usuarios?error=${encodeURIComponent(error.message)}`)
   redirect(`/admin/usuarios?ok=${encodeURIComponent(activo ? 'Usuario desactivado' : 'Usuario reactivado')}`)
+}
+
+export async function actualizarDatosLaborales(formData: FormData) {
+  await exigirPermiso('usuarios', 'editar_laboral')
+
+  const usuarioId = aNumero(formData.get('usuario_id'))
+  if (!usuarioId) redirect('/admin/usuarios')
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('usuarios_datos_laborales').upsert(
+    {
+      usuario_id: usuarioId,
+      dpi: aTexto(formData, 'dpi'),
+      nit: aTexto(formData, 'nit_laboral'),
+      fecha_nacimiento: aTexto(formData, 'fecha_nacimiento'),
+      direccion: aTexto(formData, 'direccion_laboral'),
+      contacto_emergencia_nombre: aTexto(formData, 'contacto_emergencia_nombre'),
+      contacto_emergencia_telefono: aTexto(formData, 'contacto_emergencia_telefono'),
+      fecha_ingreso: aTexto(formData, 'fecha_ingreso'),
+      tipo_contrato: aTexto(formData, 'tipo_contrato'),
+      salario_base: aNumero(formData.get('salario_base')),
+      banco: aTexto(formData, 'banco_laboral'),
+      cuenta_bancaria: aTexto(formData, 'cuenta_bancaria_laboral'),
+    },
+    { onConflict: 'usuario_id' },
+  )
+
+  revalidatePath(`/admin/usuarios/${usuarioId}`)
+  if (error) redirect(`/admin/usuarios/${usuarioId}?error=${encodeURIComponent(error.message)}`)
+  redirect(`/admin/usuarios/${usuarioId}?ok=${encodeURIComponent('Datos laborales actualizados')}`)
 }

@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ArrowLeft, ListPlus, Sparkles, ShieldCheck, PackageCheck, Receipt, Banknote } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio, formatearFechaHora } from '@/lib/formato'
 import { EstadoBadge, estadosCompra } from '@/components/app/estado-badge'
+import { SelectorProducto } from '@/components/app/selector-producto'
+import { Campo, SeccionFormulario, BotonPrimario, BotonPeligro, clasesInput } from '@/components/app/formulario'
 import {
   agregarLineaCompra,
   autorizarOrdenCompra,
@@ -12,12 +14,10 @@ import {
   marcarFacturadaCompra,
   marcarPagadaCompra,
   cancelarOrdenCompra,
+  crearProductoYAgregarLineaCompra,
 } from '../acciones'
 
 export const metadata = { title: 'Orden de compra — ASTRO' }
-
-const clasesCampo =
-  'rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none'
 
 type Detalle = {
   id: number
@@ -25,6 +25,7 @@ type Detalle = {
   descripcion: string
   cantidad: number
   costo_unitario: number
+  descuento_pct: number
   subtotal: number
   cantidad_recibida: number
   productos: { codigo: string; nombre: string } | null
@@ -35,6 +36,12 @@ type Orden = {
   subtotal: number
   total: number
   notas: string | null
+  condiciones_pago: string | null
+  fecha_entrega_esperada: string | null
+  direccion_entrega: string | null
+  metodo_envio: string | null
+  referencia_proveedor: string | null
+  notas_proveedor: string | null
   numero_factura_proveedor: string | null
   fecha_creacion: string
   fecha_autorizacion: string | null
@@ -42,6 +49,22 @@ type Orden = {
   fecha_facturacion: string | null
   fecha_pago: string | null
   proveedores: { nombre: string } | null
+}
+
+const nombresCondicionesPago: Record<string, string> = {
+  contado: 'Contado',
+  '15_dias': '15 días',
+  '30_dias': '30 días',
+  '45_dias': '45 días',
+  '60_dias': '60 días',
+  '90_dias': '90 días',
+  otro: 'Otro',
+}
+const nombresMetodoEnvio: Record<string, string> = {
+  recoger_proveedor: 'Recoger con el proveedor',
+  courier_local: 'Courier local',
+  transporte_propio: 'Transporte propio',
+  otro: 'Otro',
 }
 
 export default async function OrdenCompraPage({
@@ -70,13 +93,13 @@ export default async function OrdenCompraPage({
     supabase
       .from('ordenes_compra')
       .select(
-        'id, estado, subtotal, total, notas, numero_factura_proveedor, fecha_creacion, fecha_autorizacion, fecha_recepcion_total, fecha_facturacion, fecha_pago, proveedores ( nombre )',
+        'id, estado, subtotal, total, notas, condiciones_pago, fecha_entrega_esperada, direccion_entrega, metodo_envio, referencia_proveedor, notas_proveedor, numero_factura_proveedor, fecha_creacion, fecha_autorizacion, fecha_recepcion_total, fecha_facturacion, fecha_pago, proveedores ( nombre )',
       )
       .eq('id', ordenId)
       .maybeSingle(),
     supabase
       .from('orden_compra_detalles')
-      .select('id, producto_id, descripcion, cantidad, costo_unitario, subtotal, cantidad_recibida, productos ( codigo, nombre )')
+      .select('id, producto_id, descripcion, cantidad, costo_unitario, descuento_pct, subtotal, cantidad_recibida, productos ( codigo, nombre )')
       .eq('orden_compra_id', ordenId)
       .order('id'),
   ])
@@ -85,15 +108,15 @@ export default async function OrdenCompraPage({
   const ordenTipada = orden as unknown as Orden
   const listaDetalles = (detalles ?? []) as unknown as Detalle[]
 
-  let piezasSinCosto: { id: number; codigo: string; nombre: string }[] = []
+  let piezasDisponibles: { id: number; codigo: string; nombre: string; estado: string }[] = []
+  let categorias: { id: number; nombre: string }[] = []
   if (ordenTipada.estado === 'borrador' && puedeCrear) {
-    const { data } = await supabase
-      .from('productos')
-      .select('id, codigo, nombre')
-      .eq('estado', 'en_produccion')
-      .is('compra_detalle_id', null)
-      .order('codigo')
-    piezasSinCosto = data ?? []
+    const [{ data: productosData }, { data: categoriasData }] = await Promise.all([
+      supabase.from('productos').select('id, codigo, nombre, estado').eq('activo', true).order('codigo'),
+      supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
+    ])
+    piezasDisponibles = productosData ?? []
+    categorias = categoriasData ?? []
   }
 
   return (
@@ -118,6 +141,62 @@ export default async function OrdenCompraPage({
         </p>
       </div>
 
+      {(ordenTipada.condiciones_pago ||
+        ordenTipada.fecha_entrega_esperada ||
+        ordenTipada.direccion_entrega ||
+        ordenTipada.metodo_envio ||
+        ordenTipada.referencia_proveedor ||
+        ordenTipada.notas_proveedor) && (
+        <section className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-border bg-card p-5 text-sm sm:grid-cols-2">
+          {ordenTipada.condiciones_pago && (
+            <p>
+              <span className="text-muted-foreground">Condiciones de pago</span>
+              <br />
+              <span className="font-medium text-foreground">
+                {nombresCondicionesPago[ordenTipada.condiciones_pago] ?? ordenTipada.condiciones_pago}
+              </span>
+            </p>
+          )}
+          {ordenTipada.fecha_entrega_esperada && (
+            <p>
+              <span className="text-muted-foreground">Entrega esperada</span>
+              <br />
+              <span className="font-medium text-foreground">{ordenTipada.fecha_entrega_esperada}</span>
+            </p>
+          )}
+          {ordenTipada.direccion_entrega && (
+            <p>
+              <span className="text-muted-foreground">Dirección de entrega</span>
+              <br />
+              <span className="font-medium text-foreground">{ordenTipada.direccion_entrega}</span>
+            </p>
+          )}
+          {ordenTipada.metodo_envio && (
+            <p>
+              <span className="text-muted-foreground">Método de envío</span>
+              <br />
+              <span className="font-medium text-foreground">
+                {nombresMetodoEnvio[ordenTipada.metodo_envio] ?? ordenTipada.metodo_envio}
+              </span>
+            </p>
+          )}
+          {ordenTipada.referencia_proveedor && (
+            <p>
+              <span className="text-muted-foreground">Referencia del proveedor</span>
+              <br />
+              <span className="font-medium text-foreground">{ordenTipada.referencia_proveedor}</span>
+            </p>
+          )}
+          {ordenTipada.notas_proveedor && (
+            <p className="sm:col-span-2">
+              <span className="text-muted-foreground">Notas para el proveedor</span>
+              <br />
+              <span className="font-medium text-foreground">{ordenTipada.notas_proveedor}</span>
+            </p>
+          )}
+        </section>
+      )}
+
       {ok && (
         <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -138,6 +217,7 @@ export default async function OrdenCompraPage({
               <th className="px-4 py-2 font-semibold">Descripción</th>
               <th className="px-4 py-2 font-semibold">Cantidad</th>
               <th className="px-4 py-2 font-semibold">Costo unit.</th>
+              <th className="px-4 py-2 font-semibold">Desc.</th>
               <th className="px-4 py-2 font-semibold">Subtotal</th>
               <th className="px-4 py-2 font-semibold">Recibido</th>
             </tr>
@@ -155,6 +235,9 @@ export default async function OrdenCompraPage({
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{d.cantidad}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{formatearPrecio(d.costo_unitario)}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">
+                  {d.descuento_pct > 0 ? `${d.descuento_pct}%` : '—'}
+                </td>
                 <td className="px-4 py-2.5 font-semibold text-foreground">{formatearPrecio(d.subtotal)}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">
                   {d.cantidad_recibida} / {d.cantidad}
@@ -163,7 +246,7 @@ export default async function OrdenCompraPage({
             ))}
             {listaDetalles.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                   Sin líneas todavía
                 </td>
               </tr>
@@ -171,7 +254,7 @@ export default async function OrdenCompraPage({
           </tbody>
           <tfoot>
             <tr className="border-t border-border">
-              <td colSpan={3} className="px-4 py-2.5 text-right text-sm font-semibold text-foreground">
+              <td colSpan={4} className="px-4 py-2.5 text-right text-sm font-semibold text-foreground">
                 Total
               </td>
               <td colSpan={2} className="px-4 py-2.5 text-sm font-bold text-foreground">
@@ -183,89 +266,129 @@ export default async function OrdenCompraPage({
       </section>
 
       {ordenTipada.estado === 'borrador' && puedeCrear && (
-        <section className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Agregar línea</h2>
-          <form action={agregarLineaCompra} className="mt-3 flex flex-col gap-3">
+        <SeccionFormulario
+          icon={ListPlus}
+          titulo="Agregar línea — pieza del maestro"
+          descripcion="Busca por código o nombre. Si la pieza no existe todavía, créala en el bloque de abajo."
+        >
+          <form action={agregarLineaCompra} className="flex flex-col gap-4">
             <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-            <select name="producto_id" defaultValue="" className={clasesCampo}>
-              <option value="">Sin vincular a una pieza específica</option>
-              {piezasSinCosto.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.codigo} — {p.nombre}
-                </option>
-              ))}
-            </select>
-            <input name="descripcion" required placeholder="Descripción" className={clasesCampo} />
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                name="cantidad"
-                type="number"
-                step="0.001"
-                min="0.001"
-                required
-                placeholder="Cantidad"
-                className={clasesCampo}
-              />
-              <input
-                name="costo_unitario"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                placeholder="Costo unitario (GTQ)"
-                className={clasesCampo}
-              />
+            <Campo label="Pieza">
+              <SelectorProducto productos={piezasDisponibles} name="producto_id" />
+            </Campo>
+            <Campo label="Descripción" helpText="Opcional si eliges una pieza arriba.">
+              <input name="descripcion" className={clasesInput} />
+            </Campo>
+            <div className="grid grid-cols-3 gap-4">
+              <Campo label="Cantidad" required>
+                <input name="cantidad" type="number" step="0.001" min="0.001" required className={clasesInput} />
+              </Campo>
+              <Campo label="Costo unitario (GTQ)" required>
+                <input name="costo_unitario" type="number" step="0.01" min="0" required className={clasesInput} />
+              </Campo>
+              <Campo label="% descuento">
+                <input name="descuento_pct" type="number" step="0.01" min="0" max="100" className={clasesInput} />
+              </Campo>
             </div>
-            <button
-              type="submit"
-              className="w-fit rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Agregar
-            </button>
+            <div>
+              <BotonPrimario>Agregar</BotonPrimario>
+            </div>
           </form>
-        </section>
+
+          <details className="mt-5 border-t border-border pt-4">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              La pieza no existe — crearla y agregarla de una vez
+            </summary>
+            <form action={crearProductoYAgregarLineaCompra} className="mt-3 flex flex-col gap-4">
+              <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
+              <Campo label="Nombre de la pieza" required>
+                <input name="nombre" required className={clasesInput} />
+              </Campo>
+              <div className="grid grid-cols-2 gap-4">
+                <Campo label="Categoría" required>
+                  <select name="categoria_id" required defaultValue="" className={clasesInput}>
+                    <option value="" disabled>
+                      Selecciona…
+                    </option>
+                    {categorias.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo label="Origen">
+                  <select name="origen" defaultValue="local" className={clasesInput}>
+                    <option value="local">Local</option>
+                    <option value="importado">Importado</option>
+                  </select>
+                </Campo>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Campo label="Tipo de inventario">
+                  <select name="modo_inventario" defaultValue="pieza_unica" className={clasesInput}>
+                    <option value="pieza_unica">Pieza única</option>
+                    <option value="por_cantidad">Referencia por cantidad</option>
+                  </select>
+                </Campo>
+                <Campo label="Cantidad inicial" helpText="Solo si es por cantidad.">
+                  <input name="cantidad_inicial_producto" type="number" step="1" min="1" className={clasesInput} />
+                </Campo>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Queda como borrador en Producción — luego se completa foto, material y demás desde
+                ahí. El costo real de esta línea se le asigna al recibir la mercadería.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <Campo label="Cantidad a comprar" required>
+                  <input name="cantidad" type="number" step="0.001" min="0.001" required className={clasesInput} />
+                </Campo>
+                <Campo label="Costo unitario (GTQ)" required>
+                  <input name="costo_unitario" type="number" step="0.01" min="0" required className={clasesInput} />
+                </Campo>
+              </div>
+              <div>
+                <BotonPrimario>Crear pieza y agregar</BotonPrimario>
+              </div>
+            </form>
+          </details>
+        </SeccionFormulario>
       )}
 
       {ordenTipada.estado === 'borrador' && puedeAutorizar && (
-        <section className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-5">
-          <form action={autorizarOrdenCompra}>
-            <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Autorizar orden
-            </button>
-          </form>
-          <details>
-            <summary className="cursor-pointer list-none text-sm font-semibold text-destructive">
-              Cancelar orden
-            </summary>
-            <form action={cancelarOrdenCompra} className="mt-2 flex flex-col gap-2">
+        <SeccionFormulario icon={ShieldCheck} titulo="Autorización">
+          <div className="flex flex-wrap items-center gap-3">
+            <form action={autorizarOrdenCompra}>
               <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-              <input name="motivo" required placeholder="Motivo" className={clasesCampo} />
-              <button
-                type="submit"
-                className="w-fit rounded-lg border border-destructive/40 px-4 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
-              >
-                Confirmar cancelación
-              </button>
+              <BotonPrimario>Autorizar orden</BotonPrimario>
             </form>
-          </details>
-        </section>
+            <details className="flex-1">
+              <summary className="cursor-pointer list-none text-sm font-semibold text-destructive">
+                Cancelar orden
+              </summary>
+              <form action={cancelarOrdenCompra} className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
+                <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
+                <Campo label="Motivo" required className="flex-1">
+                  <input name="motivo" required className={clasesInput} />
+                </Campo>
+                <BotonPeligro>Confirmar cancelación</BotonPeligro>
+              </form>
+            </details>
+          </div>
+        </SeccionFormulario>
       )}
 
       {(ordenTipada.estado === 'autorizada' || ordenTipada.estado === 'recibida_parcial') && puedeRecibir && (
-        <section className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Recibir mercadería</h2>
-          <div className="mt-3 flex flex-col gap-3">
+        <SeccionFormulario icon={PackageCheck} titulo="Recibir mercadería">
+          <div className="flex flex-col gap-3">
             {listaDetalles
               .filter((d) => d.cantidad_recibida < d.cantidad)
               .map((d) => (
                 <form
                   key={d.id}
                   action={recibirLineaCompra}
-                  className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-3"
+                  className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-secondary/30 p-3"
                 >
                   <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
                   <input type="hidden" name="detalle_id" value={d.id} />
@@ -282,7 +405,7 @@ export default async function OrdenCompraPage({
                     min="0.001"
                     required
                     placeholder="Cantidad recibida"
-                    className="w-40 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                    className="w-40 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
                   />
                   {d.producto_id && (
                     <input
@@ -291,52 +414,38 @@ export default async function OrdenCompraPage({
                       step="0.01"
                       min="0"
                       placeholder="Costo real (opcional)"
-                      className="w-44 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                      className="w-44 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
                     />
                   )}
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:opacity-90"
-                  >
-                    Recibir
-                  </button>
+                  <BotonPrimario className="px-4 py-2 text-xs">Recibir</BotonPrimario>
                 </form>
               ))}
           </div>
-        </section>
+        </SeccionFormulario>
       )}
 
       {ordenTipada.estado === 'recibida_total' && puedeFacturar && (
-        <section className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Facturar</h2>
-          <form action={marcarFacturadaCompra} className="mt-3 flex flex-wrap items-center gap-3">
+        <SeccionFormulario icon={Receipt} titulo="Facturar">
+          <form action={marcarFacturadaCompra} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-            <input name="numero_factura" required placeholder="Número de factura" className={clasesCampo} />
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Marcar facturada
-            </button>
+            <Campo label="Número de factura" required className="flex-1">
+              <input name="numero_factura" required className={clasesInput} />
+            </Campo>
+            <BotonPrimario>Marcar facturada</BotonPrimario>
           </form>
-        </section>
+        </SeccionFormulario>
       )}
 
       {ordenTipada.estado === 'facturada' && puedePagar && (
-        <section className="rounded-xl border border-border bg-card p-5">
+        <SeccionFormulario icon={Banknote} titulo="Pago">
           <p className="mb-3 text-sm text-muted-foreground">
             Factura {ordenTipada.numero_factura_proveedor}
           </p>
           <form action={marcarPagadaCompra}>
             <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Marcar pagada
-            </button>
+            <BotonPrimario>Marcar pagada</BotonPrimario>
           </form>
-        </section>
+        </SeccionFormulario>
       )}
     </main>
   )

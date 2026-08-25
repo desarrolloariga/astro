@@ -1,14 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { AlertCircle, ArrowLeft, UserPlus, Briefcase } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { crearContratacion } from '../acciones'
+import { Campo, SeccionFormulario, BotonPrimario, clasesInput } from '@/components/app/formulario'
 
 export const metadata = { title: 'Nueva solicitud de contratación — ASTRO' }
-
-const clasesCampo =
-  'rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none'
 
 export default async function NuevaContratacionPage({
   searchParams,
@@ -44,53 +42,54 @@ export default async function NuevaContratacionPage({
         </div>
       )}
 
-      <form action={crearContratacion} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-foreground">Nombre del candidato *</span>
-          <input name="candidato_nombre" required className={clasesCampo} />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-foreground">Contacto</span>
-          <input name="candidato_contacto" placeholder="Teléfono o correo" className={clasesCampo} />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-foreground">Puesto *</span>
-          <input name="puesto" required placeholder="Asesor de venta, tienda Zona 10…" className={clasesCampo} />
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Rol sugerido</span>
-            <select name="rol_sugerido_id" defaultValue="" className={clasesCampo}>
-              <option value="">—</option>
-              {(roles ?? []).map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Tienda</span>
-            <select name="tienda_id" defaultValue="" className={clasesCampo}>
-              <option value="">—</option>
-              {(tiendas ?? []).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
+      <form action={crearContratacion} className="flex flex-col gap-6">
+        <SeccionFormulario icon={UserPlus} titulo="Candidato">
+          <div className="flex flex-col gap-4">
+            <Campo label="Nombre del candidato" required>
+              <input name="candidato_nombre" required className={clasesInput} />
+            </Campo>
+            <Campo label="Contacto" helpText="Teléfono o correo.">
+              <input name="candidato_contacto" className={clasesInput} />
+            </Campo>
+          </div>
+        </SeccionFormulario>
+
+        <SeccionFormulario icon={Briefcase} titulo="Puesto">
+          <div className="flex flex-col gap-4">
+            <Campo label="Puesto" required>
+              <input name="puesto" required placeholder="Asesor de venta, tienda Zona 10…" className={clasesInput} />
+            </Campo>
+            <div className="grid grid-cols-2 gap-4">
+              <Campo label="Rol sugerido">
+                <select name="rol_sugerido_id" defaultValue="" className={clasesInput}>
+                  <option value="">—</option>
+                  {(roles ?? []).map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Tienda">
+                <select name="tienda_id" defaultValue="" className={clasesInput}>
+                  <option value="">—</option>
+                  {(tiendas ?? []).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            </div>
+            <Campo label="Salario propuesto (GTQ)">
+              <input name="salario_propuesto" type="number" step="0.01" min="0" className={clasesInput} />
+            </Campo>
+          </div>
+        </SeccionFormulario>
+
+        <div className="flex justify-end">
+          <BotonPrimario>Enviar solicitud</BotonPrimario>
         </div>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-foreground">Salario propuesto (GTQ)</span>
-          <input name="salario_propuesto" type="number" step="0.01" min="0" className={clasesCampo} />
-        </label>
-        <button
-          type="submit"
-          className="w-fit rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-        >
-          Enviar solicitud
-        </button>
       </form>
     </main>
   )

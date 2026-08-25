@@ -29,6 +29,10 @@ export async function crearProveedor(formData: FormData) {
     contacto_correo: String(formData.get('contacto_correo') ?? '').trim() || null,
     nit: String(formData.get('nit') ?? '').trim() || null,
     direccion: String(formData.get('direccion') ?? '').trim() || null,
+    banco: String(formData.get('banco') ?? '').trim() || null,
+    cuenta_bancaria: String(formData.get('cuenta_bancaria') ?? '').trim() || null,
+    terminos_pago_default: String(formData.get('terminos_pago_default') ?? '').trim() || null,
+    sitio_web: String(formData.get('sitio_web') ?? '').trim() || null,
   })
 
   revalidatePath('/admin/proveedores')
@@ -54,6 +58,10 @@ export async function actualizarProveedor(formData: FormData) {
       contacto_correo: String(formData.get('contacto_correo') ?? '').trim() || null,
       nit: String(formData.get('nit') ?? '').trim() || null,
       direccion: String(formData.get('direccion') ?? '').trim() || null,
+      banco: String(formData.get('banco') ?? '').trim() || null,
+      cuenta_bancaria: String(formData.get('cuenta_bancaria') ?? '').trim() || null,
+      terminos_pago_default: String(formData.get('terminos_pago_default') ?? '').trim() || null,
+      sitio_web: String(formData.get('sitio_web') ?? '').trim() || null,
     })
     .eq('id', id)
 

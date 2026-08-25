@@ -1,2 +1,2 @@
-codigo,nombre,descripcion,categoria,material,origen,costo_produccion,volumen_ml,fragancia,modo_inventario,cantidad,atributos_json
-LOC-0001,Locion Bloom 100ml,Locion floral de larga duracion,Lociones,,local,45.00,100,Floral,por_cantidad,20,{}
+codigo,nombre,descripcion,categoria,material,origen,costo_produccion,volumen_ml,fragancia,modo_inventario,cantidad,marca,coleccion,codigo_barras,etiquetas,proveedor,punto_reorden,atributos_json
+LOC-0001,Locion Bloom 100ml,Locion floral de larga duracion,Lociones,,local,45.00,100,Floral,por_cantidad,20,Bloom,,7501234567890,novedad,,5,{}

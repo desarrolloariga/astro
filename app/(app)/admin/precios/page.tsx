@@ -4,11 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora } from '@/lib/formato'
 import { actualizarParametroPrecio, crearExcepcionParametroPrecio, desactivarParametroPrecio } from './acciones'
+import { Campo, BotonPrimario, clasesInput as clasesCampo } from '@/components/app/formulario'
 
 export const metadata = { title: 'Precios — ASTRO' }
-
-const clasesCampo =
-  'rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none'
 
 const CLAVES = [
   'factor_importacion',
@@ -127,12 +125,7 @@ export default async function AdminPreciosPage({
                   placeholder="Motivo del cambio"
                   className="min-w-40 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:opacity-90"
-                >
-                  Guardar
-                </button>
+                <BotonPrimario className="px-3 py-2 text-xs">Guardar</BotonPrimario>
               </form>
             )
           })}
@@ -181,54 +174,45 @@ export default async function AdminPreciosPage({
             <PlusCircle className="h-4 w-4 text-primary" />
             Nueva excepción
           </summary>
-          <form action={crearExcepcionParametroPrecio} className="flex flex-col gap-3 px-4 pb-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <select name="clave" required defaultValue="" className={clasesCampo}>
-                <option value="" disabled>
-                  Factor
-                </option>
-                {CLAVES.map((c) => (
-                  <option key={c} value={c}>
-                    {nombresClave[c]}
+          <form action={crearExcepcionParametroPrecio} className="flex flex-col gap-4 px-4 pb-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Campo label="Factor" required>
+                <select name="clave" required defaultValue="" className={clasesCampo}>
+                  <option value="" disabled>
+                    Selecciona…
                   </option>
-                ))}
-              </select>
-              <input
-                name="valor_pct"
-                type="number"
-                step="0.01"
-                required
-                placeholder="% del factor"
-                className={clasesCampo}
-              />
+                  {CLAVES.map((c) => (
+                    <option key={c} value={c}>
+                      {nombresClave[c]}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="% del factor" required>
+                <input name="valor_pct" type="number" step="0.01" required className={clasesCampo} />
+              </Campo>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <select name="categoria_id" defaultValue="" className={clasesCampo}>
-                <option value="">Sin categoría específica</option>
-                {listaCategorias.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-              <input
-                name="producto_id"
-                type="number"
-                placeholder="ID de pieza específica (opcional)"
-                className={clasesCampo}
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Campo label="Categoría" helpText="Indica categoría o pieza — al menos una de las dos.">
+                <select name="categoria_id" defaultValue="" className={clasesCampo}>
+                  <option value="">Sin categoría específica</option>
+                  {listaCategorias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="ID de pieza específica" helpText="La más específica gana sobre el factor global.">
+                <input name="producto_id" type="number" className={clasesCampo} />
+              </Campo>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Indica categoría o pieza — al menos una de las dos. La más específica gana sobre el
-              factor global.
-            </p>
-            <input name="motivo" placeholder="Motivo (opcional)" className={clasesCampo} />
-            <button
-              type="submit"
-              className="mt-1 w-fit rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Crear excepción
-            </button>
+            <Campo label="Motivo">
+              <input name="motivo" className={clasesCampo} />
+            </Campo>
+            <div>
+              <BotonPrimario>Crear excepción</BotonPrimario>
+            </div>
           </form>
         </details>
       </section>

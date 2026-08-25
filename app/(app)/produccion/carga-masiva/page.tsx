@@ -18,9 +18,10 @@ export default async function CargaMasivaPage({
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: categorias }, { data: materiales }] = await Promise.all([
+  const [{ data: categorias }, { data: materiales }, { data: proveedores }] = await Promise.all([
     supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
     supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+    supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
   ])
 
   return (
@@ -47,7 +48,7 @@ export default async function CargaMasivaPage({
         </div>
       )}
 
-      <CargadorMasivo categorias={categorias ?? []} materiales={materiales ?? []} />
+      <CargadorMasivo categorias={categorias ?? []} materiales={materiales ?? []} proveedores={proveedores ?? []} />
     </main>
   )
 }

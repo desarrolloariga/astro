@@ -252,24 +252,56 @@ export default async function VentasPage({
                   <form
                     action={subirComprobante}
                     encType="multipart/form-data"
-                    className="flex flex-wrap items-center gap-2"
+                    className="flex flex-col gap-2"
                   >
                     <input type="hidden" name="pago_id" value={pago.id} />
                     <input type="hidden" name="venta_id" value={v.id} />
-                    <input
-                      type="file"
-                      name="archivo"
-                      required
-                      accept="image/*,application/pdf"
-                      className="flex-1 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-foreground"
-                    />
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:opacity-90"
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      Subir comprobante
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        name="archivo"
+                        required
+                        accept="image/*,application/pdf"
+                        className="flex-1 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:py-1.5 file:text-xs file:font-semibold file:text-foreground"
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:opacity-90"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        Subir comprobante
+                      </button>
+                    </div>
+                    <details>
+                      <summary className="cursor-pointer list-none text-[11px] font-semibold text-primary">
+                        + Datos del depósito/transferencia (opcional, agiliza la conciliación)
+                      </summary>
+                      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <input
+                          name="numero_referencia"
+                          placeholder="N.° de referencia"
+                          className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        />
+                        <input
+                          name="banco_origen"
+                          placeholder="Banco de origen"
+                          className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        />
+                        <input
+                          name="fecha_pago"
+                          type="date"
+                          className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+                        />
+                        <input
+                          name="monto_declarado"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Monto depositado"
+                          className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                    </details>
                   </form>
                 )}
 

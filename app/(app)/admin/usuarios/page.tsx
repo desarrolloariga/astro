@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, CheckCircle2, UserPlus, Users, Network, UserCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, UserPlus, Users, Network, UserCircle, IdCard, Shield, Wallet2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { crearUsuario, actualizarUsuario, alternarActivoUsuario } from './acciones'
+import { Campo, SeccionFormulario, BotonPrimario, clasesInput } from '@/components/app/formulario'
 
 export const metadata = { title: 'Usuarios — ASTRO' }
 
@@ -38,6 +39,7 @@ export default async function AdminUsuariosPage({
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
   if (!(await tienePermiso('usuarios', 'ver'))) redirect('/inicio')
+  const puedeVerLaboral = await tienePermiso('usuarios', 'editar_laboral')
 
   const { ok, error } = await searchParams
   const supabase = await createClient()
@@ -87,82 +89,136 @@ export default async function AdminUsuariosPage({
         </div>
       )}
 
-      <details className="rounded-xl border border-border bg-card">
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+      <details className="rounded-xl border border-border bg-card shadow-xs">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-sm font-semibold text-foreground">
           <UserPlus className="h-4 w-4 text-primary" />
           Crear usuario
         </summary>
-        <form action={crearUsuario} className="flex flex-col gap-3 px-4 pb-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <input
-              name="nombre"
-              required
-              placeholder="Nombre completo"
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-            />
-            <input
-              name="correo"
-              type="email"
-              required
-              placeholder="Correo electrónico"
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-            />
+        <form action={crearUsuario} className="flex flex-col gap-4 px-5 pb-5">
+          <SeccionFormulario icon={IdCard} titulo="Cuenta" className="border-0 bg-secondary/30 p-4 shadow-none">
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Campo label="Nombre completo" required>
+                  <input name="nombre" required className={clasesInput} />
+                </Campo>
+                <Campo label="Correo electrónico" required>
+                  <input name="correo" type="email" required className={clasesInput} />
+                </Campo>
+              </div>
+              <Campo label="Teléfono">
+                <input name="telefono" className={clasesInput} />
+              </Campo>
+              <Campo
+                label="Contraseña temporal"
+                required
+                helpText="Mínimo 8 caracteres — pídele a la persona que la cambie al ingresar."
+              >
+                <input name="contrasena" type="text" required minLength={8} className={clasesInput} />
+              </Campo>
+            </div>
+          </SeccionFormulario>
+
+          <SeccionFormulario icon={Shield} titulo="Rol y jerarquía" className="border-0 bg-secondary/30 p-4 shadow-none">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Campo label="Rol" required>
+                <select name="rol_nombre" required defaultValue="" className={clasesInput}>
+                  <option value="" disabled>
+                    Selecciona…
+                  </option>
+                  {listaRoles.map((r) => (
+                    <option key={r.id} value={r.nombre}>
+                      {nombresRol[r.nombre] ?? r.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Tienda">
+                <select name="tienda_id" defaultValue="" className={clasesInput}>
+                  <option value="">Sin tienda asignada</option>
+                  {listaTiendas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Superior directo">
+                <select name="superior_id" defaultValue="" className={clasesInput}>
+                  <option value="">Sin superior directo</option>
+                  {superioresPosibles.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre} ({nombresRol[u.roles?.nombre ?? ''] ?? u.roles?.nombre})
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            </div>
+          </SeccionFormulario>
+
+          {puedeVerLaboral && (
+            <details className="rounded-lg border border-border">
+              <summary className="cursor-pointer list-none px-4 py-2.5 text-xs font-semibold text-primary">
+                + Datos laborales (opcional, solo admin/contabilidad)
+              </summary>
+              <SeccionFormulario icon={Wallet2} titulo="Datos laborales" className="mx-3 mb-3 border-0 bg-secondary/30 p-4 shadow-none">
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Campo label="DPI">
+                      <input name="dpi" className={clasesInput} />
+                    </Campo>
+                    <Campo label="NIT">
+                      <input name="nit_laboral" className={clasesInput} />
+                    </Campo>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Campo label="Fecha de nacimiento">
+                      <input name="fecha_nacimiento" type="date" className={clasesInput} />
+                    </Campo>
+                    <Campo label="Fecha de ingreso">
+                      <input name="fecha_ingreso" type="date" className={clasesInput} />
+                    </Campo>
+                  </div>
+                  <Campo label="Dirección">
+                    <input name="direccion_laboral" className={clasesInput} />
+                  </Campo>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Campo label="Contacto de emergencia">
+                      <input name="contacto_emergencia_nombre" className={clasesInput} />
+                    </Campo>
+                    <Campo label="Teléfono de emergencia">
+                      <input name="contacto_emergencia_telefono" className={clasesInput} />
+                    </Campo>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Campo label="Tipo de contrato">
+                      <select name="tipo_contrato" defaultValue="" className={clasesInput}>
+                        <option value="">Selecciona…</option>
+                        <option value="planilla">Planilla</option>
+                        <option value="honorarios">Honorarios</option>
+                        <option value="temporal">Temporal</option>
+                        <option value="comision_pura">Comisión pura</option>
+                      </select>
+                    </Campo>
+                    <Campo label="Salario base (GTQ)">
+                      <input name="salario_base" type="number" step="0.01" min="0" className={clasesInput} />
+                    </Campo>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Campo label="Banco">
+                      <input name="banco_laboral" className={clasesInput} />
+                    </Campo>
+                    <Campo label="Cuenta bancaria">
+                      <input name="cuenta_bancaria_laboral" className={clasesInput} />
+                    </Campo>
+                  </div>
+                </div>
+              </SeccionFormulario>
+            </details>
+          )}
+
+          <div className="flex justify-end">
+            <BotonPrimario>Crear usuario</BotonPrimario>
           </div>
-          <input
-            name="contrasena"
-            type="text"
-            required
-            minLength={8}
-            placeholder="Contraseña temporal (mín. 8 caracteres) — pídele que la cambie al ingresar"
-            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-          />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <select
-              name="rol_nombre"
-              required
-              defaultValue=""
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              <option value="" disabled>
-                Rol
-              </option>
-              {listaRoles.map((r) => (
-                <option key={r.id} value={r.nombre}>
-                  {nombresRol[r.nombre] ?? r.nombre}
-                </option>
-              ))}
-            </select>
-            <select
-              name="tienda_id"
-              defaultValue=""
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              <option value="">Sin tienda asignada</option>
-              {listaTiendas.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-            <select
-              name="superior_id"
-              defaultValue=""
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              <option value="">Sin superior directo</option>
-              {superioresPosibles.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre} ({nombresRol[u.roles?.nombre ?? ''] ?? u.roles?.nombre})
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="mt-1 w-fit rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-          >
-            Crear usuario
-          </button>
         </form>
       </details>
 
@@ -252,9 +308,7 @@ export default async function AdminUsuariosPage({
                       ))}
                   </select>
                 </label>
-                <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90">
-                  Guardar cambios
-                </button>
+                <BotonPrimario className="px-4 py-2">Guardar cambios</BotonPrimario>
                 </form>
               </details>
             </div>

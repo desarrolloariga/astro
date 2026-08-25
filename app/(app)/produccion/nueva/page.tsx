@@ -18,10 +18,11 @@ export default async function NuevaPiezaPage({
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: categorias }, { data: materiales }, { data: parametrosPrecio }, { data: cedis }] =
+  const [{ data: categorias }, { data: materiales }, { data: proveedores }, { data: parametrosPrecio }, { data: cedis }] =
     await Promise.all([
       supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
       supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+      supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
       supabase
         .from('parametros_precio')
         .select('clave, valor_pct')
@@ -67,6 +68,7 @@ export default async function NuevaPiezaPage({
       <FormularioNuevaPieza
         categorias={categorias ?? []}
         materiales={materiales ?? []}
+        proveedores={proveedores ?? []}
         factores={factores}
         cedis={cedis ?? []}
       />
