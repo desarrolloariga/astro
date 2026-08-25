@@ -29,6 +29,10 @@ import {
   ScrollText,
   ShieldCheck,
   Calculator,
+  Handshake,
+  ShoppingCart,
+  Ship,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react'
 import type { Rol } from '@/lib/usuario'
@@ -238,6 +242,50 @@ export const secciones: SeccionNav[] = [
     ],
   },
   {
+    titulo: 'Compras',
+    slug: 'compras',
+    items: [
+      {
+        etiqueta: 'Proveedores',
+        descripcion: 'Datos de contacto y fiscales de cada proveedor',
+        href: '/admin/proveedores',
+        icono: Handshake,
+        roles: ['admin', 'coordinador', 'contabilidad', 'produccion'],
+        permiso: { modulo: 'proveedores', accion: 'ver' },
+      },
+      {
+        etiqueta: 'Órdenes de compra',
+        descripcion: 'Compras locales, desde borrador hasta pago',
+        href: '/compras',
+        icono: ShoppingCart,
+        roles: ['admin', 'coordinador', 'contabilidad', 'produccion'],
+        permiso: { modulo: 'compras', accion: 'ver' },
+      },
+      {
+        etiqueta: 'Importaciones',
+        descripcion: 'Embarques internacionales, hasta nacionalización y pago',
+        href: '/importaciones',
+        icono: Ship,
+        roles: ['admin', 'coordinador', 'contabilidad', 'produccion'],
+        permiso: { modulo: 'importaciones', accion: 'ver' },
+      },
+    ],
+  },
+  {
+    titulo: 'Personal',
+    slug: 'personal',
+    items: [
+      {
+        etiqueta: 'Contrataciones',
+        descripcion: 'Solicitudes de contratación y su decisión',
+        href: '/contrataciones',
+        icono: UserPlus,
+        roles: ['admin', 'coordinador', 'supervisor'],
+        permiso: { modulo: 'contrataciones', accion: 'ver' },
+      },
+    ],
+  },
+  {
     titulo: 'Contabilidad',
     slug: 'contabilidad',
     items: [
@@ -271,12 +319,12 @@ export const secciones: SeccionNav[] = [
         roles: ['admin'],
       },
       {
-        etiqueta: 'Costeo',
-        descripcion: 'Políticas de margen y porcentajes de costeo',
-        href: '/admin/costeo',
+        etiqueta: 'Precios',
+        descripcion: 'Factores del motor de precios calculado',
+        href: '/admin/precios',
         icono: Calculator,
         roles: ['admin'],
-        permiso: { modulo: 'costeo', accion: 'editar' },
+        permiso: { modulo: 'precios', accion: 'editar' },
       },
       {
         etiqueta: 'Academia',

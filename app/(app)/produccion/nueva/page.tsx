@@ -18,19 +18,28 @@ export default async function NuevaPiezaPage({
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: categorias }, { data: materiales }, { data: politicas }, { data: parametrosCosteo }, { data: cedis }] =
+  const [{ data: categorias }, { data: materiales }, { data: parametrosPrecio }, { data: cedis }] =
     await Promise.all([
       supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
       supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
-      supabase.from('politicas_margen').select('categoria_id, origen, margen_pct').eq('activo', true),
-      supabase.from('parametros').select('clave, valor').in('clave', ['pct_empaque', 'pct_flete_importado']),
+      supabase
+        .from('parametros_precio')
+        .select('clave, valor_pct')
+        .is('categoria_id', null)
+        .is('producto_id', null)
+        .eq('activo', true),
       supabase.from('tiendas').select('id, nombre').eq('tipo', 'cedi').eq('activo', true).order('nombre'),
     ])
 
-  const pctEmpaque = Number(parametrosCosteo?.find((p) => p.clave === 'pct_empaque')?.valor ?? 0)
-  const pctFleteImportado = Number(
-    parametrosCosteo?.find((p) => p.clave === 'pct_flete_importado')?.valor ?? 0,
-  )
+  const factorDe = (clave: string) => Number(parametrosPrecio?.find((p) => p.clave === clave)?.valor_pct ?? 0)
+  const factores = {
+    factor_importacion: factorDe('factor_importacion'),
+    factor_margen_local: factorDe('factor_margen_local'),
+    factor_envio: factorDe('factor_envio'),
+    factor_empaque: factorDe('factor_empaque'),
+    factor_impuesto: factorDe('factor_impuesto'),
+    factor_comision_embajador: factorDe('factor_comision_embajador'),
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -58,9 +67,7 @@ export default async function NuevaPiezaPage({
       <FormularioNuevaPieza
         categorias={categorias ?? []}
         materiales={materiales ?? []}
-        politicas={politicas ?? []}
-        pctEmpaque={pctEmpaque}
-        pctFleteImportado={pctFleteImportado}
+        factores={factores}
         cedis={cedis ?? []}
       />
     </main>

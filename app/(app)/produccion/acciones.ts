@@ -90,7 +90,6 @@ export async function crearPieza(formData: FormData) {
     kilataje: String(formData.get('kilataje') ?? '').trim() || null,
     piedras: String(formData.get('piedras') ?? '').trim() || null,
     costo_produccion: aNumero(formData.get('costo_produccion')),
-    precio_venta: aNumero(formData.get('precio_venta')),
     origen: formData.get('origen') === 'importado' ? 'importado' : 'local',
     modo_inventario: modoInventario,
     cantidad_inicial: cantidadInicial,
@@ -126,6 +125,16 @@ export async function crearPieza(formData: FormData) {
 
   if (!pieza) {
     redirect(`/produccion/nueva?error=${encodeURIComponent(error?.message ?? 'No se pudo crear el artículo')}`)
+  }
+
+  // El precio ya no se escribe a mano: si se indicó un costo, se
+  // calcula de una vez (mejor esfuerzo — un borrador puede guardarse
+  // sin costo todavía y fn_publicar_producto lo exigirá al publicar).
+  if (datosBase.costo_produccion != null && datosBase.costo_produccion > 0) {
+    await supabase.rpc('fn_recalcular_precio_producto', {
+      p_producto_id: pieza.id,
+      p_motivo: 'alta',
+    })
   }
 
   // Subida de fotos: el storage se escribe desde el servidor (service role)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { crearPieza } from '@/app/(app)/produccion/acciones'
 import { formatearPrecio } from '@/lib/formato'
 
@@ -9,47 +9,48 @@ const clasesCampo =
 
 type Categoria = { id: number; nombre: string; grupo: string }
 type Material = { id: number; nombre: string }
-type PoliticaMargen = { categoria_id: number | null; origen: string; margen_pct: number }
+type FactoresPrecio = {
+  factor_importacion: number
+  factor_margen_local: number
+  factor_envio: number
+  factor_empaque: number
+  factor_impuesto: number
+  factor_comision_embajador: number
+}
 type Cedi = { id: number; nombre: string }
 
 export function FormularioNuevaPieza({
   categorias,
   materiales,
-  politicas,
-  pctEmpaque,
-  pctFleteImportado,
+  factores,
   cedis,
 }: {
   categorias: Categoria[]
   materiales: Material[]
-  politicas: PoliticaMargen[]
-  pctEmpaque: number
-  pctFleteImportado: number
+  factores: FactoresPrecio
   cedis: Cedi[]
 }) {
   const [categoriaId, setCategoriaId] = useState('')
   const [origen, setOrigen] = useState('local')
   const [costo, setCosto] = useState('')
   const [modoInventario, setModoInventario] = useState('pieza_unica')
-  const precioVentaRef = useRef<HTMLInputElement>(null)
 
   const grupo = categorias.find((c) => String(c.id) === categoriaId)?.grupo ?? 'joyeria'
 
-  const sugerencia = useMemo(() => {
+  // Vista previa client-side de la misma cascada que corre en el
+  // servidor (fn_calcular_precio) — el valor real y auditable se
+  // calcula y guarda ahí; esto es solo una estimación en pantalla.
+  const estimado = useMemo(() => {
     const costoNum = Number(costo.replace(',', '.'))
     if (!Number.isFinite(costoNum) || costoNum <= 0) return null
 
-    const catId = categoriaId ? Number(categoriaId) : null
-    const politica =
-      politicas.find((p) => p.origen === origen && p.categoria_id === catId) ??
-      politicas.find((p) => p.origen === origen && p.categoria_id === null)
-    if (!politica) return null
-
-    const costoTotal =
-      costoNum * (1 + pctEmpaque / 100) * (1 + (origen === 'importado' ? pctFleteImportado / 100 : 0))
-    const precioSugerido = costoTotal * (1 + politica.margen_pct / 100)
-    return { precioSugerido, margenPct: politica.margen_pct }
-  }, [costo, categoriaId, origen, politicas, pctEmpaque, pctFleteImportado])
+    const factorOrigen = origen === 'importado' ? factores.factor_importacion : factores.factor_margen_local
+    const costoOrigen = costoNum * (1 + factorOrigen / 100)
+    const costoLogistico = costoOrigen * (1 + (factores.factor_envio + factores.factor_empaque) / 100)
+    const precioSinImpuesto = costoLogistico / (1 - factores.factor_comision_embajador / 100)
+    const impuesto = precioSinImpuesto * (factores.factor_impuesto / 100)
+    return { precioFinal: precioSinImpuesto + impuesto }
+  }, [costo, origen, factores])
 
   return (
     <form action={crearPieza} className="flex flex-col gap-6">
@@ -251,38 +252,20 @@ export function FormularioNuevaPieza({
               Solo visible para administración y contabilidad.
             </span>
           </label>
-          <label className="flex flex-col gap-1.5 sm:col-span-2">
-            <span className="text-sm font-medium text-foreground">Precio de venta (GTQ) *</span>
-            <input
-              ref={precioVentaRef}
-              name="precio_venta"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              placeholder="4990.00"
-              className={clasesCampo}
-            />
-            {sugerencia && (
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                Precio sugerido ({sugerencia.margenPct}% de margen):{' '}
-                <span className="font-semibold text-foreground">
-                  {formatearPrecio(sugerencia.precioSugerido)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (precioVentaRef.current) {
-                      precioVentaRef.current.value = sugerencia.precioSugerido.toFixed(2)
-                    }
-                  }}
-                  className="rounded-full border border-border px-2 py-0.5 font-semibold text-primary hover:bg-secondary"
-                >
-                  Usar
-                </button>
+          <div className="flex flex-col gap-1.5 rounded-lg bg-secondary/50 px-3 py-2.5 sm:col-span-2">
+            <span className="text-sm font-medium text-foreground">Precio de venta</span>
+            {estimado ? (
+              <span className="text-lg font-bold text-foreground">
+                ≈ {formatearPrecio(estimado.precioFinal)}
               </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Indica el costo para ver el estimado</span>
             )}
-          </label>
+            <span className="text-xs text-muted-foreground">
+              Se calcula automáticamente a partir del costo — el valor final y auditable se confirma
+              al guardar.
+            </span>
+          </div>
         </div>
       </section>
 

@@ -13,7 +13,6 @@ type PiezaCargaMasiva = {
   material_id: number | null
   origen: 'local' | 'importado'
   costo_produccion: number | null
-  precio_venta: number | null
   peso_gramos: number | null
   kilataje: string | null
   piedras: string | null
@@ -59,7 +58,6 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
     material_id: p.material_id,
     origen: p.origen === 'importado' ? 'importado' : 'local',
     costo_produccion: p.costo_produccion,
-    precio_venta: p.precio_venta,
     peso_gramos: p.peso_gramos,
     kilataje: p.kilataje?.trim() || null,
     piedras: p.piedras?.trim() || null,
@@ -70,12 +68,33 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
     creado_por: usuario.id,
   }))
 
-  const { data: creadas, error } = await supabase.from('productos').insert(filas).select('id')
+  const { data: creadas, error } = await supabase.from('productos').insert(filas).select('id, costo_produccion')
 
   revalidatePath('/produccion')
   if (error) {
     const mensaje = error.code === '23505' ? 'Uno o más códigos ya existen' : error.message
     redirect(`/produccion/carga-masiva?error=${encodeURIComponent(mensaje)}`)
   }
-  redirect(`/produccion?ok=${encodeURIComponent(`${creadas?.length ?? 0} artículos cargados como borrador`)}`)
+
+  // El precio ya no se escribe a mano: se calcula por fila, mejor
+  // esfuerzo (una fila sin costo válido simplemente queda sin precio
+  // hasta que se complete su ficha).
+  let sinCosto = 0
+  for (const fila of creadas ?? []) {
+    if (fila.costo_produccion == null || fila.costo_produccion <= 0) {
+      sinCosto++
+      continue
+    }
+    await supabase.rpc('fn_recalcular_precio_producto', {
+      p_producto_id: fila.id,
+      p_motivo: 'carga_masiva',
+    })
+  }
+
+  redirect(
+    `/produccion?ok=${encodeURIComponent(
+      `${creadas?.length ?? 0} artículos cargados como borrador` +
+        (sinCosto > 0 ? ` (${sinCosto} sin costo, sin precio todavía)` : ''),
+    )}`,
+  )
 }

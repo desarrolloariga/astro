@@ -25,7 +25,6 @@ type FilaValidada = {
     material_id: number | null
     origen: 'local' | 'importado'
     costo_produccion: number | null
-    precio_venta: number | null
     peso_gramos: number | null
     kilataje: string | null
     piedras: string | null
@@ -124,7 +123,6 @@ function validarFilas(filas: FilaCsv[], grupo: string, categorias: Categoria[], 
               material_id: materialId,
               origen,
               costo_produccion: aNumeroONull(raw.costo_produccion),
-              precio_venta: aNumeroONull(raw.precio_venta),
               peso_gramos: grupo === 'joyeria' ? aNumeroONull(raw.peso_gramos) : null,
               kilataje: grupo === 'joyeria' ? raw.kilataje?.trim() || null : null,
               piedras: grupo === 'joyeria' ? raw.piedras?.trim() || null : null,
