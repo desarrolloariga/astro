@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Gem, Menu, X, LogOut, Search } from 'lucide-react'
+import { Gem, Menu, X, LogOut, Search, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { cerrarSesion } from '@/app/(auth)/acciones'
 import { seccionesParaRol, nombresRol } from '@/lib/navegacion'
@@ -22,7 +22,17 @@ export function AppShell({
 }) {
   const [abierto, setAbierto] = useState(false)
   const [busqueda, setBusqueda] = useState('')
+  const [seccionesColapsadas, setSeccionesColapsadas] = useState<Set<string>>(new Set())
   const pathname = usePathname()
+
+  function alternarSeccion(slug: string) {
+    setSeccionesColapsadas((prev) => {
+      const siguiente = new Set(prev)
+      if (siguiente.has(slug)) siguiente.delete(slug)
+      else siguiente.add(slug)
+      return siguiente
+    })
+  }
 
   const seccionesVisibles = useMemo(
     () => seccionesParaRol(usuario.rol, permisosExtra, permisosRevocados),
@@ -107,40 +117,58 @@ export function AppShell({
           {seccionesFiltradas.length === 0 && (
             <p className="px-3 pt-4 text-xs text-sidebar-foreground/50">Sin resultados</p>
           )}
-          {seccionesFiltradas.map((seccion) => (
-            <div key={seccion.titulo}>
-              <Link
-                href={`/inicio#${seccion.slug}`}
-                onClick={() => setAbierto(false)}
-                className="block px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/45 transition-colors hover:text-sidebar-foreground/80"
-              >
-                {seccion.titulo}
-              </Link>
-              <div className="flex flex-col gap-0.5">
-                {seccion.items.map((item) => {
-                  const activo =
-                    pathname === item.href ||
-                    (item.href !== '/inicio' && pathname.startsWith(item.href + '/'))
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setAbierto(false)}
-                      className={cn(
-                        'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                        activo
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-                      )}
-                    >
-                      <item.icono className="h-4 w-4 shrink-0" strokeWidth={2} />
-                      <span className="flex-1 truncate">{item.etiqueta}</span>
-                    </Link>
-                  )
-                })}
+          {seccionesFiltradas.map((seccion) => {
+            const expandida = consulta.length > 0 || !seccionesColapsadas.has(seccion.slug)
+            return (
+              <div key={seccion.titulo}>
+                <div className="flex items-center px-1 pb-1 pt-4">
+                  <Link
+                    href={`/inicio#${seccion.slug}`}
+                    onClick={() => setAbierto(false)}
+                    className="flex-1 truncate px-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/45 transition-colors hover:text-sidebar-foreground/80"
+                  >
+                    {seccion.titulo}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => alternarSeccion(seccion.slug)}
+                    aria-expanded={expandida}
+                    aria-label={expandida ? `Contraer ${seccion.titulo}` : `Expandir ${seccion.titulo}`}
+                    className="rounded p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground/80"
+                  >
+                    <ChevronDown
+                      className={cn('h-3 w-3 transition-transform duration-200', !expandida && '-rotate-90')}
+                    />
+                  </button>
+                </div>
+                {expandida && (
+                  <div className="flex flex-col gap-0.5">
+                    {seccion.items.map((item) => {
+                      const activo =
+                        pathname === item.href ||
+                        (item.href !== '/inicio' && pathname.startsWith(item.href + '/'))
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setAbierto(false)}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                            activo
+                              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+                          )}
+                        >
+                          <item.icono className="h-4 w-4 shrink-0" strokeWidth={2} />
+                          <span className="flex-1 truncate">{item.etiqueta}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         <div className="shrink-0 border-t border-sidebar-border p-3">
