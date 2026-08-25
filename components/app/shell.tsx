@@ -61,21 +61,22 @@ export function AppShell({
     .toUpperCase()
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
-      {/* Fondo del menú lateral */}
+    <div className="flex min-h-svh bg-background">
+      {/* Fondo del menú lateral — solo aplica en móvil, el menú es fijo desde md: */}
       <div
         onClick={() => setAbierto(false)}
         aria-hidden={!abierto}
         className={cn(
-          'fixed inset-0 z-30 bg-foreground/40 backdrop-blur-sm transition-opacity duration-300',
+          'fixed inset-0 z-30 bg-foreground/40 backdrop-blur-sm transition-opacity duration-300 md:hidden',
           abierto ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       />
 
-      {/* Menú lateral */}
+      {/* Menú lateral — siempre visible desde md:, en móvil sigue siendo un cajón deslizable */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-xl transition-transform duration-300 ease-out',
+          'md:sticky md:top-0 md:z-0 md:h-svh md:shrink-0 md:translate-x-0 md:shadow-none',
           abierto ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -93,7 +94,7 @@ export function AppShell({
           </div>
           <button
             onClick={() => setAbierto(false)}
-            className="ml-auto rounded-md p-1.5 text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="ml-auto rounded-md p-1.5 text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden"
             aria-label="Cerrar menú"
           >
             <X className="h-5 w-5" />
@@ -197,30 +198,32 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* Barra superior */}
-      <header className="sticky top-0 z-20">
-        <div className="flex h-16 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur md:px-6">
-          <button
-            onClick={() => setAbierto(true)}
-            className="flex shrink-0 items-center gap-2 rounded-md px-2.5 py-2 text-foreground/80 transition-colors hover:bg-secondary"
-            aria-label="Abrir menú"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deeper text-brand-deeper-foreground">
-            <Gem className="h-5 w-5" strokeWidth={1.8} />
+      {/* Columna derecha: barra superior (solo móvil) + contenido */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20">
+          <div className="flex h-16 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur md:hidden">
+            <button
+              onClick={() => setAbierto(true)}
+              className="flex shrink-0 items-center gap-2 rounded-md px-2.5 py-2 text-foreground/80 transition-colors hover:bg-secondary"
+              aria-label="Abrir menú"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deeper text-brand-deeper-foreground">
+              <Gem className="h-5 w-5" strokeWidth={1.8} />
+            </div>
+            <div className="leading-tight">
+              <span className="block text-base font-bold tracking-tight text-foreground">ASTRO</span>
+              <span className="block text-[11px] font-medium text-muted-foreground">
+                Ecosistema Comercial
+              </span>
+            </div>
           </div>
-          <div className="leading-tight">
-            <span className="block text-base font-bold tracking-tight text-foreground">ASTRO</span>
-            <span className="block text-[11px] font-medium text-muted-foreground">
-              Ecosistema Comercial
-            </span>
-          </div>
-        </div>
-        <div className="h-1.5 bg-brand-deeper" />
-      </header>
+          <div className="h-1.5 bg-brand-deeper" />
+        </header>
 
-      <div className="flex-1">{children}</div>
+        <div className="flex-1">{children}</div>
+      </div>
     </div>
   )
 }
