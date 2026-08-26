@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type ChangeEvent } from 'react'
 import Papa from 'papaparse'
-import { Download, Upload, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Download, Upload, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
 import { cargarPiezasMasivo } from '@/app/(app)/produccion/carga-masiva/acciones'
 
 type Categoria = { id: number; nombre: string; grupo: string }
@@ -18,12 +18,13 @@ type FilaValidada = {
   categoriaTexto: string
   cantidadTexto: string
   errores: string[]
+  nuevasDependencias: string[]
   datos: {
     codigo: string
     nombre: string
     descripcion: string | null
-    categoria_id: number
-    material_id: number | null
+    categoria: string
+    material: string | null
     origen: 'local' | 'importado'
     costo_produccion: number | null
     peso_gramos: number | null
@@ -36,7 +37,7 @@ type FilaValidada = {
     coleccion: string | null
     codigo_barras: string | null
     etiquetas: string[]
-    proveedor_id: number | null
+    proveedor: string | null
     punto_reorden: number | null
   } | null
 }
@@ -68,25 +69,25 @@ function validarFilas(
     if (!codigo) errores.push('Falta código')
     if (!nombre) errores.push('Falta nombre')
 
+    // Categoría, material y proveedor ya no bloquean la fila si no
+    // existen todavía — se crean automáticamente al confirmar la
+    // carga (se informa en "nuevasDependencias", no como error).
+    const nuevasDependencias: string[] = []
+
     const categoriaTexto = (raw.categoria ?? '').trim()
-    const categoria = categorias.find((c) => c.nombre.toLowerCase() === categoriaTexto.toLowerCase())
     if (!categoriaTexto) errores.push('Falta categoría')
-    else if (!categoria) errores.push(`Categoría "${categoriaTexto}" no existe`)
+    else if (!categorias.some((c) => c.nombre.toLowerCase() === categoriaTexto.toLowerCase())) {
+      nuevasDependencias.push(`Categoría "${categoriaTexto}"`)
+    }
 
     const materialTexto = (raw.material ?? '').trim()
-    let materialId: number | null = null
-    if (materialTexto) {
-      const material = materiales.find((m) => m.nombre.toLowerCase() === materialTexto.toLowerCase())
-      if (!material) errores.push(`Material "${materialTexto}" no existe`)
-      else materialId = material.id
+    if (materialTexto && !materiales.some((m) => m.nombre.toLowerCase() === materialTexto.toLowerCase())) {
+      nuevasDependencias.push(`Material "${materialTexto}"`)
     }
 
     const proveedorTexto = (raw.proveedor ?? '').trim()
-    let proveedorId: number | null = null
-    if (proveedorTexto) {
-      const proveedor = proveedores.find((p) => p.nombre.toLowerCase() === proveedorTexto.toLowerCase())
-      if (!proveedor) errores.push(`Proveedor "${proveedorTexto}" no existe`)
-      else proveedorId = proveedor.id
+    if (proveedorTexto && !proveedores.some((p) => p.nombre.toLowerCase() === proveedorTexto.toLowerCase())) {
+      nuevasDependencias.push(`Proveedor "${proveedorTexto}"`)
     }
 
     const origenTexto = (raw.origen ?? '').trim().toLowerCase()
@@ -134,14 +135,15 @@ function validarFilas(
       categoriaTexto,
       cantidadTexto: modoInventario === 'por_cantidad' ? String(cantidadInicial ?? '') : 'Única',
       errores,
+      nuevasDependencias,
       datos:
         errores.length === 0
           ? {
               codigo,
               nombre,
               descripcion: raw.descripcion?.trim() || null,
-              categoria_id: categoria!.id,
-              material_id: materialId,
+              categoria: categoriaTexto,
+              material: materialTexto || null,
               origen,
               costo_produccion: aNumeroONull(raw.costo_produccion),
               peso_gramos: grupo === 'joyeria' ? aNumeroONull(raw.peso_gramos) : null,
@@ -157,7 +159,7 @@ function validarFilas(
                 .split(',')
                 .map((t) => t.trim())
                 .filter(Boolean),
-              proveedor_id: proveedorId,
+              proveedor: proveedorTexto || null,
               punto_reorden: aNumeroONull(raw.punto_reorden),
             }
           : null,
@@ -181,6 +183,7 @@ export function CargadorMasivo({
 
   const totalErrores = filas.reduce((acc, f) => acc + f.errores.length, 0)
   const puedeConfirmar = filas.length > 0 && totalErrores === 0 && !pending
+  const dependenciasNuevas = Array.from(new Set(filas.flatMap((f) => f.nuevasDependencias))).sort()
 
   function manejarArchivo(e: ChangeEvent<HTMLInputElement>) {
     const archivo = e.target.files?.[0]
@@ -198,7 +201,7 @@ export function CargadorMasivo({
   function confirmar() {
     const datos = filas.map((f) => f.datos).filter((d): d is NonNullable<typeof d> => d !== null)
     startTransition(async () => {
-      await cargarPiezasMasivo(datos)
+      await cargarPiezasMasivo(datos, grupo)
     })
   }
 
@@ -268,6 +271,16 @@ export function CargadorMasivo({
               </span>
             )}
           </div>
+
+          {dependenciasNuevas.length > 0 && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg bg-accent px-3 py-2.5 text-xs text-accent-foreground">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                Se crearán automáticamente: <strong>{dependenciasNuevas.join(', ')}</strong>
+              </span>
+            </div>
+          )}
+
           <div className="max-h-96 overflow-y-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card">
@@ -286,7 +299,14 @@ export function CargadorMasivo({
                     <td className="px-3 py-2 text-muted-foreground">{f.fila}</td>
                     <td className="px-3 py-2 text-foreground">{f.codigo || '—'}</td>
                     <td className="px-3 py-2 text-foreground">{f.nombre || '—'}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{f.categoriaTexto || '—'}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {f.categoriaTexto || '—'}
+                      {f.nuevasDependencias.some((d) => d.startsWith('Categoría')) && (
+                        <span className="ml-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-foreground">
+                          nueva
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">{f.cantidadTexto || '—'}</td>
                     <td className="px-3 py-2">
                       {f.errores.length === 0 ? (
