@@ -42,10 +42,15 @@ type FilaValidada = {
   } | null
 }
 
+// Las 3 plantillas corresponden 1:1 a las categorías con margen propio
+// (ver /admin/precios) — el ejemplo de cada una trae la "Categoría"
+// ya llenada con ese nombre exacto, así que descargar y subir la
+// plantilla sin tocar esa columna calcula el precio con el % correcto
+// desde el primer intento.
 const plantillasPorGrupo: Record<string, { archivo: string; etiqueta: string }> = {
+  lenceria: { archivo: '/plantillas/ropa.xlsx', etiqueta: 'Ropa' },
+  tecnologia: { archivo: '/plantillas/tecnologia.xlsx', etiqueta: 'Tecnología' },
   joyeria: { archivo: '/plantillas/joyeria.xlsx', etiqueta: 'Joyería' },
-  cosmetico: { archivo: '/plantillas/cosmetico.xlsx', etiqueta: 'Cosmético' },
-  lenceria: { archivo: '/plantillas/lenceria.xlsx', etiqueta: 'Lencería' },
 }
 
 function aNumeroONull(valor: string | undefined): number | null {
@@ -143,12 +148,6 @@ function validarFilas(
       } catch {
         errores.push('atributos_json no es JSON válido')
       }
-    }
-    if (grupo === 'cosmetico') {
-      const volumen = valorDe(n, 'volumen')
-      if (volumen) atributos = { ...atributos, volumen_ml: volumen }
-      const fragancia = valorDe(n, 'fragancia')
-      if (fragancia) atributos = { ...atributos, fragancia }
     }
     if (grupo === 'lenceria') {
       const talla = valorDe(n, 'talla')
