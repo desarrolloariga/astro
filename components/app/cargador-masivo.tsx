@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, type ChangeEvent } from 'react'
-import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 import { Download, Upload, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
 import { cargarPiezasMasivo } from '@/app/(app)/produccion/carga-masiva/acciones'
 
@@ -43,9 +43,9 @@ type FilaValidada = {
 }
 
 const plantillasPorGrupo: Record<string, { archivo: string; etiqueta: string }> = {
-  joyeria: { archivo: '/plantillas/joyeria.csv', etiqueta: 'Joyería' },
-  cosmetico: { archivo: '/plantillas/cosmetico.csv', etiqueta: 'Cosmético' },
-  lenceria: { archivo: '/plantillas/lenceria.csv', etiqueta: 'Lencería' },
+  joyeria: { archivo: '/plantillas/joyeria.xlsx', etiqueta: 'Joyería' },
+  cosmetico: { archivo: '/plantillas/cosmetico.xlsx', etiqueta: 'Cosmético' },
+  lenceria: { archivo: '/plantillas/lenceria.xlsx', etiqueta: 'Lencería' },
 }
 
 function aNumeroONull(valor: string | undefined): number | null {
@@ -53,6 +53,26 @@ function aNumeroONull(valor: string | undefined): number | null {
   if (!texto) return null
   const n = Number(texto.replace(',', '.'))
   return Number.isFinite(n) ? n : null
+}
+
+/** "Referencia Interna (código)" → "referencia interna" — sin acentos, sin paréntesis, sin mayúsculas. */
+function normalizarEncabezado(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+/** Prueba varios nombres de columna equivalentes (ya normalizados) y devuelve el primero que traiga valor. */
+function valorDe(normalizada: Record<string, string>, ...alias: string[]): string {
+  for (const a of alias) {
+    const v = normalizada[a]
+    if (v) return v
+  }
+  return ''
 }
 
 function validarFilas(
@@ -63,10 +83,15 @@ function validarFilas(
   proveedores: Proveedor[],
 ): FilaValidada[] {
   return filas.map((raw, index) => {
+    const n: Record<string, string> = {}
+    for (const [clave, valor] of Object.entries(raw)) {
+      n[normalizarEncabezado(clave)] = String(valor ?? '').trim()
+    }
+
     const errores: string[] = []
-    const codigo = (raw.codigo ?? '').trim()
-    const nombre = (raw.nombre ?? '').trim()
-    if (!codigo) errores.push('Falta código')
+    const codigo = valorDe(n, 'referencia interna', 'codigo')
+    const nombre = valorDe(n, 'nombre')
+    if (!codigo) errores.push('Falta la referencia interna (código)')
     if (!nombre) errores.push('Falta nombre')
 
     // Categoría, material y proveedor ya no bloquean la fila si no
@@ -74,41 +99,42 @@ function validarFilas(
     // carga (se informa en "nuevasDependencias", no como error).
     const nuevasDependencias: string[] = []
 
-    const categoriaTexto = (raw.categoria ?? '').trim()
+    const categoriaTexto = valorDe(n, 'categoria')
     if (!categoriaTexto) errores.push('Falta categoría')
     else if (!categorias.some((c) => c.nombre.toLowerCase() === categoriaTexto.toLowerCase())) {
       nuevasDependencias.push(`Categoría "${categoriaTexto}"`)
     }
 
-    const materialTexto = (raw.material ?? '').trim()
+    const materialTexto = valorDe(n, 'material')
     if (materialTexto && !materiales.some((m) => m.nombre.toLowerCase() === materialTexto.toLowerCase())) {
       nuevasDependencias.push(`Material "${materialTexto}"`)
     }
 
-    const proveedorTexto = (raw.proveedor ?? '').trim()
+    const proveedorTexto = valorDe(n, 'proveedor')
     if (proveedorTexto && !proveedores.some((p) => p.nombre.toLowerCase() === proveedorTexto.toLowerCase())) {
       nuevasDependencias.push(`Proveedor "${proveedorTexto}"`)
     }
 
-    const origenTexto = (raw.origen ?? '').trim().toLowerCase()
+    const origenTexto = valorDe(n, 'origen').toLowerCase()
     if (origenTexto && origenTexto !== 'local' && origenTexto !== 'importado') {
       errores.push('Origen debe ser "local" o "importado"')
     }
     const origen: 'local' | 'importado' = origenTexto === 'importado' ? 'importado' : 'local'
 
-    const modoTexto = (raw.modo_inventario ?? '').trim().toLowerCase()
-    if (modoTexto && modoTexto !== 'pieza_unica' && modoTexto !== 'por_cantidad') {
-      errores.push('modo_inventario debe ser "pieza_unica" o "por_cantidad"')
-    }
-    const modoInventario: 'pieza_unica' | 'por_cantidad' = modoTexto === 'por_cantidad' ? 'por_cantidad' : 'pieza_unica'
+    // Tipo = modo de inventario (pieza única / por cantidad). Cualquier
+    // valor que mencione "cantidad" cuenta como por_cantidad.
+    const tipoTexto = valorDe(n, 'tipo', 'modo inventario').toLowerCase()
+    const modoInventario: 'pieza_unica' | 'por_cantidad' = tipoTexto.includes('cantidad')
+      ? 'por_cantidad'
+      : 'pieza_unica'
 
-    const cantidadInicial = aNumeroONull(raw.cantidad)
+    const cantidadInicial = aNumeroONull(valorDe(n, 'cantidad'))
     if (modoInventario === 'por_cantidad' && (cantidadInicial == null || cantidadInicial <= 0)) {
       errores.push('Cantidad obligatoria (mayor a 0) para artículos por cantidad')
     }
 
     let atributos: Record<string, unknown> = {}
-    const atributosTexto = (raw.atributos_json ?? '').trim()
+    const atributosTexto = valorDe(n, 'atributos json')
     if (atributosTexto) {
       try {
         const parseado = JSON.parse(atributosTexto)
@@ -119,13 +145,18 @@ function validarFilas(
       }
     }
     if (grupo === 'cosmetico') {
-      if (raw.volumen_ml?.trim()) atributos = { ...atributos, volumen_ml: raw.volumen_ml.trim() }
-      if (raw.fragancia?.trim()) atributos = { ...atributos, fragancia: raw.fragancia.trim() }
+      const volumen = valorDe(n, 'volumen')
+      if (volumen) atributos = { ...atributos, volumen_ml: volumen }
+      const fragancia = valorDe(n, 'fragancia')
+      if (fragancia) atributos = { ...atributos, fragancia }
     }
     if (grupo === 'lenceria') {
-      if (raw.talla?.trim()) atributos = { ...atributos, talla: raw.talla.trim() }
-      if (raw.color?.trim()) atributos = { ...atributos, color: raw.color.trim() }
-      if (raw.tela?.trim()) atributos = { ...atributos, tela: raw.tela.trim() }
+      const talla = valorDe(n, 'talla')
+      if (talla) atributos = { ...atributos, talla }
+      const color = valorDe(n, 'color')
+      if (color) atributos = { ...atributos, color }
+      const tela = valorDe(n, 'tela')
+      if (tela) atributos = { ...atributos, tela }
     }
 
     return {
@@ -141,26 +172,26 @@ function validarFilas(
           ? {
               codigo,
               nombre,
-              descripcion: raw.descripcion?.trim() || null,
+              descripcion: valorDe(n, 'descripcion') || null,
               categoria: categoriaTexto,
               material: materialTexto || null,
               origen,
-              costo_produccion: aNumeroONull(raw.costo_produccion),
-              peso_gramos: grupo === 'joyeria' ? aNumeroONull(raw.peso_gramos) : null,
-              kilataje: grupo === 'joyeria' ? raw.kilataje?.trim() || null : null,
-              piedras: grupo === 'joyeria' ? raw.piedras?.trim() || null : null,
+              costo_produccion: aNumeroONull(valorDe(n, 'coste', 'costo')),
+              peso_gramos: aNumeroONull(valorDe(n, 'peso')),
+              kilataje: grupo === 'joyeria' ? valorDe(n, 'kilataje') || null : null,
+              piedras: grupo === 'joyeria' ? valorDe(n, 'piedras') || null : null,
               modo_inventario: modoInventario,
               cantidad_inicial: modoInventario === 'por_cantidad' ? cantidadInicial : null,
               atributos,
-              marca: raw.marca?.trim() || null,
-              coleccion: raw.coleccion?.trim() || null,
-              codigo_barras: raw.codigo_barras?.trim() || null,
-              etiquetas: (raw.etiquetas ?? '')
+              marca: valorDe(n, 'marca') || null,
+              coleccion: valorDe(n, 'coleccion') || null,
+              codigo_barras: valorDe(n, 'codigo de barras') || null,
+              etiquetas: valorDe(n, 'etiquetas')
                 .split(',')
                 .map((t) => t.trim())
                 .filter(Boolean),
               proveedor: proveedorTexto || null,
-              punto_reorden: aNumeroONull(raw.punto_reorden),
+              punto_reorden: aNumeroONull(valorDe(n, 'punto de reorden', 'punto reorden')),
             }
           : null,
     }
@@ -185,17 +216,15 @@ export function CargadorMasivo({
   const puedeConfirmar = filas.length > 0 && totalErrores === 0 && !pending
   const dependenciasNuevas = Array.from(new Set(filas.flatMap((f) => f.nuevasDependencias))).sort()
 
-  function manejarArchivo(e: ChangeEvent<HTMLInputElement>) {
+  async function manejarArchivo(e: ChangeEvent<HTMLInputElement>) {
     const archivo = e.target.files?.[0]
     if (!archivo) return
     setNombreArchivo(archivo.name)
-    Papa.parse<FilaCsv>(archivo, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (resultado) => {
-        setFilas(validarFilas(resultado.data, grupo, categorias, materiales, proveedores))
-      },
-    })
+    const buffer = await archivo.arrayBuffer()
+    const libro = XLSX.read(buffer, { type: 'array' })
+    const hoja = libro.Sheets[libro.SheetNames[0]]
+    const datos = XLSX.utils.sheet_to_json<FilaCsv>(hoja, { defval: '', raw: false })
+    setFilas(validarFilas(datos, grupo, categorias, materiales, proveedores))
   }
 
   function confirmar() {
@@ -233,19 +262,19 @@ export function CargadorMasivo({
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
           >
             <Download className="h-4 w-4" />
-            Descargar plantilla CSV
+            Descargar plantilla Excel
           </a>
         </div>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-          2. Sube el CSV completo
+          2. Sube el Excel completo
         </h2>
         <label className="mt-4 flex flex-col gap-1.5">
           <input
             type="file"
-            accept=".csv"
+            accept=".xlsx,.xls,.csv"
             onChange={manejarArchivo}
             className="rounded-lg border border-dashed border-input bg-background px-3 py-4 text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary-foreground hover:file:opacity-90"
           />
@@ -267,7 +296,7 @@ export function CargadorMasivo({
             ) : (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
                 <AlertCircle className="h-3.5 w-3.5" />
-                {totalErrores} error{totalErrores !== 1 ? 'es' : ''} — corrige el CSV y vuelve a subirlo
+                {totalErrores} error{totalErrores !== 1 ? 'es' : ''} — corrige el archivo y vuelve a subirlo
               </span>
             )}
           </div>
@@ -286,7 +315,7 @@ export function CargadorMasivo({
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2 font-semibold">Fila</th>
-                  <th className="px-3 py-2 font-semibold">Código</th>
+                  <th className="px-3 py-2 font-semibold">Referencia</th>
                   <th className="px-3 py-2 font-semibold">Nombre</th>
                   <th className="px-3 py-2 font-semibold">Categoría</th>
                   <th className="px-3 py-2 font-semibold">Cantidad</th>

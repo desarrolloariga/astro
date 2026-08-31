@@ -9,8 +9,7 @@ import { Campo, BotonPrimario, clasesInput as clasesCampo } from '@/components/a
 export const metadata = { title: 'Precios — ASTRO' }
 
 const CLAVES = [
-  'factor_importacion',
-  'factor_margen_local',
+  'factor_margen_empresa',
   'factor_envio',
   'factor_empaque',
   'factor_impuesto',
@@ -18,8 +17,7 @@ const CLAVES = [
 ] as const
 
 const nombresClave: Record<string, string> = {
-  factor_importacion: 'Origen — importado',
-  factor_margen_local: 'Origen — local',
+  factor_margen_empresa: 'Margen de empresa',
   factor_envio: 'Envío',
   factor_empaque: 'Empaque',
   factor_impuesto: 'Impuesto (IVA)',

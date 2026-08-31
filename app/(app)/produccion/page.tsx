@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { PackagePlus, Upload, CheckCircle2, AlertCircle, ImageOff, Camera, Send } from 'lucide-react'
+import { PackagePlus, Upload, CheckCircle2, AlertCircle, ImageOff, Camera, Send, Receipt } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearPrecio, formatearFecha, formatearNumero } from '@/lib/formato'
@@ -234,27 +234,37 @@ export default async function ProduccionPage({
                         {creadoPor && <p className="text-xs">{creadoPor.nombre}</p>}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {p.estado === 'en_produccion' && (
-                          <div className="flex items-center justify-end gap-2">
-                            <Link
-                              href={`/produccion/${p.id}/fotos`}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-                            >
-                              <Camera className="h-3.5 w-3.5" />
-                              Fotos
-                            </Link>
-                            <form action={publicarPieza} className="inline">
-                              <input type="hidden" name="producto_id" value={p.id} />
-                              <button
-                                type="submit"
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/produccion/${p.id}/costos`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                            title="Hoja de costos"
+                          >
+                            <Receipt className="h-3.5 w-3.5" />
+                            Costos
+                          </Link>
+                          {p.estado === 'en_produccion' && (
+                            <>
+                              <Link
+                                href={`/produccion/${p.id}/fotos`}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
                               >
-                                <Send className="h-3.5 w-3.5" />
-                                Publicar al CEDI
-                              </button>
-                            </form>
-                          </div>
-                        )}
+                                <Camera className="h-3.5 w-3.5" />
+                                Fotos
+                              </Link>
+                              <form action={publicarPieza} className="inline">
+                                <input type="hidden" name="producto_id" value={p.id} />
+                                <button
+                                  type="submit"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                  Publicar al CEDI
+                                </button>
+                              </form>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

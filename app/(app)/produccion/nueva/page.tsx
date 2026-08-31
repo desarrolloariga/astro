@@ -23,24 +23,15 @@ export default async function NuevaPiezaPage({
       supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
       supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
       supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
+      // Global (categoria_id null) + excepciones por categoría — el
+      // formulario elige la más específica según la categoría marcada.
       supabase
         .from('parametros_precio')
-        .select('clave, valor_pct')
-        .is('categoria_id', null)
+        .select('clave, categoria_id, valor_pct')
         .is('producto_id', null)
         .eq('activo', true),
       supabase.from('tiendas').select('id, nombre').eq('tipo', 'cedi').eq('activo', true).order('nombre'),
     ])
-
-  const factorDe = (clave: string) => Number(parametrosPrecio?.find((p) => p.clave === clave)?.valor_pct ?? 0)
-  const factores = {
-    factor_importacion: factorDe('factor_importacion'),
-    factor_margen_local: factorDe('factor_margen_local'),
-    factor_envio: factorDe('factor_envio'),
-    factor_empaque: factorDe('factor_empaque'),
-    factor_impuesto: factorDe('factor_impuesto'),
-    factor_comision_embajador: factorDe('factor_comision_embajador'),
-  }
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -69,7 +60,7 @@ export default async function NuevaPiezaPage({
         categorias={categorias ?? []}
         materiales={materiales ?? []}
         proveedores={proveedores ?? []}
-        factores={factores}
+        parametrosPrecio={parametrosPrecio ?? []}
         cedis={cedis ?? []}
       />
     </main>

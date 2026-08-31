@@ -9,27 +9,27 @@ import { Campo, SeccionFormulario, BotonPrimario, BotonSecundario, clasesInput }
 type Categoria = { id: number; nombre: string; grupo: string }
 type Material = { id: number; nombre: string }
 type Proveedor = { id: number; nombre: string }
-type FactoresPrecio = {
-  factor_importacion: number
-  factor_margen_local: number
-  factor_envio: number
-  factor_empaque: number
-  factor_impuesto: number
-  factor_comision_embajador: number
-}
+/** Un factor por clave y, opcionalmente, por categoría — la excepción de categoría gana sobre el global. */
+type ParametroPrecio = { clave: string; categoria_id: number | null; valor_pct: number }
 type Cedi = { id: number; nombre: string }
+
+function buscarFactor(parametros: ParametroPrecio[], clave: string, categoriaId: number | null): number {
+  const porCategoria = categoriaId != null ? parametros.find((p) => p.clave === clave && p.categoria_id === categoriaId) : undefined
+  if (porCategoria) return porCategoria.valor_pct
+  return parametros.find((p) => p.clave === clave && p.categoria_id === null)?.valor_pct ?? 0
+}
 
 export function FormularioNuevaPieza({
   categorias,
   materiales,
   proveedores,
-  factores,
+  parametrosPrecio,
   cedis,
 }: {
   categorias: Categoria[]
   materiales: Material[]
   proveedores: Proveedor[]
-  factores: FactoresPrecio
+  parametrosPrecio: ParametroPrecio[]
   cedis: Cedi[]
 }) {
   const [categoriaId, setCategoriaId] = useState('')
@@ -42,17 +42,25 @@ export function FormularioNuevaPieza({
   // Vista previa client-side de la misma cascada que corre en el
   // servidor (fn_calcular_precio) — el valor real y auditable se
   // calcula y guarda ahí; esto es solo una estimación en pantalla.
+  // Usa el margen/comisión de la categoría elegida si tiene uno
+  // propio (igual que el servidor: categoría gana sobre global).
   const estimado = useMemo(() => {
     const costoNum = Number(costo.replace(',', '.'))
     if (!Number.isFinite(costoNum) || costoNum <= 0) return null
 
-    const factorOrigen = origen === 'importado' ? factores.factor_importacion : factores.factor_margen_local
-    const costoOrigen = costoNum * (1 + factorOrigen / 100)
-    const costoLogistico = costoOrigen * (1 + (factores.factor_envio + factores.factor_empaque) / 100)
-    const precioSinImpuesto = costoLogistico / (1 - factores.factor_comision_embajador / 100)
-    const impuesto = precioSinImpuesto * (factores.factor_impuesto / 100)
+    const catId = categoriaId ? Number(categoriaId) : null
+    const factorEnvio = buscarFactor(parametrosPrecio, 'factor_envio', catId)
+    const factorEmpaque = buscarFactor(parametrosPrecio, 'factor_empaque', catId)
+    const factorMargen = buscarFactor(parametrosPrecio, 'factor_margen_empresa', catId)
+    const factorComision = buscarFactor(parametrosPrecio, 'factor_comision_embajador', catId)
+    const factorImpuesto = buscarFactor(parametrosPrecio, 'factor_impuesto', catId)
+
+    const costoLogistico = costoNum * (1 + (factorEnvio + factorEmpaque) / 100)
+    const precioAntesEmbajador = costoLogistico / (1 - factorMargen / 100)
+    const precioSinImpuesto = precioAntesEmbajador * (1 + factorComision / 100)
+    const impuesto = precioSinImpuesto * (factorImpuesto / 100)
     return { precioFinal: precioSinImpuesto + impuesto }
-  }, [costo, origen, factores])
+  }, [costo, categoriaId, parametrosPrecio])
 
   return (
     <form action={crearPieza} className="flex flex-col gap-6">
