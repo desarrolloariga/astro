@@ -36,6 +36,7 @@
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "exceljs": "^4.4.0",
     "postcss": "^8.5",
     "supabase": "^2.109.1",
     "tailwindcss": "^4.2.0",

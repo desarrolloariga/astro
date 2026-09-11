@@ -24,10 +24,20 @@ const nombresClave: Record<string, string> = {
   factor_comision_embajador: 'Comisión del embajador',
 }
 
+const NIVELES_GANANCIA = [
+  { valor: 'introduccion', etiqueta: 'Introducción' },
+  { valor: 'socio_comercial', etiqueta: 'Socio Comercial' },
+  { valor: 'importacion', etiqueta: 'Importación' },
+] as const
+const nombresNivel: Record<string, string> = Object.fromEntries(
+  NIVELES_GANANCIA.map((n) => [n.valor, n.etiqueta]),
+)
+
 type Parametro = {
   id: number
   clave: string
   categoria_id: number | null
+  nivel_ganancia: string | null
   producto_id: number | null
   valor_pct: number
   motivo: string | null
@@ -52,7 +62,7 @@ export default async function AdminPreciosPage({
     supabase
       .from('parametros_precio')
       .select(
-        'id, clave, categoria_id, producto_id, valor_pct, motivo, version, fecha_actualizacion, categorias ( nombre ), productos ( codigo )',
+        'id, clave, categoria_id, nivel_ganancia, producto_id, valor_pct, motivo, version, fecha_actualizacion, categorias ( nombre ), productos ( codigo )',
       )
       .eq('activo', true)
       .order('clave'),
@@ -60,8 +70,8 @@ export default async function AdminPreciosPage({
   ])
 
   const lista = (parametros ?? []) as unknown as Parametro[]
-  const globales = lista.filter((p) => !p.categoria_id && !p.producto_id)
-  const excepciones = lista.filter((p) => p.categoria_id || p.producto_id)
+  const globales = lista.filter((p) => !p.categoria_id && !p.nivel_ganancia && !p.producto_id)
+  const excepciones = lista.filter((p) => p.categoria_id || p.nivel_ganancia || p.producto_id)
   const listaCategorias = (categorias ?? []) as Categoria[]
 
   return (
@@ -131,7 +141,12 @@ export default async function AdminPreciosPage({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-base font-bold text-foreground">Excepciones por categoría o pieza</h2>
+        <h2 className="text-base font-bold text-foreground">Excepciones por nivel de ganancia, categoría o pieza</h2>
+        <p className="text-xs text-muted-foreground">
+          El margen de empresa y la comisión de embajador de cada producto vienen de su nivel de
+          ganancia (Introducción/Socio Comercial/Importación) — esas 3 filas ya están abajo. Las
+          excepciones por categoría o pieza específica son para casos puntuales.
+        </p>
 
         {excepciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">No hay excepciones configuradas.</p>
@@ -146,7 +161,11 @@ export default async function AdminPreciosPage({
                   <p className="text-sm font-semibold text-foreground">
                     {nombresClave[p.clave] ?? p.clave}{' '}
                     <span className="font-normal text-muted-foreground">
-                      · {p.categorias?.nombre ?? p.productos?.codigo ?? '—'}
+                      ·{' '}
+                      {(p.nivel_ganancia && nombresNivel[p.nivel_ganancia]) ??
+                        p.categorias?.nombre ??
+                        p.productos?.codigo ??
+                        '—'}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -190,8 +209,18 @@ export default async function AdminPreciosPage({
                 <input name="valor_pct" type="number" step="0.01" required className={clasesCampo} />
               </Campo>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Campo label="Categoría" helpText="Indica categoría o pieza — al menos una de las dos.">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Campo label="Nivel de ganancia" helpText="Indica nivel, categoría o pieza — al menos uno.">
+                <select name="nivel_ganancia" defaultValue="" className={clasesCampo}>
+                  <option value="">Sin nivel específico</option>
+                  {NIVELES_GANANCIA.map((n) => (
+                    <option key={n.valor} value={n.valor}>
+                      {n.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Categoría">
                 <select name="categoria_id" defaultValue="" className={clasesCampo}>
                   <option value="">Sin categoría específica</option>
                   {listaCategorias.map((c) => (

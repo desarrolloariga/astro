@@ -37,20 +37,24 @@ export async function actualizarParametroPrecio(formData: FormData) {
   redirect(`/admin/precios?ok=${encodeURIComponent('Factor actualizado')}`)
 }
 
+const NIVELES_GANANCIA = ['introduccion', 'socio_comercial', 'importacion']
+
 export async function crearExcepcionParametroPrecio(formData: FormData) {
   await exigirPermiso()
 
   const clave = String(formData.get('clave') ?? '').trim()
   const categoriaId = aNumero(formData.get('categoria_id'))
+  const nivelGananciaRaw = String(formData.get('nivel_ganancia') ?? '').trim()
+  const nivelGanancia = NIVELES_GANANCIA.includes(nivelGananciaRaw) ? nivelGananciaRaw : null
   const productoId = aNumero(formData.get('producto_id'))
   const valorPct = aNumero(formData.get('valor_pct'))
 
   if (!clave || valorPct == null) {
     redirect(`/admin/precios?error=${encodeURIComponent('Clave y valor son obligatorios')}`)
   }
-  if (!categoriaId && !productoId) {
+  if (!categoriaId && !nivelGanancia && !productoId) {
     redirect(
-      `/admin/precios?error=${encodeURIComponent('Una excepción necesita categoría o pieza específica')}`,
+      `/admin/precios?error=${encodeURIComponent('Una excepción necesita categoría, nivel de ganancia o pieza específica')}`,
     )
   }
 
@@ -58,6 +62,7 @@ export async function crearExcepcionParametroPrecio(formData: FormData) {
   const { error } = await supabase.from('parametros_precio').insert({
     clave,
     categoria_id: categoriaId,
+    nivel_ganancia: nivelGanancia,
     producto_id: productoId,
     valor_pct: valorPct,
     motivo: String(formData.get('motivo') ?? '').trim() || null,

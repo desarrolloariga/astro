@@ -23,11 +23,11 @@ export default async function NuevaPiezaPage({
       supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
       supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
       supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
-      // Global (categoria_id null) + excepciones por categoría — el
-      // formulario elige la más específica según la categoría marcada.
+      // Global (nivel_ganancia null) + excepción por nivel de ganancia
+      // — el formulario elige la más específica según el nivel marcado.
       supabase
         .from('parametros_precio')
-        .select('clave, categoria_id, valor_pct')
+        .select('clave, nivel_ganancia, valor_pct')
         .is('producto_id', null)
         .eq('activo', true),
       supabase.from('tiendas').select('id, nombre').eq('tipo', 'cedi').eq('activo', true).order('nombre'),

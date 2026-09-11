@@ -18,11 +18,13 @@ export default async function CargaMasivaPage({
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: categorias }, { data: materiales }, { data: proveedores }] = await Promise.all([
-    supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
-    supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
-    supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
-  ])
+  const [{ data: categorias }, { data: materiales }, { data: proveedores }, { data: productosExistentes }] =
+    await Promise.all([
+      supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
+      supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+      supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
+      supabase.from('productos').select('id, codigo, nombre, modo_inventario, estado').eq('activo', true),
+    ])
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -48,7 +50,12 @@ export default async function CargaMasivaPage({
         </div>
       )}
 
-      <CargadorMasivo categorias={categorias ?? []} materiales={materiales ?? []} proveedores={proveedores ?? []} />
+      <CargadorMasivo
+        categorias={categorias ?? []}
+        materiales={materiales ?? []}
+        proveedores={proveedores ?? []}
+        productosExistentes={productosExistentes ?? []}
+      />
     </main>
   )
 }

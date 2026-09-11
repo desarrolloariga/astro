@@ -39,6 +39,10 @@ export async function crearPieza(formData: FormData) {
   const modoInventario = formData.get('modo_inventario') === 'por_cantidad' ? 'por_cantidad' : 'pieza_unica'
   const cantidadInicial = modoInventario === 'por_cantidad' ? aNumero(formData.get('cantidad_inicial')) : null
   const categoriaId = aNumero(formData.get('categoria_id'))
+  const nivelGananciaRaw = String(formData.get('nivel_ganancia') ?? '')
+  const nivelGanancia = ['introduccion', 'socio_comercial', 'importacion'].includes(nivelGananciaRaw)
+    ? nivelGananciaRaw
+    : 'socio_comercial'
 
   if (!nombre) {
     redirect('/produccion/nueva?error=El%20nombre%20es%20obligatorio')
@@ -88,6 +92,7 @@ export async function crearPieza(formData: FormData) {
     piedras: String(formData.get('piedras') ?? '').trim() || null,
     costo_produccion: aNumero(formData.get('costo_produccion')),
     origen: formData.get('origen') === 'importado' ? 'importado' : 'local',
+    nivel_ganancia: nivelGanancia,
     modo_inventario: modoInventario,
     cantidad_inicial: cantidadInicial,
     atributos,

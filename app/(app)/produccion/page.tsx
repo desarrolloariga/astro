@@ -27,6 +27,12 @@ const clasesCampo =
 type Categoria = { id: number; nombre: string }
 type Material = { id: number; nombre: string }
 
+const ETIQUETAS_NIVEL_GANANCIA: Record<string, string> = {
+  introduccion: 'Introducción',
+  socio_comercial: 'Socio Comercial',
+  importacion: 'Importación',
+}
+
 export default async function ProduccionPage({
   searchParams,
 }: {
@@ -52,7 +58,7 @@ export default async function ProduccionPage({
   let consulta = supabase
     .from('productos')
     .select(
-      'id, codigo, nombre, estado, precio_venta, costo_produccion, modo_inventario, fecha_creacion, fecha_publicacion, categorias(nombre), producto_imagenes(url, es_principal, orden), usuarios:creado_por(nombre)',
+      'id, codigo, nombre, estado, precio_venta, costo_produccion, modo_inventario, nivel_ganancia, fecha_creacion, fecha_publicacion, categorias(nombre), producto_imagenes(url, es_principal, orden), usuarios:creado_por(nombre)',
       { count: 'exact' },
     )
     .eq('activo', true)
@@ -175,6 +181,7 @@ export default async function ProduccionPage({
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-semibold">Artículo</th>
                   <th className="px-4 py-3 font-semibold">Categoría</th>
+                  <th className="px-4 py-3 font-semibold">Nivel</th>
                   <th className="px-4 py-3 font-semibold">Estado</th>
                   <th className="px-4 py-3 font-semibold text-right">Precio</th>
                   <th className="px-4 py-3 font-semibold">Creado</th>
@@ -222,6 +229,9 @@ export default async function ProduccionPage({
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {categoria?.nombre ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {ETIQUETAS_NIVEL_GANANCIA[p.nivel_ganancia] ?? p.nivel_ganancia}
                       </td>
                       <td className="px-4 py-3">
                         <EstadoPieza estado={p.estado} />

@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, Receipt, History } from 'lucide-react'
+import { ArrowLeft, Receipt, History, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearPrecio, formatearFechaHora } from '@/lib/formato'
+import { cambiarNivelGanancia } from './acciones'
 
 export const metadata = { title: 'Hoja de costos — ASTRO' }
 
@@ -13,11 +14,18 @@ const nombresFuente: Record<string, string> = {
   importacion: 'Costo real de importación (nacionalizado)',
 }
 
+const NIVELES_GANANCIA = [
+  { valor: 'introduccion', etiqueta: 'Introducción (15% empresa / 10% embajador)' },
+  { valor: 'socio_comercial', etiqueta: 'Socio Comercial (20% empresa / 15% embajador)' },
+  { valor: 'importacion', etiqueta: 'Importación (35% empresa / 25% embajador)' },
+]
+
 type Producto = {
   id: number
   codigo: string
   nombre: string
   origen: string
+  nivel_ganancia: string
   costo_produccion: number | null
   precio_venta: number | null
   categorias: { nombre: string } | null
@@ -69,15 +77,22 @@ function Fila({
   )
 }
 
-export default async function HojaDeCostosPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function HojaDeCostosPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ ok?: string; error?: string }>
+}) {
   const usuario = await obtenerUsuarioActual()
   const { id } = await params
+  const { ok, error: errorAviso } = await searchParams
   const supabase = await createClient()
 
   const [{ data: pieza }, { data: historialData }] = await Promise.all([
     supabase
       .from('productos')
-      .select('id, codigo, nombre, origen, costo_produccion, precio_venta, categorias ( nombre )')
+      .select('id, codigo, nombre, origen, nivel_ganancia, costo_produccion, precio_venta, categorias ( nombre )')
       .eq('id', id)
       .maybeSingle(),
     supabase
@@ -116,6 +131,55 @@ export default async function HojaDeCostosPage({ params }: { params: Promise<{ i
           {producto.codigo} · {producto.categorias?.nombre ?? 'Sin categoría'}
         </p>
       </div>
+
+      {ok && (
+        <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{ok}</span>
+        </div>
+      )}
+      {errorAviso && (
+        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{errorAviso}</span>
+        </div>
+      )}
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="mb-1 text-sm font-bold uppercase tracking-wide text-muted-foreground">
+          Nivel de ganancia
+        </h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Determina el % de margen de empresa y comisión de embajador de esta pieza. Cambiarlo
+          recalcula el precio de venta al instante.
+        </p>
+        {usuario.rol === 'admin' || usuario.rol === 'produccion' ? (
+          <form action={cambiarNivelGanancia} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="producto_id" value={producto.id} />
+            <select
+              name="nivel_ganancia"
+              defaultValue={producto.nivel_ganancia}
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+            >
+              {NIVELES_GANANCIA.map((n) => (
+                <option key={n.valor} value={n.valor}>
+                  {n.etiqueta}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+            >
+              Actualizar y recalcular
+            </button>
+          </form>
+        ) : (
+          <p className="text-sm font-semibold text-foreground">
+            {NIVELES_GANANCIA.find((n) => n.valor === producto.nivel_ganancia)?.etiqueta ?? producto.nivel_ganancia}
+          </p>
+        )}
+      </section>
 
       {!ultimo ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">

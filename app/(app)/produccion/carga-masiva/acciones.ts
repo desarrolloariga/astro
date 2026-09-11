@@ -26,6 +26,8 @@ type PiezaCargaMasiva = {
   etiquetas: string[]
   proveedor: string | null
   punto_reorden: number | null
+  nivel_ganancia: 'introduccion' | 'socio_comercial' | 'importacion'
+  producto_existente_id: number | null
 }
 
 /**
@@ -79,13 +81,19 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
     redirect(`/produccion/carga-masiva?error=${encodeURIComponent('No hay artículos para cargar')}`)
   }
 
-  const filaInvalida = piezas.some((p) => !p.codigo?.trim() || !p.nombre?.trim() || !p.categoria?.trim())
+  // Las filas cuyo código ya existe (producto_existente_id) no crean
+  // un producto nuevo: solo reabastecen el inventario de ese producto
+  // con la "cantidad_inicial" del Excel (ver fn_sumar_inventario_producto).
+  const piezasNuevas = piezas.filter((p) => p.producto_existente_id == null)
+  const piezasReabastecer = piezas.filter((p) => p.producto_existente_id != null)
+
+  const filaInvalida = piezasNuevas.some((p) => !p.codigo?.trim() || !p.nombre?.trim() || !p.categoria?.trim())
   if (filaInvalida) {
     redirect(
       `/produccion/carga-masiva?error=${encodeURIComponent('Hay filas sin código, nombre o categoría')}`,
     )
   }
-  const cantidadInvalida = piezas.some(
+  const cantidadInvalida = piezasNuevas.some(
     (p) => p.modo_inventario === 'por_cantidad' && (p.cantidad_inicial == null || p.cantidad_inicial <= 0),
   )
   if (cantidadInvalida) {
@@ -93,8 +101,33 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
       `/produccion/carga-masiva?error=${encodeURIComponent('Hay filas por cantidad sin una cantidad válida')}`,
     )
   }
+  const reabastecerInvalido = piezasReabastecer.some((p) => p.cantidad_inicial == null || p.cantidad_inicial <= 0)
+  if (reabastecerInvalido) {
+    redirect(
+      `/produccion/carga-masiva?error=${encodeURIComponent('Hay filas de reabastecimiento sin una cantidad válida')}`,
+    )
+  }
 
   const supabase = await createClient()
+
+  let reabastecidos = 0
+  for (const p of piezasReabastecer) {
+    const { error: errorReabastecer } = await supabase.rpc('fn_sumar_inventario_producto', {
+      p_producto_id: p.producto_existente_id,
+      p_cantidad: p.cantidad_inicial,
+      p_motivo: 'carga_masiva',
+    })
+    if (!errorReabastecer) reabastecidos++
+  }
+
+  if (piezasNuevas.length === 0) {
+    revalidatePath('/produccion')
+    redirect(
+      `/produccion?ok=${encodeURIComponent(
+        reabastecidos > 0 ? `${reabastecidos} artículos reabastecidos` : 'No había artículos nuevos que cargar',
+      )}`,
+    )
+  }
   // categorias/materiales/proveedores son de escritura admin-only por
   // RLS — producción no tiene ese permiso directo, así que la
   // creación automática de dependencias usa el cliente de servicio
@@ -110,13 +143,13 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
       resolverOCrearCatalogo(
         admin,
         'categorias',
-        piezas.map((p) => p.categoria),
+        piezasNuevas.map((p) => p.categoria),
         () => ({ grupo }),
       ),
       resolverOCrearCatalogo(
         admin,
         'materiales',
-        piezas.map((p) => p.material ?? '').filter(Boolean),
+        piezasNuevas.map((p) => p.material ?? '').filter(Boolean),
       ),
     ])
 
@@ -125,7 +158,7 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
   // importado; si no, local — es solo el valor inicial, se ajusta
   // después desde Proveedores si hace falta.
   const tipoPorProveedor = new Map<string, 'local' | 'importado'>()
-  for (const p of piezas) {
+  for (const p of piezasNuevas) {
     if (p.proveedor && !tipoPorProveedor.has(p.proveedor)) {
       tipoPorProveedor.set(p.proveedor, p.origen)
     }
@@ -133,13 +166,13 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
   const { mapa: mapaProveedores, creadas: proveedoresCreados } = await resolverOCrearCatalogo(
     admin,
     'proveedores',
-    piezas.map((p) => p.proveedor ?? '').filter(Boolean),
+    piezasNuevas.map((p) => p.proveedor ?? '').filter(Boolean),
     (nombre) => ({ tipo: tipoPorProveedor.get(nombre) ?? 'local' }),
   )
 
   const { data: moneda } = await supabase.from('monedas').select('id').eq('codigo', 'GTQ').single()
 
-  const filas = piezas.map((p) => ({
+  const filas = piezasNuevas.map((p) => ({
     codigo: p.codigo.trim(),
     nombre: p.nombre.trim(),
     descripcion: p.descripcion?.trim() || null,
@@ -161,6 +194,7 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
     etiquetas: p.etiquetas ?? [],
     proveedor_id: p.proveedor ? (mapaProveedores.get(p.proveedor.toLowerCase()) ?? null) : null,
     punto_reorden: p.punto_reorden,
+    nivel_ganancia: p.nivel_ganancia,
   }))
 
   const { data: creadas, error } = await supabase.from('productos').insert(filas).select('id, costo_produccion')
@@ -194,11 +228,14 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
       ? ` · ${dependenciasCreadas} dependencia${dependenciasCreadas !== 1 ? 's' : ''} nueva${dependenciasCreadas !== 1 ? 's' : ''} creada${dependenciasCreadas !== 1 ? 's' : ''} (${[...categoriasCreadas, ...materialesCreados, ...proveedoresCreados].join(', ')})`
       : ''
 
+  const avisoReabastecidos = reabastecidos > 0 ? ` · ${reabastecidos} artículo${reabastecidos !== 1 ? 's' : ''} reabastecido${reabastecidos !== 1 ? 's' : ''}` : ''
+
   redirect(
     `/produccion?ok=${encodeURIComponent(
       `${creadas?.length ?? 0} artículos cargados como borrador` +
         (sinCosto > 0 ? ` (${sinCosto} sin costo, sin precio todavía)` : '') +
-        avisoDependencias,
+        avisoDependencias +
+        avisoReabastecidos,
     )}`,
   )
 }

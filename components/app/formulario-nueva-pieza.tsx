@@ -9,14 +9,20 @@ import { Campo, SeccionFormulario, BotonPrimario, BotonSecundario, clasesInput }
 type Categoria = { id: number; nombre: string; grupo: string }
 type Material = { id: number; nombre: string }
 type Proveedor = { id: number; nombre: string }
-/** Un factor por clave y, opcionalmente, por categoría — la excepción de categoría gana sobre el global. */
-type ParametroPrecio = { clave: string; categoria_id: number | null; valor_pct: number }
+/** Un factor por clave y, opcionalmente, por nivel de ganancia — la excepción de nivel gana sobre el global. */
+type ParametroPrecio = { clave: string; nivel_ganancia: string | null; valor_pct: number }
 type Cedi = { id: number; nombre: string }
 
-function buscarFactor(parametros: ParametroPrecio[], clave: string, categoriaId: number | null): number {
-  const porCategoria = categoriaId != null ? parametros.find((p) => p.clave === clave && p.categoria_id === categoriaId) : undefined
-  if (porCategoria) return porCategoria.valor_pct
-  return parametros.find((p) => p.clave === clave && p.categoria_id === null)?.valor_pct ?? 0
+const NIVELES_GANANCIA = [
+  { valor: 'introduccion', etiqueta: 'Introducción (15% empresa / 10% embajador)' },
+  { valor: 'socio_comercial', etiqueta: 'Socio Comercial (20% empresa / 15% embajador)' },
+  { valor: 'importacion', etiqueta: 'Importación (35% empresa / 25% embajador)' },
+]
+
+function buscarFactor(parametros: ParametroPrecio[], clave: string, nivelGanancia: string): number {
+  const porNivel = parametros.find((p) => p.clave === clave && p.nivel_ganancia === nivelGanancia)
+  if (porNivel) return porNivel.valor_pct
+  return parametros.find((p) => p.clave === clave && p.nivel_ganancia === null)?.valor_pct ?? 0
 }
 
 export function FormularioNuevaPieza({
@@ -36,31 +42,31 @@ export function FormularioNuevaPieza({
   const [origen, setOrigen] = useState('local')
   const [costo, setCosto] = useState('')
   const [modoInventario, setModoInventario] = useState('pieza_unica')
+  const [nivelGanancia, setNivelGanancia] = useState('socio_comercial')
 
   const grupo = categorias.find((c) => String(c.id) === categoriaId)?.grupo ?? 'joyeria'
 
   // Vista previa client-side de la misma cascada que corre en el
   // servidor (fn_calcular_precio) — el valor real y auditable se
   // calcula y guarda ahí; esto es solo una estimación en pantalla.
-  // Usa el margen/comisión de la categoría elegida si tiene uno
-  // propio (igual que el servidor: categoría gana sobre global).
+  // El margen de empresa y la comisión de embajador dependen del
+  // nivel de ganancia elegido, no de la categoría.
   const estimado = useMemo(() => {
     const costoNum = Number(costo.replace(',', '.'))
     if (!Number.isFinite(costoNum) || costoNum <= 0) return null
 
-    const catId = categoriaId ? Number(categoriaId) : null
-    const factorEnvio = buscarFactor(parametrosPrecio, 'factor_envio', catId)
-    const factorEmpaque = buscarFactor(parametrosPrecio, 'factor_empaque', catId)
-    const factorMargen = buscarFactor(parametrosPrecio, 'factor_margen_empresa', catId)
-    const factorComision = buscarFactor(parametrosPrecio, 'factor_comision_embajador', catId)
-    const factorImpuesto = buscarFactor(parametrosPrecio, 'factor_impuesto', catId)
+    const factorEnvio = buscarFactor(parametrosPrecio, 'factor_envio', nivelGanancia)
+    const factorEmpaque = buscarFactor(parametrosPrecio, 'factor_empaque', nivelGanancia)
+    const factorMargen = buscarFactor(parametrosPrecio, 'factor_margen_empresa', nivelGanancia)
+    const factorComision = buscarFactor(parametrosPrecio, 'factor_comision_embajador', nivelGanancia)
+    const factorImpuesto = buscarFactor(parametrosPrecio, 'factor_impuesto', nivelGanancia)
 
     const costoLogistico = costoNum * (1 + (factorEnvio + factorEmpaque) / 100)
     const precioAntesEmbajador = costoLogistico / (1 - factorMargen / 100)
     const precioSinImpuesto = precioAntesEmbajador * (1 + factorComision / 100)
     const impuesto = precioSinImpuesto * (factorImpuesto / 100)
     return { precioFinal: precioSinImpuesto + impuesto }
-  }, [costo, categoriaId, parametrosPrecio])
+  }, [costo, nivelGanancia, parametrosPrecio])
 
   return (
     <form action={crearPieza} className="flex flex-col gap-6">
@@ -233,6 +239,21 @@ export function FormularioNuevaPieza({
             >
               <option value="local">Local</option>
               <option value="importado">Importado</option>
+            </select>
+          </Campo>
+          <Campo label="Nivel de ganancia" required helpText="Determina el % de margen de empresa y comisión de embajador — se puede cambiar después desde la hoja de costos.">
+            <select
+              name="nivel_ganancia"
+              required
+              className={clasesInput}
+              defaultValue="socio_comercial"
+              onChange={(e) => setNivelGanancia(e.target.value)}
+            >
+              {NIVELES_GANANCIA.map((n) => (
+                <option key={n.valor} value={n.valor}>
+                  {n.etiqueta}
+                </option>
+              ))}
             </select>
           </Campo>
           <Campo label="Costo (GTQ)" helpText="Solo visible para administración y contabilidad.">
