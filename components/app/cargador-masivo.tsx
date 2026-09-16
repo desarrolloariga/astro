@@ -34,7 +34,7 @@ type FilaValidada = {
     descripcion: string | null
     categoria: string
     material: string | null
-    origen: 'local' | 'importado'
+    origen: string
     costo_produccion: number | null
     peso_gramos: number | null
     kilataje: string | null
@@ -158,11 +158,10 @@ function validarFilas(
       nuevasDependencias.push(`Proveedor "${proveedorTexto}"`)
     }
 
-    const origenTexto = valorDe(n, 'origen').toLowerCase()
-    if (origenTexto && origenTexto !== 'local' && origenTexto !== 'importado') {
-      errores.push('Origen debe ser "local" o "importado"')
-    }
-    const origen: 'local' | 'importado' = origenTexto === 'importado' ? 'importado' : 'local'
+    // Origen es texto libre — el país de procedencia del producto
+    // ("Guatemala", "China", "Local"…). Ya no valida contra una lista
+    // fija; solo se normaliza a "Local" si viene vacío.
+    const origen = valorDe(n, 'origen') || 'Local'
 
     const nivelGananciaTexto = valorDe(n, 'nivel de ganancia')
     const nivelGanancia = nivelGananciaTexto ? nivelGananciaDesdeTexto(nivelGananciaTexto) : null

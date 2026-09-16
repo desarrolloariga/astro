@@ -12,7 +12,7 @@ type PiezaCargaMasiva = {
   descripcion: string | null
   categoria: string
   material: string | null
-  origen: 'local' | 'importado'
+  origen: string
   costo_produccion: number | null
   peso_gramos: number | null
   kilataje: string | null
@@ -153,13 +153,16 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
     ])
 
   // El tipo del proveedor nuevo se infiere de la primera fila que lo
-  // menciona: si esa pieza es importada, se crea como proveedor
-  // importado; si no, local — es solo el valor inicial, se ajusta
-  // después desde Proveedores si hace falta.
+  // menciona: "origen" ahora es texto libre (país de procedencia), así
+  // que un proveedor se considera local solo si ese texto dice
+  // literalmente "local" o "Guatemala" — cualquier otro país cuenta
+  // como importado. Es solo el valor inicial, se ajusta después desde
+  // Proveedores si hace falta.
+  const esOrigenLocal = (origen: string) => ['local', 'guatemala'].includes(origen.trim().toLowerCase())
   const tipoPorProveedor = new Map<string, 'local' | 'importado'>()
   for (const p of piezasNuevas) {
     if (p.proveedor && !tipoPorProveedor.has(p.proveedor)) {
-      tipoPorProveedor.set(p.proveedor, p.origen)
+      tipoPorProveedor.set(p.proveedor, esOrigenLocal(p.origen) ? 'local' : 'importado')
     }
   }
   const { mapa: mapaProveedores, creadas: proveedoresCreados } = await resolverOCrearCatalogo(
@@ -177,7 +180,7 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
     descripcion: p.descripcion?.trim() || null,
     categoria_id: mapaCategorias.get(p.categoria.toLowerCase()) ?? null,
     material_id: p.material ? (mapaMateriales.get(p.material.toLowerCase()) ?? null) : null,
-    origen: p.origen === 'importado' ? 'importado' : 'local',
+    origen: p.origen.trim() || 'Local',
     costo_produccion: p.costo_produccion,
     peso_gramos: p.peso_gramos,
     kilataje: p.kilataje?.trim() || null,
