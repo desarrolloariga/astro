@@ -52,6 +52,8 @@ export async function crearPieza(formData: FormData) {
   }
 
   const atributos: Record<string, string> = {}
+  const subcategoria = campoOpcional(formData, 'subcategoria')
+  if (subcategoria) atributos.subcategoria = subcategoria
   const volumenMl = campoOpcional(formData, 'volumen_ml')
   if (volumenMl) atributos.volumen_ml = volumenMl
   const fragancia = campoOpcional(formData, 'fragancia')

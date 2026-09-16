@@ -135,6 +135,9 @@ export function FormularioNuevaPieza({
               ))}
             </select>
           </Campo>
+          <Campo label="Subcategoría" helpText="Texto libre, opcional.">
+            <input name="subcategoria" placeholder="Camisas, pantalones…" className={clasesInput} />
+          </Campo>
           <Campo label="Material">
             <select name="material_id" className={clasesInput} defaultValue="">
               <option value="">Selecciona… (opcional)</option>

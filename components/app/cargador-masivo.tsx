@@ -196,6 +196,8 @@ function validarFilas(
     // Los campos de ficha técnica específicos ya no dependen de un
     // grupo elegido de antemano — se toman si la columna viene con
     // valor, sin importar qué diga "Categoría" en esa fila.
+    const subcategoria = valorDe(n, 'subcategoria')
+    if (subcategoria) atributos = { ...atributos, subcategoria }
     const talla = valorDe(n, 'talla')
     if (talla) atributos = { ...atributos, talla }
     const color = valorDe(n, 'color')
