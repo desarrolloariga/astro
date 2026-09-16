@@ -122,14 +122,46 @@ function validarFilas(
       .map((p) => [p.codigo_barras.toLowerCase(), p]),
   )
 
-  return filas.map((raw, index) => {
+  // Prepaso: normaliza código/código de barras y resuelve contra la
+  // base de datos existente para cada fila, ANTES de decidir errores.
+  // Hace falta este prepaso separado para poder detectar más abajo
+  // cuando dos filas NUEVAS del mismo archivo (ninguna existe todavía
+  // en la base de datos) comparten el mismo código o código de
+  // barras entre sí — eso también rompería el insert aunque ninguna
+  // choque con algo ya guardado.
+  const previos = filas.map((raw) => {
     const n: Record<string, string> = {}
     for (const [clave, valor] of Object.entries(raw)) {
       n[normalizarEncabezado(clave)] = String(valor ?? '').trim()
     }
+    const codigo = valorDe(n, 'referencia interna', 'codigo')
+    const codigoBarrasTexto = valorDe(n, 'codigo de barras')
+    const existentePorCodigo = codigo ? (existentesPorCodigo.get(codigo.toLowerCase()) ?? null) : null
+    const existentePorBarras = codigoBarrasTexto
+      ? (existentesPorCodigoBarras.get(codigoBarrasTexto.toLowerCase()) ?? null)
+      : null
+    const existente = existentePorCodigo ?? existentePorBarras
+    return { n, codigo, codigoBarrasTexto, existentePorCodigo, existentePorBarras, existente }
+  })
+
+  const contar = (valores: string[]) => {
+    const conteo = new Map<string, number>()
+    for (const v of valores) {
+      if (!v) continue
+      conteo.set(v.toLowerCase(), (conteo.get(v.toLowerCase()) ?? 0) + 1)
+    }
+    return conteo
+  }
+  // Solo cuentan las filas que van a intentar CREAR un producto nuevo
+  // (existente === null) — dos filas que reabastecen el mismo código
+  // ya existente no chocan entre sí, cada una solo suma su cantidad.
+  const nuevasPorCodigo = contar(previos.filter((p) => !p.existente).map((p) => p.codigo))
+  const nuevasPorBarras = contar(previos.filter((p) => !p.existente).map((p) => p.codigoBarrasTexto))
+
+  return filas.map((_raw, index) => {
+    const { n, codigo, codigoBarrasTexto, existentePorCodigo, existentePorBarras, existente } = previos[index]
 
     const errores: string[] = []
-    const codigo = valorDe(n, 'referencia interna', 'codigo')
     const nombre = valorDe(n, 'nombre')
     if (!codigo) errores.push('Falta la referencia interna (código)')
     if (!nombre) errores.push('Falta nombre')
@@ -141,19 +173,25 @@ function validarFilas(
     // de confirmar). Para pieza única es un error de captura (no hay
     // "cantidad" que sumar) — para por_cantidad no es error, esa fila
     // reabastece el inventario existente en vez de crear uno nuevo.
-    const codigoBarrasTexto = valorDe(n, 'codigo de barras')
-    const existentePorCodigo = codigo ? (existentesPorCodigo.get(codigo.toLowerCase()) ?? null) : null
-    const existentePorBarras = codigoBarrasTexto
-      ? (existentesPorCodigoBarras.get(codigoBarrasTexto.toLowerCase()) ?? null)
-      : null
     if (existentePorCodigo && existentePorBarras && existentePorCodigo.id !== existentePorBarras.id) {
       errores.push('El código y el código de barras de esta fila pertenecen a dos productos existentes distintos')
     }
-    const existente = existentePorCodigo ?? existentePorBarras
     if (existente?.modo_inventario === 'pieza_unica') {
       errores.push(`El código "${existente.codigo}" ya existe (pieza única) — usa otro código`)
     }
     const duplicado = existente?.modo_inventario === 'por_cantidad' ? existente : null
+
+    // Dos filas nuevas (ninguna existe todavía) del mismo archivo con
+    // el mismo código o código de barras también rompen el insert —
+    // se marcan ambas como error para que se corrija el archivo.
+    if (!existente) {
+      if (codigo && (nuevasPorCodigo.get(codigo.toLowerCase()) ?? 0) > 1) {
+        errores.push(`El código "${codigo}" está repetido en más de una fila nueva de este archivo`)
+      }
+      if (codigoBarrasTexto && (nuevasPorBarras.get(codigoBarrasTexto.toLowerCase()) ?? 0) > 1) {
+        errores.push(`El código de barras "${codigoBarrasTexto}" está repetido en más de una fila nueva de este archivo`)
+      }
+    }
 
     // Categoría, material y proveedor ya no bloquean la fila si no
     // existen todavía — se crean automáticamente al confirmar la
