@@ -25,6 +25,7 @@ type FilaValidada = {
   categoriaTexto: string
   cantidadTexto: string
   nivelGananciaTexto: string
+  costoTexto: string
   errores: string[]
   nuevasDependencias: string[]
   duplicado: ProductoExistente | null
@@ -204,6 +205,17 @@ function validarFilas(
     const tela = valorDe(n, 'tela')
     if (tela) atributos = { ...atributos, tela }
 
+    // Cuando la fila trae Peso (gramos), "Coste" se interpreta como
+    // costo POR GRAMO — el costo real de la pieza es Coste × Peso. Sin
+    // peso, Coste es directamente el costo total (comportamiento de
+    // siempre).
+    const pesoGramos = aNumeroONull(valorDe(n, 'peso'))
+    const costoIngresado = aNumeroONull(valorDe(n, 'coste', 'costo'))
+    const costoProduccion =
+      pesoGramos != null && pesoGramos > 0 && costoIngresado != null
+        ? Math.round(costoIngresado * pesoGramos * 100) / 100
+        : costoIngresado
+
     return {
       fila: index + 2, // +1 por encabezado, +1 por índice base 1
       codigo,
@@ -211,6 +223,12 @@ function validarFilas(
       categoriaTexto,
       cantidadTexto: String(cantidadInicial ?? ''),
       nivelGananciaTexto: nivelGananciaTexto || '—',
+      costoTexto:
+        costoProduccion == null
+          ? '—'
+          : pesoGramos != null && pesoGramos > 0
+            ? `${costoProduccion.toFixed(2)} (${costoIngresado}/g × ${pesoGramos}g)`
+            : costoProduccion.toFixed(2),
       errores,
       nuevasDependencias,
       duplicado,
@@ -223,8 +241,8 @@ function validarFilas(
               categoria: categoriaTexto,
               material: materialTexto || null,
               origen,
-              costo_produccion: aNumeroONull(valorDe(n, 'coste', 'costo')),
-              peso_gramos: aNumeroONull(valorDe(n, 'peso')),
+              costo_produccion: costoProduccion,
+              peso_gramos: pesoGramos,
               kilataje: valorDe(n, 'kilataje') || null,
               piedras: valorDe(n, 'piedras') || null,
               modo_inventario: 'por_cantidad',
@@ -304,6 +322,10 @@ export function CargadorMasivo({
           La columna "Categoría" es texto libre — escribe cualquier categoría; si no existe
           todavía, se crea sola al confirmar la carga.
         </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Si llenas "Peso (gramos)", "Coste" se interpreta como costo <strong>por gramo</strong> —
+          el costo real se calcula como Coste × Peso. Sin peso, Coste es el costo total de la pieza.
+        </p>
         <div className="mt-4">
           <a
             href={PLANTILLA_EXCEL}
@@ -380,6 +402,7 @@ export function CargadorMasivo({
                   <th className="px-3 py-2 font-semibold">Nombre</th>
                   <th className="px-3 py-2 font-semibold">Categoría</th>
                   <th className="px-3 py-2 font-semibold">Nivel de ganancia</th>
+                  <th className="px-3 py-2 font-semibold">Costo total</th>
                   <th className="px-3 py-2 font-semibold">Cantidad</th>
                   <th className="px-3 py-2 font-semibold">Estado</th>
                 </tr>
@@ -399,6 +422,7 @@ export function CargadorMasivo({
                       )}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{f.nivelGananciaTexto}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{f.costoTexto}</td>
                     <td className="px-3 py-2 text-muted-foreground">
                       {f.duplicado ? `+${f.cantidadTexto || 0}` : f.cantidadTexto || '—'}
                     </td>

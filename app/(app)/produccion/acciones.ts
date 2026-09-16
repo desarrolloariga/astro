@@ -199,6 +199,27 @@ export async function crearPieza(formData: FormData) {
   )
 }
 
+export async function eliminarPiezaBorrador(formData: FormData) {
+  const usuario = await obtenerUsuarioActual()
+  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {
+    redirect('/inicio')
+  }
+
+  const productoId = aNumero(formData.get('producto_id'))
+  if (!productoId) redirect('/produccion')
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('fn_eliminar_producto_borrador', {
+    p_producto_id: productoId,
+  })
+
+  revalidatePath('/produccion')
+  if (error) {
+    redirect(`/produccion?aviso=${encodeURIComponent(error.message)}`)
+  }
+  redirect(`/produccion?ok=${encodeURIComponent('Artículo eliminado')}`)
+}
+
 export async function publicarPieza(formData: FormData) {
   const usuario = await obtenerUsuarioActual()
   if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {

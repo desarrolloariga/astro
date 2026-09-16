@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { PackagePlus, Upload, CheckCircle2, AlertCircle, ImageOff, Camera, Send, Receipt } from 'lucide-react'
+import { PackagePlus, Upload, CheckCircle2, AlertCircle, ImageOff, Camera, Send, Receipt, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearPrecio, formatearFecha, formatearNumero } from '@/lib/formato'
 import { EstadoPieza } from '@/components/app/estado-pieza'
 import { Paginacion } from '@/components/inventario/paginacion'
 import { parsearFiltrosInventario, construirQueryStringInventario, calcularRango, calcularTotalPaginas } from '@/lib/inventario'
-import { publicarPieza } from './acciones'
+import { FormularioConConfirmacion } from '@/components/app/boton-eliminar'
+import { publicarPieza, eliminarPiezaBorrador } from './acciones'
 
 export const metadata = { title: 'Producción — ASTRO' }
 
@@ -272,6 +273,21 @@ export default async function ProduccionPage({
                                   Publicar al CEDI
                                 </button>
                               </form>
+                              <FormularioConConfirmacion
+                                action={eliminarPiezaBorrador}
+                                mensaje={`¿Eliminar "${p.nombre}"? Esta acción no se puede deshacer desde la app.`}
+                                className="inline"
+                              >
+                                <input type="hidden" name="producto_id" value={p.id} />
+                                <button
+                                  type="submit"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                                  title="Eliminar borrador"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Eliminar
+                                </button>
+                              </FormularioConConfirmacion>
                             </>
                           )}
                         </div>
