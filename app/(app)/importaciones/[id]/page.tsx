@@ -331,11 +331,9 @@ export default async function ImportacionPage({
               <Campo label="Nombre de la pieza" required>
                 <input name="nombre" required className={clasesInput} />
               </Campo>
-              <Campo label="Categoría" required>
-                <select name="categoria_id" required defaultValue="" className={clasesInput}>
-                  <option value="" disabled>
-                    Selecciona…
-                  </option>
+              <Campo label="Categoría">
+                <select name="categoria_id" defaultValue="" className={clasesInput}>
+                  <option value="">Selecciona… (opcional)</option>
                   {categorias.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}

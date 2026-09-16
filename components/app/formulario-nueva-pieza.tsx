@@ -117,17 +117,14 @@ export function FormularioNuevaPieza({
 
       <SeccionFormulario icon={ClipboardList} titulo="Ficha técnica">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Categoría" required>
+          <Campo label="Categoría">
             <select
               name="categoria_id"
-              required
               className={clasesInput}
               defaultValue=""
               onChange={(e) => setCategoriaId(e.target.value)}
             >
-              <option value="" disabled>
-                Selecciona…
-              </option>
+              <option value="">Selecciona… (opcional)</option>
               {categorias.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}

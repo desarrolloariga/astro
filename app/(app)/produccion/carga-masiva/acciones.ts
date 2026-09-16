@@ -87,11 +87,9 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
   const piezasNuevas = piezas.filter((p) => p.producto_existente_id == null)
   const piezasReabastecer = piezas.filter((p) => p.producto_existente_id != null)
 
-  const filaInvalida = piezasNuevas.some((p) => !p.codigo?.trim() || !p.nombre?.trim() || !p.categoria?.trim())
+  const filaInvalida = piezasNuevas.some((p) => !p.codigo?.trim() || !p.nombre?.trim())
   if (filaInvalida) {
-    redirect(
-      `/produccion/carga-masiva?error=${encodeURIComponent('Hay filas sin código, nombre o categoría')}`,
-    )
+    redirect(`/produccion/carga-masiva?error=${encodeURIComponent('Hay filas sin código o nombre')}`)
   }
   const cantidadInvalida = piezasNuevas.some(
     (p) => p.modo_inventario === 'por_cantidad' && (p.cantidad_inicial == null || p.cantidad_inicial <= 0),

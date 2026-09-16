@@ -203,8 +203,8 @@ export async function crearProductoYAgregarLineaCompra(formData: FormData) {
   const costoUnitario = aNumero(formData.get('costo_unitario'))
 
   if (!ordenId) redirect('/compras')
-  if (!nombre || !categoriaId) {
-    redirect(`/compras/${ordenId}?error=${encodeURIComponent('Nombre y categoría son obligatorios para crear la pieza')}`)
+  if (!nombre) {
+    redirect(`/compras/${ordenId}?error=${encodeURIComponent('El nombre es obligatorio para crear la pieza')}`)
   }
   if (modoInventario === 'por_cantidad' && (cantidadInicial == null || cantidadInicial <= 0)) {
     redirect(`/compras/${ordenId}?error=${encodeURIComponent('Indica la cantidad inicial de la referencia')}`)

@@ -241,8 +241,8 @@ export async function crearProductoYAgregarLineaImportacion(formData: FormData) 
   const valorFobUnitario = aNumero(formData.get('valor_fob_unitario'))
 
   if (!importacionId) redirect('/importaciones')
-  if (!nombre || !categoriaId) {
-    redirect(`/importaciones/${importacionId}?error=${encodeURIComponent('Nombre y categoría son obligatorios para crear la pieza')}`)
+  if (!nombre) {
+    redirect(`/importaciones/${importacionId}?error=${encodeURIComponent('El nombre es obligatorio para crear la pieza')}`)
   }
   if (modoInventario === 'por_cantidad' && (cantidadInicial == null || cantidadInicial <= 0)) {
     redirect(`/importaciones/${importacionId}?error=${encodeURIComponent('Indica la cantidad inicial de la referencia')}`)

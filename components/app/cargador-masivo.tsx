@@ -143,9 +143,10 @@ function validarFilas(
     // carga (se informa en "nuevasDependencias", no como error).
     const nuevasDependencias: string[] = []
 
+    // Categoría es opcional — una fila sin categoría simplemente crea
+    // el producto sin categoría asignada.
     const categoriaTexto = valorDe(n, 'categoria')
-    if (!categoriaTexto) errores.push('Falta categoría')
-    else if (!categorias.some((c) => c.nombre.toLowerCase() === categoriaTexto.toLowerCase())) {
+    if (categoriaTexto && !categorias.some((c) => c.nombre.toLowerCase() === categoriaTexto.toLowerCase())) {
       nuevasDependencias.push(`Categoría "${categoriaTexto}"`)
     }
 
