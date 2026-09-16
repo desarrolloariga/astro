@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { ImageOff, Camera, Send, Trash2, PackageCheck, PackageX } from 'lucide-react'
+import { ImageOff, Camera, Send, Trash2, PackageCheck, PackageX, Receipt } from 'lucide-react'
 import { formatearPrecio, formatearFechaCorta } from '@/lib/formato'
 import { EstadoPieza } from '@/components/app/estado-pieza'
 import { FormularioConConfirmacion } from '@/components/app/boton-eliminar'
@@ -172,14 +172,8 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
                     </div>
                   </td>
                   <td className={`${celda} text-muted-foreground`}>{f.categoriaNombre ?? '—'}</td>
-                  <td className={celda}>
-                    <Link
-                      href={`/produccion/${f.id}/costos`}
-                      className="text-muted-foreground hover:text-primary hover:underline"
-                      title="Ver hoja de costos / cambiar nivel de ganancia"
-                    >
-                      {ETIQUETAS_NIVEL_GANANCIA[f.nivel_ganancia] ?? f.nivel_ganancia}
-                    </Link>
+                  <td className={`${celda} text-muted-foreground`}>
+                    {ETIQUETAS_NIVEL_GANANCIA[f.nivel_ganancia] ?? f.nivel_ganancia}
                   </td>
                   <td className={celda}>
                     <EstadoPieza estado={f.estado} />
@@ -195,6 +189,14 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
                   <td className={`${celda} text-muted-foreground`}>{formatearFechaCorta(f.fecha_creacion)}</td>
                   <td className={celda}>
                     <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        href={`/produccion/${f.id}/costos`}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary"
+                        title="Ver hoja de costos"
+                      >
+                        <Receipt className="h-3 w-3" />
+                        Costos
+                      </Link>
                       {f.estado === 'en_produccion' && (
                         <>
                           <Link
