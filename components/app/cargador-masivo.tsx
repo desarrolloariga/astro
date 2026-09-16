@@ -280,8 +280,12 @@ export function CargadorMasivo({
   const [nombreArchivo, setNombreArchivo] = useState('')
   const [pending, startTransition] = useTransition()
 
-  const totalErrores = filas.reduce((acc, f) => acc + f.errores.length, 0)
-  const puedeConfirmar = filas.length > 0 && totalErrores === 0 && !pending
+  const filasValidas = filas.filter((f) => f.datos !== null)
+  const filasConError = filas.length - filasValidas.length
+  // Las filas con error se omiten de la carga en vez de bloquear todo
+  // el archivo — un código repetido en una fila no debe impedir subir
+  // las demás que sí están bien.
+  const puedeConfirmar = filasValidas.length > 0 && !pending
   const dependenciasNuevas = Array.from(new Set(filas.flatMap((f) => f.nuevasDependencias))).sort()
   const filasDuplicadas = filas.filter((f) => f.duplicado)
 
@@ -297,6 +301,16 @@ export function CargadorMasivo({
   }
 
   function confirmar() {
+    if (filasConError > 0) {
+      const detalleErrores = filas
+        .filter((f) => f.errores.length > 0)
+        .map((f) => `· Fila ${f.fila} (${f.codigo || 'sin código'}): ${f.errores.join('; ')}`)
+        .join('\n')
+      const continuar = window.confirm(
+        `${filasConError} fila(s) con error NO se van a cargar:\n\n${detalleErrores}\n\n¿Continuar solo con las ${filasValidas.length} filas válidas?`,
+      )
+      if (!continuar) return
+    }
     if (filasDuplicadas.length > 0) {
       const detalle = filasDuplicadas
         .map((f) => `· ${f.codigo} (${f.duplicado?.nombre}) +${f.cantidadTexto}`)
@@ -359,7 +373,7 @@ export function CargadorMasivo({
             <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
               3. Previsualización ({filas.length} filas)
             </h2>
-            {totalErrores === 0 ? (
+            {filasConError === 0 ? (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Todo listo para cargar
@@ -367,7 +381,9 @@ export function CargadorMasivo({
             ) : (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
                 <AlertCircle className="h-3.5 w-3.5" />
-                {totalErrores} error{totalErrores !== 1 ? 'es' : ''} — corrige el archivo y vuelve a subirlo
+                {filasConError} fila{filasConError !== 1 ? 's' : ''} con error se omitirá
+                {filasConError !== 1 ? 'n' : ''} — las {filasValidas.length} restante
+                {filasValidas.length !== 1 ? 's' : ''} sí se pueden cargar
               </span>
             )}
           </div>
@@ -452,9 +468,9 @@ export function CargadorMasivo({
             <Upload className="h-4 w-4" />
             {pending
               ? 'Cargando…'
-              : filasDuplicadas.length > 0
-                ? `Confirmar (${filas.length - filasDuplicadas.length} nuevos, ${filasDuplicadas.length} reabastecidos)`
-                : `Confirmar carga de ${filas.length} artículos`}
+              : `Confirmar (${filasValidas.length - filasDuplicadas.length} nuevos, ${filasDuplicadas.length} reabastecidos${
+                  filasConError > 0 ? `, ${filasConError} omitidos` : ''
+                })`}
           </button>
         </section>
       )}
