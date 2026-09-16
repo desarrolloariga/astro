@@ -171,22 +171,15 @@ function validarFilas(
       errores.push('Nivel de ganancia debe ser "Introducción", "Socio Comercial" o "Importación"')
     }
 
-    // Tipo = modo de inventario (pieza única / por cantidad). Cualquier
-    // valor que mencione "cantidad" cuenta como por_cantidad.
-    const tipoTexto = valorDe(n, 'tipo', 'modo inventario').toLowerCase()
-    const modoInventario: 'pieza_unica' | 'por_cantidad' = tipoTexto.includes('cantidad')
-      ? 'por_cantidad'
-      : 'pieza_unica'
-
+    // Todo lo que se sube por carga masiva es por_cantidad — una pieza
+    // "única" simplemente se sube con Cantidad = 1.
     const cantidadInicial = aNumeroONull(valorDe(n, 'cantidad'))
-    if (duplicado) {
-      // Fila de reabastecimiento: lo único que importa es cuánto se va
-      // a sumar, sin importar qué diga la columna "Tipo" del Excel.
-      if (cantidadInicial == null || cantidadInicial <= 0) {
-        errores.push('Cantidad obligatoria (mayor a 0) para reabastecer este código')
-      }
-    } else if (modoInventario === 'por_cantidad' && (cantidadInicial == null || cantidadInicial <= 0)) {
-      errores.push('Cantidad obligatoria (mayor a 0) para artículos por cantidad')
+    if (cantidadInicial == null || cantidadInicial <= 0) {
+      errores.push(
+        duplicado
+          ? 'Cantidad obligatoria (mayor a 0) para reabastecer este código'
+          : 'Cantidad obligatoria (mayor a 0) — para una pieza única, sube 1',
+      )
     }
 
     let atributos: Record<string, unknown> = {}
@@ -215,7 +208,7 @@ function validarFilas(
       codigo,
       nombre,
       categoriaTexto,
-      cantidadTexto: duplicado || modoInventario === 'por_cantidad' ? String(cantidadInicial ?? '') : 'Única',
+      cantidadTexto: String(cantidadInicial ?? ''),
       nivelGananciaTexto: nivelGananciaTexto || '—',
       errores,
       nuevasDependencias,
@@ -233,8 +226,8 @@ function validarFilas(
               peso_gramos: aNumeroONull(valorDe(n, 'peso')),
               kilataje: valorDe(n, 'kilataje') || null,
               piedras: valorDe(n, 'piedras') || null,
-              modo_inventario: duplicado ? 'por_cantidad' : modoInventario,
-              cantidad_inicial: duplicado || modoInventario === 'por_cantidad' ? cantidadInicial : null,
+              modo_inventario: 'por_cantidad',
+              cantidad_inicial: cantidadInicial,
               atributos,
               marca: valorDe(n, 'marca') || null,
               coleccion: valorDe(n, 'coleccion') || null,
