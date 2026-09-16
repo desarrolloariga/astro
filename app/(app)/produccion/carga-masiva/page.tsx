@@ -20,7 +20,7 @@ export default async function CargaMasivaPage({
 
   const [{ data: categorias }, { data: materiales }, { data: proveedores }, { data: productosExistentes }] =
     await Promise.all([
-      supabase.from('categorias').select('id, nombre, grupo').eq('activo', true).order('orden'),
+      supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
       supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
       supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
       supabase.from('productos').select('id, codigo, nombre, modo_inventario, estado').eq('activo', true),
@@ -38,8 +38,8 @@ export default async function CargaMasivaPage({
         </Link>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Carga masiva de artículos</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Descarga la plantilla de tu categoría, complétala y súbela. Los artículos quedan como
-          borrador — agrégales fotos y publícalos al CEDI desde producción.
+          Descarga la plantilla, complétala y súbela. Los artículos quedan como borrador —
+          agrégales fotos y publícalos al CEDI desde producción.
         </p>
       </div>
 

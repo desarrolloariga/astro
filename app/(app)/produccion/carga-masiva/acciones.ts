@@ -71,7 +71,7 @@ async function resolverOCrearCatalogo(
   return { mapa, creadas: faltantes }
 }
 
-export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: string) {
+export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
   const usuario = await obtenerUsuarioActual()
   if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {
     redirect('/inicio')
@@ -137,15 +137,14 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], grupo: stri
   // Categoría, material y proveedor se resuelven contra el catálogo
   // existente y se crean automáticamente los que falten — así una
   // carga masiva ya no se rechaza solo porque el archivo trae una
-  // categoría (u otra dependencia) que todavía no existe.
+  // categoría (u otra dependencia) que todavía no existe. Una
+  // categoría nueva se crea con grupo='general' (default de la
+  // columna) — la carga masiva ya no pide elegir un grupo, así que no
+  // hay forma de inferir si le corresponden campos de ficha técnica
+  // especiales (kilataje/piedras, talla/color/tela, etc.).
   const [{ mapa: mapaCategorias, creadas: categoriasCreadas }, { mapa: mapaMateriales, creadas: materialesCreados }] =
     await Promise.all([
-      resolverOCrearCatalogo(
-        admin,
-        'categorias',
-        piezasNuevas.map((p) => p.categoria),
-        () => ({ grupo }),
-      ),
+      resolverOCrearCatalogo(admin, 'categorias', piezasNuevas.map((p) => p.categoria)),
       resolverOCrearCatalogo(
         admin,
         'materiales',

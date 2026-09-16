@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 import { Download, Upload, CheckCircle2, AlertCircle, Sparkles, AlertTriangle } from 'lucide-react'
 import { cargarPiezasMasivo } from '@/app/(app)/produccion/carga-masiva/acciones'
 
-type Categoria = { id: number; nombre: string; grupo: string }
+type Categoria = { id: number; nombre: string }
 type Material = { id: number; nombre: string }
 type Proveedor = { id: number; nombre: string }
 type ProductoExistente = {
@@ -53,16 +53,11 @@ type FilaValidada = {
   } | null
 }
 
-// Las 3 plantillas son solo un punto de partida por tipo de artículo
-// (ficha técnica distinta: joyería trae kilataje/piedras, ropa trae
-// talla/color/tela) — el margen real ya NO depende de la plantilla ni
-// de la categoría, sino de la columna "Nivel de ganancia" (desplegable
-// en el Excel), que se puede elegir libremente fila por fila.
-const plantillasPorGrupo: Record<string, { archivo: string; etiqueta: string }> = {
-  lenceria: { archivo: '/plantillas/ropa.xlsx', etiqueta: 'Ropa' },
-  tecnologia: { archivo: '/plantillas/tecnologia.xlsx', etiqueta: 'Tecnología' },
-  joyeria: { archivo: '/plantillas/joyeria.xlsx', etiqueta: 'Joyería' },
-}
+// Una sola plantilla para cualquier tipo de artículo — la "Categoría"
+// es texto libre en el Excel (se crea sola si no existe todavía) y el
+// margen depende de "Nivel de ganancia", no de la categoría ni de un
+// grupo elegido de antemano.
+const PLANTILLA_EXCEL = '/plantillas/articulos.xlsx'
 
 function aNumeroONull(valor: string | undefined): number | null {
   const texto = (valor ?? '').trim()
@@ -113,7 +108,6 @@ function valorDe(normalizada: Record<string, string>, ...alias: string[]): strin
 
 function validarFilas(
   filas: FilaCsv[],
-  grupo: string,
   categorias: Categoria[],
   materiales: Material[],
   proveedores: Proveedor[],
@@ -206,14 +200,15 @@ function validarFilas(
         errores.push('atributos_json no es JSON válido')
       }
     }
-    if (grupo === 'lenceria') {
-      const talla = valorDe(n, 'talla')
-      if (talla) atributos = { ...atributos, talla }
-      const color = valorDe(n, 'color')
-      if (color) atributos = { ...atributos, color }
-      const tela = valorDe(n, 'tela')
-      if (tela) atributos = { ...atributos, tela }
-    }
+    // Los campos de ficha técnica específicos ya no dependen de un
+    // grupo elegido de antemano — se toman si la columna viene con
+    // valor, sin importar qué diga "Categoría" en esa fila.
+    const talla = valorDe(n, 'talla')
+    if (talla) atributos = { ...atributos, talla }
+    const color = valorDe(n, 'color')
+    if (color) atributos = { ...atributos, color }
+    const tela = valorDe(n, 'tela')
+    if (tela) atributos = { ...atributos, tela }
 
     return {
       fila: index + 2, // +1 por encabezado, +1 por índice base 1
@@ -236,8 +231,8 @@ function validarFilas(
               origen,
               costo_produccion: aNumeroONull(valorDe(n, 'coste', 'costo')),
               peso_gramos: aNumeroONull(valorDe(n, 'peso')),
-              kilataje: grupo === 'joyeria' ? valorDe(n, 'kilataje') || null : null,
-              piedras: grupo === 'joyeria' ? valorDe(n, 'piedras') || null : null,
+              kilataje: valorDe(n, 'kilataje') || null,
+              piedras: valorDe(n, 'piedras') || null,
               modo_inventario: duplicado ? 'por_cantidad' : modoInventario,
               cantidad_inicial: duplicado || modoInventario === 'por_cantidad' ? cantidadInicial : null,
               atributos,
@@ -269,7 +264,6 @@ export function CargadorMasivo({
   proveedores: Proveedor[]
   productosExistentes: ProductoExistente[]
 }) {
-  const [grupo, setGrupo] = useState('joyeria')
   const [filas, setFilas] = useState<FilaValidada[]>([])
   const [nombreArchivo, setNombreArchivo] = useState('')
   const [pending, startTransition] = useTransition()
@@ -287,7 +281,7 @@ export function CargadorMasivo({
     const libro = XLSX.read(buffer, { type: 'array' })
     const hoja = libro.Sheets[libro.SheetNames[0]]
     const datos = XLSX.utils.sheet_to_json<FilaCsv>(hoja, { defval: '', raw: false })
-    setFilas(validarFilas(datos, grupo, categorias, materiales, proveedores, productosExistentes))
+    setFilas(validarFilas(datos, categorias, materiales, proveedores, productosExistentes))
   }
 
   function confirmar() {
@@ -302,7 +296,7 @@ export function CargadorMasivo({
     }
     const datos = filas.map((f) => f.datos).filter((d): d is NonNullable<typeof d> => d !== null)
     startTransition(async () => {
-      await cargarPiezasMasivo(datos, grupo)
+      await cargarPiezasMasivo(datos)
     })
   }
 
@@ -310,26 +304,15 @@ export function CargadorMasivo({
     <div className="flex flex-col gap-6">
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-          1. Elige la plantilla
+          1. Descarga la plantilla
         </h2>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <select
-            value={grupo}
-            onChange={(e) => {
-              setGrupo(e.target.value)
-              setFilas([])
-              setNombreArchivo('')
-            }}
-            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-          >
-            {Object.entries(plantillasPorGrupo).map(([valor, info]) => (
-              <option key={valor} value={valor}>
-                {info.etiqueta}
-              </option>
-            ))}
-          </select>
+        <p className="mt-1 text-xs text-muted-foreground">
+          La columna "Categoría" es texto libre — escribe cualquier categoría; si no existe
+          todavía, se crea sola al confirmar la carga.
+        </p>
+        <div className="mt-4">
           <a
-            href={plantillasPorGrupo[grupo].archivo}
+            href={PLANTILLA_EXCEL}
             download
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
           >
