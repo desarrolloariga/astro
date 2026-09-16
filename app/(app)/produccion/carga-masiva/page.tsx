@@ -23,7 +23,7 @@ export default async function CargaMasivaPage({
       supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
       supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
       supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
-      supabase.from('productos').select('id, codigo, nombre, modo_inventario, estado').eq('activo', true),
+      supabase.from('productos').select('id, codigo, codigo_barras, nombre, modo_inventario, estado').eq('activo', true),
     ])
 
   return (

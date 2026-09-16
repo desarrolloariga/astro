@@ -11,6 +11,7 @@ type Proveedor = { id: number; nombre: string }
 type ProductoExistente = {
   id: number
   codigo: string
+  codigo_barras: string | null
   nombre: string
   modo_inventario: 'pieza_unica' | 'por_cantidad'
   estado: string
@@ -115,6 +116,11 @@ function validarFilas(
   productosExistentes: ProductoExistente[],
 ): FilaValidada[] {
   const existentesPorCodigo = new Map(productosExistentes.map((p) => [p.codigo.toLowerCase(), p]))
+  const existentesPorCodigoBarras = new Map(
+    productosExistentes
+      .filter((p): p is ProductoExistente & { codigo_barras: string } => !!p.codigo_barras)
+      .map((p) => [p.codigo_barras.toLowerCase(), p]),
+  )
 
   return filas.map((raw, index) => {
     const n: Record<string, string> = {}
@@ -128,13 +134,24 @@ function validarFilas(
     if (!codigo) errores.push('Falta la referencia interna (código)')
     if (!nombre) errores.push('Falta nombre')
 
-    // Código ya existente: para pieza única es un error de captura (no
-    // hay "cantidad" que sumar a una pieza única) — para por_cantidad
-    // no es error, esa fila reabastece el inventario existente en vez
-    // de crear un producto nuevo (ver resumen y confirmación abajo).
-    const existente = codigo ? (existentesPorCodigo.get(codigo.toLowerCase()) ?? null) : null
+    // Un producto ya existente se detecta por su código (referencia
+    // interna) O por su código de barras — cualquiera de los dos que
+    // coincida evita crear un duplicado e intentar insertarlo (lo que
+    // antes fallaba con "código de barras ya existe" sin avisar antes
+    // de confirmar). Para pieza única es un error de captura (no hay
+    // "cantidad" que sumar) — para por_cantidad no es error, esa fila
+    // reabastece el inventario existente en vez de crear uno nuevo.
+    const codigoBarrasTexto = valorDe(n, 'codigo de barras')
+    const existentePorCodigo = codigo ? (existentesPorCodigo.get(codigo.toLowerCase()) ?? null) : null
+    const existentePorBarras = codigoBarrasTexto
+      ? (existentesPorCodigoBarras.get(codigoBarrasTexto.toLowerCase()) ?? null)
+      : null
+    if (existentePorCodigo && existentePorBarras && existentePorCodigo.id !== existentePorBarras.id) {
+      errores.push('El código y el código de barras de esta fila pertenecen a dos productos existentes distintos')
+    }
+    const existente = existentePorCodigo ?? existentePorBarras
     if (existente?.modo_inventario === 'pieza_unica') {
-      errores.push(`El código "${codigo}" ya existe (pieza única) — usa otro código`)
+      errores.push(`El código "${existente.codigo}" ya existe (pieza única) — usa otro código`)
     }
     const duplicado = existente?.modo_inventario === 'por_cantidad' ? existente : null
 
@@ -251,7 +268,7 @@ function validarFilas(
               atributos,
               marca: valorDe(n, 'marca') || null,
               coleccion: valorDe(n, 'coleccion') || null,
-              codigo_barras: valorDe(n, 'codigo de barras') || null,
+              codigo_barras: codigoBarrasTexto || null,
               etiquetas: valorDe(n, 'etiquetas')
                 .split(',')
                 .map((t) => t.trim())
@@ -314,7 +331,7 @@ export function CargadorMasivo({
     }
     if (filasDuplicadas.length > 0) {
       const detalle = filasDuplicadas
-        .map((f) => `· ${f.codigo} (${f.duplicado?.nombre}) +${f.cantidadTexto}`)
+        .map((f) => `· ${f.duplicado?.codigo} (${f.duplicado?.nombre}) +${f.cantidadTexto}`)
         .join('\n')
       const continuar = window.confirm(
         `${filasDuplicadas.length} código(s) ya existen y NO se crearán de nuevo — se sumará la cantidad del Excel a su inventario actual:\n\n${detalle}\n\n¿Continuar con la carga?`,
