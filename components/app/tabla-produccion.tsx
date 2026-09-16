@@ -25,7 +25,7 @@ export type FilaProduccion = {
   nivel_ganancia: string
   categoriaNombre: string | null
   imagenes: Imagen[]
-  precioFinal: number | null
+  costoBase: number | null
 }
 
 const celda = 'px-2.5 py-1.5 whitespace-nowrap'
@@ -114,7 +114,7 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
               <th className={`${celda} font-semibold`}>Categoría</th>
               <th className={`${celda} font-semibold`}>Nivel</th>
               <th className={`${celda} font-semibold`}>Estado</th>
-              <th className={`${celda} font-semibold text-right`}>Precio</th>
+              <th className={`${celda} font-semibold text-right`}>Costo base</th>
               <th className={`${celda} font-semibold`}>Creado</th>
               <th className={`${celda} font-semibold text-right`}>Acción</th>
             </tr>
@@ -162,7 +162,7 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
                     <EstadoPieza estado={f.estado} />
                   </td>
                   <td className={`${celda} text-right font-semibold text-foreground`}>
-                    {f.precioFinal != null ? formatearPrecio(f.precioFinal) : '—'}
+                    {f.costoBase != null ? formatearPrecio(f.costoBase) : '—'}
                   </td>
                   <td className={`${celda} text-muted-foreground`}>{formatearFechaCorta(f.fecha_creacion)}</td>
                   <td className={celda}>
