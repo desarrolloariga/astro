@@ -79,44 +79,32 @@ export default async function ProduccionPage({
   const construirHref = (pagina: number) =>
     `/produccion?${construirQueryStringInventario(filtros, { pagina })}`
 
-  // Último snapshot de precio por pieza — se pide todo el historial de
-  // esta página ordenado por fecha desc y se toma solo el primero por
+  // Último precio final por pieza — se pide todo el historial de esta
+  // página ordenado por fecha desc y se toma solo el primero por
   // producto_id (más simple que una vista SQL nueva para un listado).
   const idsPagina = lista.map((p) => p.id)
   const { data: historialData } = await supabase
     .from('producto_precio_historial')
-    .select('producto_id, costo_base, costo_logistico, precio_antes_embajador, base_comisionable, impuesto, precio_final, fecha_creacion')
+    .select('producto_id, precio_final, fecha_creacion')
     .in('producto_id', idsPagina.length > 0 ? idsPagina : [-1])
     .order('fecha_creacion', { ascending: false })
 
-  const ultimoPrecioPorProducto = new Map<number, NonNullable<typeof historialData>[number]>()
+  const ultimoPrecioPorProducto = new Map<number, number>()
   for (const h of historialData ?? []) {
-    if (!ultimoPrecioPorProducto.has(h.producto_id)) ultimoPrecioPorProducto.set(h.producto_id, h)
+    if (!ultimoPrecioPorProducto.has(h.producto_id)) ultimoPrecioPorProducto.set(h.producto_id, h.precio_final)
   }
 
-  const filasTabla: FilaProduccion[] = lista.map((p) => {
-    const h = ultimoPrecioPorProducto.get(p.id)
-    return {
-      id: p.id,
-      codigo: p.codigo,
-      nombre: p.nombre,
-      estado: p.estado,
-      fecha_creacion: p.fecha_creacion,
-      nivel_ganancia: p.nivel_ganancia,
-      categoriaNombre: (p.categorias as unknown as { nombre: string } | null)?.nombre ?? null,
-      imagenes: (p.producto_imagenes ?? []) as FilaProduccion['imagenes'],
-      desglose: h
-        ? {
-            costo_base: h.costo_base,
-            costo_logistico: h.costo_logistico,
-            precio_antes_embajador: h.precio_antes_embajador,
-            base_comisionable: h.base_comisionable,
-            impuesto: h.impuesto,
-            precio_final: h.precio_final,
-          }
-        : null,
-    }
-  })
+  const filasTabla: FilaProduccion[] = lista.map((p) => ({
+    id: p.id,
+    codigo: p.codigo,
+    nombre: p.nombre,
+    estado: p.estado,
+    fecha_creacion: p.fecha_creacion,
+    nivel_ganancia: p.nivel_ganancia,
+    categoriaNombre: (p.categorias as unknown as { nombre: string } | null)?.nombre ?? null,
+    imagenes: (p.producto_imagenes ?? []) as FilaProduccion['imagenes'],
+    precioFinal: ultimoPrecioPorProducto.get(p.id) ?? null,
+  }))
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-6">

@@ -25,21 +25,10 @@ export type FilaProduccion = {
   nivel_ganancia: string
   categoriaNombre: string | null
   imagenes: Imagen[]
-  desglose: {
-    costo_base: number
-    costo_logistico: number
-    precio_antes_embajador: number
-    base_comisionable: number
-    impuesto: number
-    precio_final: number
-  } | null
+  precioFinal: number | null
 }
 
 const celda = 'px-2.5 py-1.5 whitespace-nowrap'
-
-function Monto({ valor }: { valor: number | undefined | null }) {
-  return <td className={`${celda} text-right text-foreground`}>{valor != null ? formatearPrecio(valor) : '—'}</td>
-}
 
 export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
@@ -125,12 +114,7 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
               <th className={`${celda} font-semibold`}>Categoría</th>
               <th className={`${celda} font-semibold`}>Nivel</th>
               <th className={`${celda} font-semibold`}>Estado</th>
-              <th className={`${celda} font-semibold text-right`}>Costo base</th>
-              <th className={`${celda} font-semibold text-right`}>Costo logístico</th>
-              <th className={`${celda} font-semibold text-right`}>Antes embajador</th>
-              <th className={`${celda} font-semibold text-right`}>Comisión</th>
-              <th className={`${celda} font-semibold text-right`}>Impuesto</th>
-              <th className={`${celda} font-semibold text-right`}>Precio final</th>
+              <th className={`${celda} font-semibold text-right`}>Precio</th>
               <th className={`${celda} font-semibold`}>Creado</th>
               <th className={`${celda} font-semibold text-right`}>Acción</th>
             </tr>
@@ -138,7 +122,6 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
           <tbody>
             {filas.map((f) => {
               const portada = f.imagenes.find((i) => i.es_principal)?.url ?? f.imagenes[0]?.url ?? null
-              const d = f.desglose
               return (
                 <tr key={f.id} className="border-b border-border last:border-0">
                   <td className={celda}>
@@ -178,13 +161,8 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
                   <td className={celda}>
                     <EstadoPieza estado={f.estado} />
                   </td>
-                  <Monto valor={d?.costo_base} />
-                  <Monto valor={d?.costo_logistico} />
-                  <Monto valor={d?.precio_antes_embajador} />
-                  <Monto valor={d?.base_comisionable} />
-                  <Monto valor={d?.impuesto} />
                   <td className={`${celda} text-right font-semibold text-foreground`}>
-                    {d?.precio_final != null ? formatearPrecio(d.precio_final) : '—'}
+                    {f.precioFinal != null ? formatearPrecio(f.precioFinal) : '—'}
                   </td>
                   <td className={`${celda} text-muted-foreground`}>{formatearFechaCorta(f.fecha_creacion)}</td>
                   <td className={celda}>
