@@ -241,6 +241,50 @@ export async function publicarPieza(formData: FormData) {
   redirect(`/produccion?ok=${encodeURIComponent('Artículo publicado al CEDI')}`)
 }
 
+export async function publicarPiezasMasivo(productoIds: number[]) {
+  const usuario = await obtenerUsuarioActual()
+  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {
+    redirect('/inicio')
+  }
+  if (!Array.isArray(productoIds) || productoIds.length === 0) redirect('/produccion')
+
+  const supabase = await createClient()
+  let ok = 0
+  let fallidos = 0
+  for (const id of productoIds) {
+    const { error } = await supabase.rpc('fn_publicar_producto', { p_producto_id: id })
+    if (error) fallidos++
+    else ok++
+  }
+
+  revalidatePath('/produccion')
+  const mensaje = `${ok} artículo${ok !== 1 ? 's' : ''} publicado${ok !== 1 ? 's' : ''} al CEDI` +
+    (fallidos > 0 ? ` · ${fallidos} no se pudieron publicar (ficha incompleta o sin foto)` : '')
+  redirect(`/produccion?${fallidos > 0 ? 'aviso' : 'ok'}=${encodeURIComponent(mensaje)}`)
+}
+
+export async function rechazarPiezasMasivo(productoIds: number[]) {
+  const usuario = await obtenerUsuarioActual()
+  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {
+    redirect('/inicio')
+  }
+  if (!Array.isArray(productoIds) || productoIds.length === 0) redirect('/produccion')
+
+  const supabase = await createClient()
+  let ok = 0
+  let fallidos = 0
+  for (const id of productoIds) {
+    const { error } = await supabase.rpc('fn_eliminar_producto_borrador', { p_producto_id: id })
+    if (error) fallidos++
+    else ok++
+  }
+
+  revalidatePath('/produccion')
+  const mensaje = `${ok} artículo${ok !== 1 ? 's' : ''} rechazado${ok !== 1 ? 's' : ''}` +
+    (fallidos > 0 ? ` · ${fallidos} no se pudieron rechazar` : '')
+  redirect(`/produccion?${fallidos > 0 ? 'aviso' : 'ok'}=${encodeURIComponent(mensaje)}`)
+}
+
 export async function agregarFotosPieza(formData: FormData) {
   const usuario = await obtenerUsuarioActual()
   if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {

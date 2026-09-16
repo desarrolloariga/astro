@@ -1,14 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { PackagePlus, Upload, CheckCircle2, AlertCircle, ImageOff, Camera, Send, Receipt, Trash2 } from 'lucide-react'
+import { PackagePlus, Upload, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
-import { formatearPrecio, formatearFecha, formatearNumero } from '@/lib/formato'
-import { EstadoPieza } from '@/components/app/estado-pieza'
+import { formatearNumero } from '@/lib/formato'
 import { Paginacion } from '@/components/inventario/paginacion'
 import { parsearFiltrosInventario, construirQueryStringInventario, calcularRango, calcularTotalPaginas } from '@/lib/inventario'
-import { FormularioConConfirmacion } from '@/components/app/boton-eliminar'
-import { publicarPieza, eliminarPiezaBorrador } from './acciones'
+import { TablaProduccion, type FilaProduccion } from '@/components/app/tabla-produccion'
 
 export const metadata = { title: 'Producción — ASTRO' }
 
@@ -27,12 +25,6 @@ const clasesCampo =
 
 type Categoria = { id: number; nombre: string }
 type Material = { id: number; nombre: string }
-
-const ETIQUETAS_NIVEL_GANANCIA: Record<string, string> = {
-  introduccion: 'Introducción',
-  socio_comercial: 'Socio Comercial',
-  importacion: 'Importación',
-}
 
 export default async function ProduccionPage({
   searchParams,
@@ -59,7 +51,7 @@ export default async function ProduccionPage({
   let consulta = supabase
     .from('productos')
     .select(
-      'id, codigo, nombre, estado, precio_venta, costo_produccion, modo_inventario, nivel_ganancia, fecha_creacion, fecha_publicacion, categorias(nombre), producto_imagenes(url, es_principal, orden), usuarios:creado_por(nombre)',
+      'id, codigo, nombre, estado, modo_inventario, nivel_ganancia, fecha_creacion, fecha_publicacion, categorias(nombre), producto_imagenes(url, es_principal, orden)',
       { count: 'exact' },
     )
     .eq('activo', true)
@@ -86,6 +78,45 @@ export default async function ProduccionPage({
   const totalPaginas = calcularTotalPaginas(totalArticulos ?? 0, TAMANO_PAGINA_PRODUCCION)
   const construirHref = (pagina: number) =>
     `/produccion?${construirQueryStringInventario(filtros, { pagina })}`
+
+  // Último snapshot de precio por pieza — se pide todo el historial de
+  // esta página ordenado por fecha desc y se toma solo el primero por
+  // producto_id (más simple que una vista SQL nueva para un listado).
+  const idsPagina = lista.map((p) => p.id)
+  const { data: historialData } = await supabase
+    .from('producto_precio_historial')
+    .select('producto_id, costo_base, costo_logistico, precio_antes_embajador, base_comisionable, impuesto, precio_final, fecha_creacion')
+    .in('producto_id', idsPagina.length > 0 ? idsPagina : [-1])
+    .order('fecha_creacion', { ascending: false })
+
+  const ultimoPrecioPorProducto = new Map<number, NonNullable<typeof historialData>[number]>()
+  for (const h of historialData ?? []) {
+    if (!ultimoPrecioPorProducto.has(h.producto_id)) ultimoPrecioPorProducto.set(h.producto_id, h)
+  }
+
+  const filasTabla: FilaProduccion[] = lista.map((p) => {
+    const h = ultimoPrecioPorProducto.get(p.id)
+    return {
+      id: p.id,
+      codigo: p.codigo,
+      nombre: p.nombre,
+      estado: p.estado,
+      fecha_creacion: p.fecha_creacion,
+      nivel_ganancia: p.nivel_ganancia,
+      categoriaNombre: (p.categorias as unknown as { nombre: string } | null)?.nombre ?? null,
+      imagenes: (p.producto_imagenes ?? []) as FilaProduccion['imagenes'],
+      desglose: h
+        ? {
+            costo_base: h.costo_base,
+            costo_logistico: h.costo_logistico,
+            precio_antes_embajador: h.precio_antes_embajador,
+            base_comisionable: h.base_comisionable,
+            impuesto: h.impuesto,
+            precio_final: h.precio_final,
+          }
+        : null,
+    }
+  })
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -176,128 +207,7 @@ export default async function ProduccionPage({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-border bg-card">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-3 font-semibold">Artículo</th>
-                  <th className="px-4 py-3 font-semibold">Categoría</th>
-                  <th className="px-4 py-3 font-semibold">Nivel</th>
-                  <th className="px-4 py-3 font-semibold">Estado</th>
-                  <th className="px-4 py-3 font-semibold text-right">Precio</th>
-                  <th className="px-4 py-3 font-semibold">Creado</th>
-                  <th className="px-4 py-3 font-semibold text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lista.map((p) => {
-                  const imagenes = (p.producto_imagenes ?? []) as {
-                    url: string
-                    es_principal: boolean
-                    orden: number
-                  }[]
-                  const portada =
-                    imagenes.find((i) => i.es_principal)?.url ?? imagenes[0]?.url ?? null
-                  const categoria = p.categorias as unknown as { nombre: string } | null
-                  const creadoPor = p.usuarios as unknown as { nombre: string } | null
-                  return (
-                    <tr key={p.id} className="border-b border-border last:border-0">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {portada ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={portada}
-                              alt=""
-                              className="h-10 w-10 rounded-lg border border-border object-cover"
-                            />
-                          ) : (
-                            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                              <ImageOff className="h-4 w-4" />
-                            </span>
-                          )}
-                          <div className="leading-tight">
-                            <Link
-                              href={`/inventario/movimientos?buscar=${encodeURIComponent(p.codigo)}`}
-                              className="font-semibold text-foreground hover:text-primary hover:underline"
-                              title="Ver historial de movimientos de este artículo"
-                            >
-                              {p.nombre}
-                            </Link>
-                            <p className="text-xs text-muted-foreground">{p.codigo}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {categoria?.nombre ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {ETIQUETAS_NIVEL_GANANCIA[p.nivel_ganancia] ?? p.nivel_ganancia}
-                      </td>
-                      <td className="px-4 py-3">
-                        <EstadoPieza estado={p.estado} />
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground">
-                        {p.precio_venta != null ? formatearPrecio(p.precio_venta) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        <p>{formatearFecha(p.fecha_creacion)}</p>
-                        {creadoPor && <p className="text-xs">{creadoPor.nombre}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/produccion/${p.id}/costos`}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-                            title="Hoja de costos"
-                          >
-                            <Receipt className="h-3.5 w-3.5" />
-                            Costos
-                          </Link>
-                          {p.estado === 'en_produccion' && (
-                            <>
-                              <Link
-                                href={`/produccion/${p.id}/fotos`}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-                              >
-                                <Camera className="h-3.5 w-3.5" />
-                                Fotos
-                              </Link>
-                              <form action={publicarPieza} className="inline">
-                                <input type="hidden" name="producto_id" value={p.id} />
-                                <button
-                                  type="submit"
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-                                >
-                                  <Send className="h-3.5 w-3.5" />
-                                  Publicar al CEDI
-                                </button>
-                              </form>
-                              <FormularioConConfirmacion
-                                action={eliminarPiezaBorrador}
-                                mensaje={`¿Eliminar "${p.nombre}"? Esta acción no se puede deshacer desde la app.`}
-                                className="inline"
-                              >
-                                <input type="hidden" name="producto_id" value={p.id} />
-                                <button
-                                  type="submit"
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
-                                  title="Eliminar borrador"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Eliminar
-                                </button>
-                              </FormularioConConfirmacion>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TablaProduccion filas={filasTabla} />
           <Paginacion
             paginaActual={filtros.pagina}
             totalPaginas={totalPaginas}
