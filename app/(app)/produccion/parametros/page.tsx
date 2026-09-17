@@ -15,43 +15,118 @@ type Producto = {
   dias_sin_venta_descuento: number | null
   descuento_automatico_pct: number | null
   precio_descuento: number | null
+  nivel_ganancia: string
+  estado: string
   categorias: { nombre: string } | null
 }
 
+type Categoria = { id: number; nombre: string }
+type Material = { id: number; nombre: string }
+type Proveedor = { id: number; nombre: string }
+
 const clasesInputCompacto =
   'w-24 rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none'
+const clasesCampoFiltro =
+  'rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none'
+
+const ESTADOS = ['en_produccion', 'disponible_cedi', 'disponible_tienda']
+const ETIQUETAS_ESTADO: Record<string, string> = {
+  en_produccion: 'Borrador',
+  disponible_cedi: 'Publicado (CEDI)',
+  disponible_tienda: 'Publicado (tienda)',
+}
+const NIVELES_GANANCIA = [
+  { valor: 'introduccion', etiqueta: 'Introducción' },
+  { valor: 'socio_comercial', etiqueta: 'Socio Comercial' },
+  { valor: 'importacion', etiqueta: 'Importación' },
+]
+const ETIQUETAS_NIVEL_GANANCIA: Record<string, string> = Object.fromEntries(
+  NIVELES_GANANCIA.map((n) => [n.valor, n.etiqueta]),
+)
+
+type FiltrosParametros = {
+  buscar: string
+  categoriaId: number | null
+  materialId: number | null
+  proveedorId: number | null
+  nivelGanancia: string
+  estado: string
+  subcategoria: string
+  marca: string
+  coleccion: string
+  origen: string
+}
+
+function unoSolo(valor: string | string[] | undefined) {
+  return Array.isArray(valor) ? valor[0] : valor
+}
 
 export default async function ParametrosArticulosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; error?: string; buscar?: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const usuario = await obtenerUsuarioActual()
   if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') redirect('/inicio')
 
-  const { ok, error, buscar } = await searchParams
+  const sp = await searchParams
+  const ok = typeof sp.ok === 'string' ? sp.ok : undefined
+  const error = typeof sp.error === 'string' ? sp.error : undefined
+
+  const filtros: FiltrosParametros = {
+    buscar: (unoSolo(sp.buscar) ?? '').trim(),
+    categoriaId: unoSolo(sp.categoria_id) ? Number(unoSolo(sp.categoria_id)) : null,
+    materialId: unoSolo(sp.material_id) ? Number(unoSolo(sp.material_id)) : null,
+    proveedorId: unoSolo(sp.proveedor_id) ? Number(unoSolo(sp.proveedor_id)) : null,
+    nivelGanancia: (unoSolo(sp.nivel_ganancia) ?? '').trim(),
+    estado: (unoSolo(sp.estado) ?? '').trim(),
+    subcategoria: (unoSolo(sp.subcategoria) ?? '').trim(),
+    marca: (unoSolo(sp.marca) ?? '').trim(),
+    coleccion: (unoSolo(sp.coleccion) ?? '').trim(),
+    origen: (unoSolo(sp.origen) ?? '').trim(),
+  }
+
   const supabase = await createClient()
+
+  const [{ data: categoriasData }, { data: materialesData }, { data: proveedoresData }] = await Promise.all([
+    supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
+    supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+    supabase.from('proveedores').select('id, nombre').eq('activo', true).order('nombre'),
+  ])
+  const categorias = (categoriasData ?? []) as Categoria[]
+  const materiales = (materialesData ?? []) as Material[]
+  const proveedores = (proveedoresData ?? []) as Proveedor[]
 
   let consulta = supabase
     .from('productos')
     .select(
-      'id, codigo, nombre, punto_reorden, dias_sin_venta_descuento, descuento_automatico_pct, precio_descuento, categorias ( nombre )',
+      'id, codigo, nombre, punto_reorden, dias_sin_venta_descuento, descuento_automatico_pct, precio_descuento, nivel_ganancia, estado, categorias ( nombre )',
     )
     .eq('activo', true)
-    .in('estado', ['en_produccion', 'disponible_cedi', 'disponible_tienda'])
+    .in('estado', ESTADOS)
     .order('nombre')
 
-  const buscarTexto = (buscar ?? '').trim()
-  if (buscarTexto) {
-    const seguro = buscarTexto.replace(/[,()]/g, ' ').trim()
+  if (filtros.buscar) {
+    const seguro = filtros.buscar.replace(/[,()]/g, ' ').trim()
     consulta = consulta.or(`nombre.ilike.%${seguro}%,codigo.ilike.%${seguro}%`)
+  }
+  if (filtros.categoriaId != null) consulta = consulta.eq('categoria_id', filtros.categoriaId)
+  if (filtros.materialId != null) consulta = consulta.eq('material_id', filtros.materialId)
+  if (filtros.proveedorId != null) consulta = consulta.eq('proveedor_id', filtros.proveedorId)
+  if (filtros.nivelGanancia) consulta = consulta.eq('nivel_ganancia', filtros.nivelGanancia)
+  if (filtros.estado && ESTADOS.includes(filtros.estado)) consulta = consulta.eq('estado', filtros.estado)
+  if (filtros.marca) consulta = consulta.ilike('marca', `%${filtros.marca.replace(/[,()%]/g, ' ').trim()}%`)
+  if (filtros.coleccion) consulta = consulta.ilike('coleccion', `%${filtros.coleccion.replace(/[,()%]/g, ' ').trim()}%`)
+  if (filtros.origen) consulta = consulta.ilike('origen', `%${filtros.origen.replace(/[,()%]/g, ' ').trim()}%`)
+  if (filtros.subcategoria) {
+    consulta = consulta.ilike('atributos->>subcategoria', `%${filtros.subcategoria.replace(/[,()%]/g, ' ').trim()}%`)
   }
 
   const { data } = await consulta.limit(200)
   const productos = (data ?? []) as unknown as Producto[]
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-6">
       <div>
         <Link
           href="/produccion"
@@ -87,15 +162,79 @@ export default async function ParametrosArticulosPage({
       <form className="flex flex-wrap items-center gap-2">
         <input
           name="buscar"
-          defaultValue={buscarTexto}
+          defaultValue={filtros.buscar}
           placeholder="Buscar por nombre o código…"
-          className="min-w-48 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+          className={`${clasesCampoFiltro} min-w-48 flex-1`}
+        />
+        <select name="categoria_id" defaultValue={filtros.categoriaId ?? ''} className={clasesCampoFiltro}>
+          <option value="">Todas las categorías</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+        <input
+          name="subcategoria"
+          defaultValue={filtros.subcategoria}
+          placeholder="Subcategoría…"
+          className={`${clasesCampoFiltro} w-40`}
+        />
+        <select name="material_id" defaultValue={filtros.materialId ?? ''} className={clasesCampoFiltro}>
+          <option value="">Todos los materiales</option>
+          {materiales.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.nombre}
+            </option>
+          ))}
+        </select>
+        <select name="proveedor_id" defaultValue={filtros.proveedorId ?? ''} className={clasesCampoFiltro}>
+          <option value="">Todos los proveedores</option>
+          {proveedores.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}
+            </option>
+          ))}
+        </select>
+        <select name="nivel_ganancia" defaultValue={filtros.nivelGanancia} className={clasesCampoFiltro}>
+          <option value="">Todos los niveles</option>
+          {NIVELES_GANANCIA.map((n) => (
+            <option key={n.valor} value={n.valor}>
+              {n.etiqueta}
+            </option>
+          ))}
+        </select>
+        <select name="estado" defaultValue={filtros.estado} className={clasesCampoFiltro}>
+          <option value="">Todos los estados</option>
+          {ESTADOS.map((e) => (
+            <option key={e} value={e}>
+              {ETIQUETAS_ESTADO[e]}
+            </option>
+          ))}
+        </select>
+        <input
+          name="origen"
+          defaultValue={filtros.origen}
+          placeholder="Origen (país)…"
+          className={`${clasesCampoFiltro} w-36`}
+        />
+        <input
+          name="marca"
+          defaultValue={filtros.marca}
+          placeholder="Marca…"
+          className={`${clasesCampoFiltro} w-32`}
+        />
+        <input
+          name="coleccion"
+          defaultValue={filtros.coleccion}
+          placeholder="Colección…"
+          className={`${clasesCampoFiltro} w-32`}
         />
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
         >
-          Buscar
+          Filtrar
         </button>
       </form>
 
@@ -105,6 +244,7 @@ export default async function ParametrosArticulosPage({
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <th className="px-4 py-3 font-semibold">Artículo</th>
               <th className="px-4 py-3 font-semibold">Categoría</th>
+              <th className="px-4 py-3 font-semibold">Nivel</th>
               <th className="px-4 py-3 font-semibold">Parámetros</th>
             </tr>
           </thead>
@@ -124,6 +264,9 @@ export default async function ParametrosArticulosPage({
                   </p>
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{p.categorias?.nombre ?? '—'}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">
+                  {ETIQUETAS_NIVEL_GANANCIA[p.nivel_ganancia] ?? p.nivel_ganancia}
+                </td>
                 <td className="px-4 py-2.5">
                   <form action={actualizarParametrosArticulo} className="flex flex-wrap items-end gap-3">
                     <input type="hidden" name="producto_id" value={p.id} />
@@ -175,7 +318,7 @@ export default async function ParametrosArticulosPage({
             ))}
             {productos.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">
+                <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                   Sin artículos para esta búsqueda
                 </td>
               </tr>

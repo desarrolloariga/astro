@@ -14,37 +14,65 @@ function aNumero(valor: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-function aTexto(formData: FormData, nombre: string): string | null {
-  const texto = String(formData.get(nombre) ?? '').trim()
-  return texto || null
+export type DatosNuevaOrdenCompra = {
+  proveedor_id: number
+  condiciones_pago: string | null
+  fecha_entrega_esperada: string | null
+  direccion_entrega: string | null
+  metodo_envio: string | null
+  referencia_proveedor: string | null
+  notas_proveedor: string | null
+  notas: string | null
 }
 
-export async function crearOrdenCompra(formData: FormData) {
+/** Crea la orden y agrega de una vez todas las líneas del carrito armado en la misma pantalla. */
+export async function crearOrdenCompraConLineas(
+  datos: DatosNuevaOrdenCompra,
+  lineas: LineaCarritoCompra[],
+) {
   if (!(await tienePermiso('compras', 'crear'))) redirect('/inicio')
 
-  const proveedorId = aNumero(formData.get('proveedor_id'))
-  if (!proveedorId) {
+  if (!datos.proveedor_id) {
     redirect(`/compras/nueva?error=${encodeURIComponent('Elige un proveedor')}`)
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('fn_crear_orden_compra', {
-    p_proveedor_id: proveedorId,
-    p_condiciones_pago: aTexto(formData, 'condiciones_pago'),
-    p_fecha_entrega_esperada: aTexto(formData, 'fecha_entrega_esperada'),
-    p_direccion_entrega: aTexto(formData, 'direccion_entrega'),
-    p_metodo_envio: aTexto(formData, 'metodo_envio'),
-    p_referencia_proveedor: aTexto(formData, 'referencia_proveedor'),
-    p_notas_proveedor: aTexto(formData, 'notas_proveedor'),
-    p_notas: aTexto(formData, 'notas'),
+  const { data: ordenId, error } = await supabase.rpc('fn_crear_orden_compra', {
+    p_proveedor_id: datos.proveedor_id,
+    p_condiciones_pago: datos.condiciones_pago,
+    p_fecha_entrega_esperada: datos.fecha_entrega_esperada,
+    p_direccion_entrega: datos.direccion_entrega,
+    p_metodo_envio: datos.metodo_envio,
+    p_referencia_proveedor: datos.referencia_proveedor,
+    p_notas_proveedor: datos.notas_proveedor,
+    p_notas: datos.notas,
   })
 
-  if (error || !data) {
+  if (error || !ordenId) {
     redirect(`/compras/nueva?error=${encodeURIComponent(error?.message ?? 'No se pudo crear la orden')}`)
   }
 
+  let fallidos = 0
+  for (const l of lineas) {
+    const { error: errorLinea } = await supabase.rpc('fn_agregar_linea_compra', {
+      p_orden_compra_id: ordenId,
+      p_producto_id: l.producto_id,
+      p_descripcion: l.descripcion,
+      p_cantidad: l.cantidad,
+      p_costo_unitario: l.costo_unitario,
+      p_descuento_pct: l.descuento_pct ?? 0,
+    })
+    if (errorLinea) fallidos++
+  }
+
   revalidatePath('/compras')
-  redirect(`/compras/${data}`)
+  revalidatePath(`/compras/${ordenId}`)
+  if (fallidos > 0) {
+    redirect(
+      `/compras/${ordenId}?error=${encodeURIComponent(`Orden creada, pero ${fallidos} línea(s) no se pudieron agregar`)}`,
+    )
+  }
+  redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Orden creada con sus líneas')}`)
 }
 
 export async function agregarLineaCompra(formData: FormData) {
