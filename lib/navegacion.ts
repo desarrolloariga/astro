@@ -53,6 +53,8 @@ export type ItemNav = {
    * no solo funcional al entrar por URL directa.
    */
   permiso?: { modulo: string; accion: string }
+  /** Subtítulo opcional para agrupar items dentro de una sección grande (ver agruparPorSubgrupo). */
+  subgrupo?: string
 }
 
 export type SeccionNav = { titulo: string; slug: string; items: ItemNav[] }
@@ -196,6 +198,7 @@ export const secciones: SeccionNav[] = [
         href: '/produccion',
         icono: Boxes,
         roles: ['admin', 'produccion'],
+        subgrupo: 'Artículos',
       },
       {
         etiqueta: 'Nuevo artículo',
@@ -203,6 +206,7 @@ export const secciones: SeccionNav[] = [
         href: '/produccion/nueva',
         icono: PackagePlus,
         roles: ['admin', 'produccion'],
+        subgrupo: 'Artículos',
       },
       {
         etiqueta: 'Parámetros de artículos',
@@ -210,6 +214,7 @@ export const secciones: SeccionNav[] = [
         href: '/produccion/parametros',
         icono: SlidersHorizontal,
         roles: ['admin', 'produccion'],
+        subgrupo: 'Artículos',
       },
       {
         etiqueta: 'Existencias',
@@ -217,6 +222,7 @@ export const secciones: SeccionNav[] = [
         href: '/existencias',
         icono: Layers,
         roles: ['admin', 'produccion'],
+        subgrupo: 'Producción',
       },
       {
         etiqueta: 'Cargar inventario',
@@ -224,6 +230,7 @@ export const secciones: SeccionNav[] = [
         href: '/existencias/cargar',
         icono: UploadCloud,
         roles: ['admin', 'produccion'],
+        subgrupo: 'Producción',
       },
       {
         etiqueta: 'Inventario por bodega',
@@ -232,6 +239,7 @@ export const secciones: SeccionNav[] = [
         icono: Warehouse,
         roles: ['admin', 'coordinador', 'contabilidad', 'supervisor', 'tienda'],
         permiso: { modulo: 'inventario', accion: 'ver' },
+        subgrupo: 'Inventario',
       },
       {
         etiqueta: 'Movimientos',
@@ -240,6 +248,7 @@ export const secciones: SeccionNav[] = [
         icono: History,
         roles: ['admin', 'coordinador', 'contabilidad', 'supervisor', 'tienda'],
         permiso: { modulo: 'inventario', accion: 'ver' },
+        subgrupo: 'Inventario',
       },
       {
         etiqueta: 'Conteo físico',
@@ -248,6 +257,7 @@ export const secciones: SeccionNav[] = [
         icono: ScanLine,
         roles: ['admin', 'tienda'],
         permiso: { modulo: 'inventario', accion: 'ver' },
+        subgrupo: 'Inventario',
       },
       {
         etiqueta: 'Logística',
@@ -256,6 +266,7 @@ export const secciones: SeccionNav[] = [
         icono: PackageSearch,
         roles: ['admin', 'coordinador', 'asesor', 'produccion'],
         permiso: { modulo: 'logistica', accion: 'gestionar' },
+        subgrupo: 'Inventario',
       },
     ],
   },
@@ -471,4 +482,27 @@ export function seccionesParaRol(
       items: s.items.filter((i) => itemVisible(i, rol, permisosExtra, permisosRevocados)),
     }))
     .filter((s) => s.items.length > 0)
+}
+
+export type GrupoItemsNav = { subgrupo: string | null; items: ItemNav[] }
+
+/**
+ * Agrupa los items de una sección por `subgrupo`, preservando el
+ * orden de primera aparición — para secciones grandes (como "Gestión
+ * de productos e inventario") que reúnen varios módulos antes
+ * separados y necesitan sub-encabezados visuales sin volver a
+ * fragmentar la sección en sí.
+ */
+export function agruparPorSubgrupo(items: ItemNav[]): GrupoItemsNav[] {
+  const grupos: GrupoItemsNav[] = []
+  for (const item of items) {
+    const clave = item.subgrupo ?? null
+    const ultimo = grupos.at(-1)
+    if (ultimo && ultimo.subgrupo === clave) {
+      ultimo.items.push(item)
+    } else {
+      grupos.push({ subgrupo: clave, items: [item] })
+    }
+  }
+  return grupos
 }

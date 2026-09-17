@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Gem, Menu, X, LogOut, Search, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { cerrarSesion } from '@/app/(auth)/acciones'
-import { seccionesParaRol, nombresRol } from '@/lib/navegacion'
+import { seccionesParaRol, nombresRol, agruparPorSubgrupo } from '@/lib/navegacion'
 import type { Rol } from '@/lib/usuario'
 
 export function AppShell({
@@ -144,27 +144,36 @@ export function AppShell({
                 </div>
                 {expandida && (
                   <div className="flex flex-col gap-0.5">
-                    {seccion.items.map((item) => {
-                      const activo =
-                        pathname === item.href ||
-                        (item.href !== '/inicio' && pathname.startsWith(item.href + '/'))
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setAbierto(false)}
-                          className={cn(
-                            'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                            activo
-                              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-                          )}
-                        >
-                          <item.icono className="h-4 w-4 shrink-0" strokeWidth={2} />
-                          <span className="flex-1 truncate">{item.etiqueta}</span>
-                        </Link>
-                      )
-                    })}
+                    {agruparPorSubgrupo(seccion.items).map((grupo, indice) => (
+                      <div key={grupo.subgrupo ?? `sin-subgrupo-${indice}`} className={indice > 0 ? 'mt-2' : undefined}>
+                        {grupo.subgrupo && (
+                          <p className="px-3 pb-0.5 text-[9px] font-semibold uppercase tracking-wider text-sidebar-foreground/35">
+                            {grupo.subgrupo}
+                          </p>
+                        )}
+                        {grupo.items.map((item) => {
+                          const activo =
+                            pathname === item.href ||
+                            (item.href !== '/inicio' && pathname.startsWith(item.href + '/'))
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setAbierto(false)}
+                              className={cn(
+                                'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                activo
+                                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+                              )}
+                            >
+                              <item.icono className="h-4 w-4 shrink-0" strokeWidth={2} />
+                              <span className="flex-1 truncate">{item.etiqueta}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
