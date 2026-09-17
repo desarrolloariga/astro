@@ -357,10 +357,10 @@ begin
   end if;
   if p_descuento_automatico_pct is not null
      and (p_descuento_automatico_pct <= 0 or p_descuento_automatico_pct >= 100) then
-    raise exception 'El % de descuento automático debe estar entre 0 y 100';
+    raise exception 'El %% de descuento automático debe estar entre 0 y 100';
   end if;
   if (p_dias_sin_venta_descuento is null) <> (p_descuento_automatico_pct is null) then
-    raise exception 'Indica días sin venta y % de descuento juntos, o ninguno de los dos';
+    raise exception 'Indica días sin venta y %% de descuento juntos, o ninguno de los dos';
   end if;
 
   update public.productos
