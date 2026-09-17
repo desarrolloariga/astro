@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, Receipt, History, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Receipt, History, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearPrecio, formatearFechaHora } from '@/lib/formato'
@@ -18,6 +18,7 @@ const NIVELES_GANANCIA = [
   { valor: 'introduccion', etiqueta: 'Introducción (15% empresa / 10% embajador)' },
   { valor: 'socio_comercial', etiqueta: 'Socio Comercial (20% empresa / 15% embajador)' },
   { valor: 'importacion', etiqueta: 'Importación (35% empresa / 25% embajador)' },
+  { valor: 'descuento', etiqueta: 'Descuento (15% empresa / 7% embajador)' },
 ]
 
 type Producto = {
@@ -28,7 +29,17 @@ type Producto = {
   nivel_ganancia: string
   costo_produccion: number | null
   precio_venta: number | null
+  dias_sin_venta_descuento: number | null
+  fecha_ultima_venta: string | null
+  fecha_publicacion: string | null
+  fecha_creacion: string
   categorias: { nombre: string } | null
+}
+
+function diasSinVenta(p: Producto): number {
+  const referencia = p.fecha_ultima_venta ?? p.fecha_publicacion ?? p.fecha_creacion
+  const ms = Date.now() - new Date(referencia).getTime()
+  return Math.floor(ms / 86_400_000)
 }
 
 type Snapshot = {
@@ -92,7 +103,9 @@ export default async function HojaDeCostosPage({
   const [{ data: pieza }, { data: historialData }] = await Promise.all([
     supabase
       .from('productos')
-      .select('id, codigo, nombre, origen, nivel_ganancia, costo_produccion, precio_venta, categorias ( nombre )')
+      .select(
+        'id, codigo, nombre, origen, nivel_ganancia, costo_produccion, precio_venta, dias_sin_venta_descuento, fecha_ultima_venta, fecha_publicacion, fecha_creacion, categorias ( nombre )',
+      )
       .eq('id', id)
       .maybeSingle(),
     supabase
@@ -144,6 +157,18 @@ export default async function HojaDeCostosPage({
           <span>{errorAviso}</span>
         </div>
       )}
+
+      {producto.nivel_ganancia !== 'descuento' &&
+        producto.dias_sin_venta_descuento != null &&
+        diasSinVenta(producto) >= producto.dias_sin_venta_descuento && (
+          <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Lleva {diasSinVenta(producto)} días sin venta (umbral: {producto.dias_sin_venta_descuento}) —
+              considera cambiar el nivel a <strong>Descuento</strong> abajo.
+            </span>
+          </div>
+        )}
 
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="mb-1 text-sm font-bold uppercase tracking-wide text-muted-foreground">

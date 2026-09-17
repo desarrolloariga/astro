@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, AlertCircle, SlidersHorizontal, Tag } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, SlidersHorizontal, Tag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { actualizarParametrosArticulo } from './acciones'
@@ -13,11 +13,19 @@ type Producto = {
   nombre: string
   punto_reorden: number | null
   dias_sin_venta_descuento: number | null
-  descuento_automatico_pct: number | null
   precio_descuento: number | null
   nivel_ganancia: string
   estado: string
+  fecha_ultima_venta: string | null
+  fecha_publicacion: string | null
+  fecha_creacion: string
   categorias: { nombre: string } | null
+}
+
+function diasSinVenta(p: Producto): number {
+  const referencia = p.fecha_ultima_venta ?? p.fecha_publicacion ?? p.fecha_creacion
+  const ms = Date.now() - new Date(referencia).getTime()
+  return Math.floor(ms / 86_400_000)
 }
 
 type Categoria = { id: number; nombre: string }
@@ -39,6 +47,7 @@ const NIVELES_GANANCIA = [
   { valor: 'introduccion', etiqueta: 'Introducción' },
   { valor: 'socio_comercial', etiqueta: 'Socio Comercial' },
   { valor: 'importacion', etiqueta: 'Importación' },
+  { valor: 'descuento', etiqueta: 'Descuento' },
 ]
 const ETIQUETAS_NIVEL_GANANCIA: Record<string, string> = Object.fromEntries(
   NIVELES_GANANCIA.map((n) => [n.valor, n.etiqueta]),
@@ -100,7 +109,7 @@ export default async function ParametrosArticulosPage({
   let consulta = supabase
     .from('productos')
     .select(
-      'id, codigo, nombre, punto_reorden, dias_sin_venta_descuento, descuento_automatico_pct, precio_descuento, nivel_ganancia, estado, categorias ( nombre )',
+      'id, codigo, nombre, punto_reorden, dias_sin_venta_descuento, precio_descuento, nivel_ganancia, estado, fecha_ultima_venta, fecha_publicacion, fecha_creacion, categorias ( nombre )',
     )
     .eq('activo', true)
     .in('estado', ESTADOS)
@@ -140,9 +149,9 @@ export default async function ParametrosArticulosPage({
           Parámetros de artículos
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Punto de reorden y regla de descuento automático por días sin venta, artículo por
-          artículo. El descuento automático corre solo una vez al día — indica días sin venta y %
-          de descuento juntos, o deja ambos vacíos para desactivar la regla.
+          Punto de reorden y umbral de días sin venta, artículo por artículo. Al cumplirse el
+          umbral aparece una alerta aquí abajo — el cambio a nivel <strong>Descuento</strong>{' '}
+          (15% empresa / 7% embajador) sigue siendo manual, desde la hoja de costos del artículo.
         </p>
       </div>
 
@@ -245,6 +254,7 @@ export default async function ParametrosArticulosPage({
               <th className="px-4 py-3 font-semibold">Artículo</th>
               <th className="px-4 py-3 font-semibold">Categoría</th>
               <th className="px-4 py-3 font-semibold">Nivel</th>
+              <th className="px-4 py-3 font-semibold">Alerta</th>
               <th className="px-4 py-3 font-semibold">Parámetros</th>
             </tr>
           </thead>
@@ -266,6 +276,26 @@ export default async function ParametrosArticulosPage({
                 <td className="px-4 py-2.5 text-muted-foreground">{p.categorias?.nombre ?? '—'}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">
                   {ETIQUETAS_NIVEL_GANANCIA[p.nivel_ganancia] ?? p.nivel_ganancia}
+                </td>
+                <td className="px-4 py-2.5">
+                  {p.nivel_ganancia !== 'descuento' &&
+                  p.dias_sin_venta_descuento != null &&
+                  diasSinVenta(p) >= p.dias_sin_venta_descuento ? (
+                    <Link
+                      href={`/produccion/${p.id}/costos`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/20"
+                      title="Ir a la hoja de costos para cambiar el nivel de ganancia"
+                    >
+                      <AlertTriangle className="h-3 w-3" />
+                      {diasSinVenta(p)} días sin venta
+                    </Link>
+                  ) : (
+                    p.dias_sin_venta_descuento != null && (
+                      <span className="text-xs text-muted-foreground">
+                        {diasSinVenta(p)} / {p.dias_sin_venta_descuento} días
+                      </span>
+                    )
+                  )}
                 </td>
                 <td className="px-4 py-2.5">
                   <form action={actualizarParametrosArticulo} className="flex flex-wrap items-end gap-3">
@@ -293,19 +323,6 @@ export default async function ParametrosArticulosPage({
                         className={clasesInputCompacto}
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
-                      % descuento auto.
-                      <input
-                        name="descuento_automatico_pct"
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        max="99.99"
-                        placeholder="ej. 30"
-                        defaultValue={p.descuento_automatico_pct ?? ''}
-                        className={clasesInputCompacto}
-                      />
-                    </label>
                     <button
                       type="submit"
                       className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
@@ -318,7 +335,7 @@ export default async function ParametrosArticulosPage({
             ))}
             {productos.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                   Sin artículos para esta búsqueda
                 </td>
               </tr>

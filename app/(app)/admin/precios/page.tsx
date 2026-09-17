@@ -28,6 +28,7 @@ const NIVELES_GANANCIA = [
   { valor: 'introduccion', etiqueta: 'Introducción' },
   { valor: 'socio_comercial', etiqueta: 'Socio Comercial' },
   { valor: 'importacion', etiqueta: 'Importación' },
+  { valor: 'descuento', etiqueta: 'Descuento' },
 ] as const
 const nombresNivel: Record<string, string> = Object.fromEntries(
   NIVELES_GANANCIA.map((n) => [n.valor, n.etiqueta]),

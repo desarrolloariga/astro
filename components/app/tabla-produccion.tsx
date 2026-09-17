@@ -12,6 +12,7 @@ const ETIQUETAS_NIVEL_GANANCIA: Record<string, string> = {
   introduccion: 'Introducción',
   socio_comercial: 'Socio Comercial',
   importacion: 'Importación',
+  descuento: 'Descuento',
 }
 
 type Imagen = { url: string; es_principal: boolean; orden: number }

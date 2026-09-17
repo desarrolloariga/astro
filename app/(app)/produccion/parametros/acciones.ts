@@ -23,14 +23,12 @@ export async function actualizarParametrosArticulo(formData: FormData) {
 
   const puntoReorden = aNumero(formData.get('punto_reorden'))
   const diasSinVenta = aNumero(formData.get('dias_sin_venta_descuento'))
-  const descuentoPct = aNumero(formData.get('descuento_automatico_pct'))
 
   const supabase = await createClient()
   const { error } = await supabase.rpc('fn_actualizar_parametros_articulo', {
     p_producto_id: productoId,
     p_punto_reorden: puntoReorden,
     p_dias_sin_venta_descuento: diasSinVenta,
-    p_descuento_automatico_pct: descuentoPct,
   })
 
   revalidatePath('/produccion/parametros')
