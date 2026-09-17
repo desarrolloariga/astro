@@ -245,7 +245,11 @@ export default async function HojaDeCostosPage({
               detalle={`${ultimo.factor_comision_pct ?? 0}% sobre el precio antes de embajador`}
               valor={formatearPrecio(ultimo.base_comisionable)}
             />
-            <Fila etiqueta="Precio sin impuesto" valor={formatearPrecio(ultimo.precio_sin_impuesto)} />
+            <Fila
+              etiqueta="Total a liquidar"
+              detalle="Precio antes de embajador + IVA"
+              valor={formatearPrecio(ultimo.precio_antes_embajador + ultimo.impuesto)}
+            />
             <Fila
               etiqueta="Impuesto (IVA)"
               detalle={`${ultimo.factor_impuesto_pct ?? 0}%`}
