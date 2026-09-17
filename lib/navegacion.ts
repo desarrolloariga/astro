@@ -35,6 +35,7 @@ import {
   UserPlus,
   Layers,
   UploadCloud,
+  PackageCheck,
   type LucideIcon,
 } from 'lucide-react'
 import type { Rol } from '@/lib/usuario'
@@ -186,8 +187,8 @@ export const secciones: SeccionNav[] = [
     ],
   },
   {
-    titulo: 'Artículos',
-    slug: 'produccion',
+    titulo: 'Gestión de productos e inventario',
+    slug: 'productos-inventario',
     items: [
       {
         etiqueta: 'Artículos',
@@ -203,12 +204,13 @@ export const secciones: SeccionNav[] = [
         icono: PackagePlus,
         roles: ['admin', 'produccion'],
       },
-    ],
-  },
-  {
-    titulo: 'Producción',
-    slug: 'existencias',
-    items: [
+      {
+        etiqueta: 'Parámetros de artículos',
+        descripcion: 'Punto de reorden y descuento automático por días sin venta',
+        href: '/produccion/parametros',
+        icono: SlidersHorizontal,
+        roles: ['admin', 'produccion'],
+      },
       {
         etiqueta: 'Existencias',
         descripcion: 'Cantidades disponibles por artículo, sin costos ni precios',
@@ -223,12 +225,6 @@ export const secciones: SeccionNav[] = [
         icono: UploadCloud,
         roles: ['admin', 'produccion'],
       },
-    ],
-  },
-  {
-    titulo: 'Inventario',
-    slug: 'inventario',
-    items: [
       {
         etiqueta: 'Inventario por bodega',
         descripcion: 'Piezas, valoración y costo por tienda o CEDI',
@@ -282,6 +278,14 @@ export const secciones: SeccionNav[] = [
         icono: ShoppingCart,
         roles: ['admin', 'coordinador', 'contabilidad', 'produccion'],
         permiso: { modulo: 'compras', accion: 'ver' },
+      },
+      {
+        etiqueta: 'Recibir órdenes de compra',
+        descripcion: 'Recepción de mercadería, carga directa al inventario',
+        href: '/compras/recibir',
+        icono: PackageCheck,
+        roles: ['admin', 'coordinador', 'contabilidad', 'produccion'],
+        permiso: { modulo: 'compras', accion: 'recibir' },
       },
       {
         etiqueta: 'Importaciones',

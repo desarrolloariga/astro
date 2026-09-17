@@ -1,14 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, CheckCircle2, ArrowLeft, ListPlus, Sparkles, ShieldCheck, PackageCheck, Receipt, Banknote } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ArrowLeft, Sparkles, ShieldCheck, PackageCheck, Receipt, Banknote } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio, formatearFechaHora } from '@/lib/formato'
 import { EstadoBadge, estadosCompra } from '@/components/app/estado-badge'
-import { SelectorProducto } from '@/components/app/selector-producto'
+import { CarritoCompra } from '@/components/app/carrito-compra'
 import { Campo, SeccionFormulario, BotonPrimario, BotonPeligro, clasesInput } from '@/components/app/formulario'
 import {
-  agregarLineaCompra,
   autorizarOrdenCompra,
   recibirLineaCompra,
   marcarFacturadaCompra,
@@ -119,8 +118,10 @@ export default async function OrdenCompraPage({
     categorias = categoriasData ?? []
   }
 
+  const mostrarCarrito = ordenTipada.estado === 'borrador' && puedeCrear
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-6">
       <div>
         <Link
           href="/compras"
@@ -141,6 +142,8 @@ export default async function OrdenCompraPage({
         </p>
       </div>
 
+      <div className={mostrarCarrito ? 'grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px] lg:items-start' : 'flex flex-col gap-6'}>
+      <div className="flex flex-col gap-6">
       {(ordenTipada.condiciones_pago ||
         ordenTipada.fecha_entrega_esperada ||
         ordenTipada.direccion_entrega ||
@@ -265,95 +268,6 @@ export default async function OrdenCompraPage({
         </table>
       </section>
 
-      {ordenTipada.estado === 'borrador' && puedeCrear && (
-        <SeccionFormulario
-          icon={ListPlus}
-          titulo="Agregar línea — pieza del maestro"
-          descripcion="Busca por código o nombre. Si la pieza no existe todavía, créala en el bloque de abajo."
-        >
-          <form action={agregarLineaCompra} className="flex flex-col gap-4">
-            <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-            <Campo label="Pieza">
-              <SelectorProducto productos={piezasDisponibles} name="producto_id" />
-            </Campo>
-            <Campo label="Descripción" helpText="Opcional si eliges una pieza arriba.">
-              <input name="descripcion" className={clasesInput} />
-            </Campo>
-            <div className="grid grid-cols-3 gap-4">
-              <Campo label="Cantidad" required>
-                <input name="cantidad" type="number" step="0.001" min="0.001" required className={clasesInput} />
-              </Campo>
-              <Campo label="Costo unitario (GTQ)" required>
-                <input name="costo_unitario" type="number" step="0.01" min="0" required className={clasesInput} />
-              </Campo>
-              <Campo label="% descuento">
-                <input name="descuento_pct" type="number" step="0.01" min="0" max="100" className={clasesInput} />
-              </Campo>
-            </div>
-            <div>
-              <BotonPrimario>Agregar</BotonPrimario>
-            </div>
-          </form>
-
-          <details className="mt-5 border-t border-border pt-4">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              La pieza no existe — crearla y agregarla de una vez
-            </summary>
-            <form action={crearProductoYAgregarLineaCompra} className="mt-3 flex flex-col gap-4">
-              <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
-              <Campo label="Nombre de la pieza" required>
-                <input name="nombre" required className={clasesInput} />
-              </Campo>
-              <div className="grid grid-cols-2 gap-4">
-                <Campo label="Categoría">
-                  <select name="categoria_id" defaultValue="" className={clasesInput}>
-                    <option value="">Selecciona… (opcional)</option>
-                    {categorias.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </Campo>
-                <Campo label="Origen">
-                  <select name="origen" defaultValue="local" className={clasesInput}>
-                    <option value="local">Local</option>
-                    <option value="importado">Importado</option>
-                  </select>
-                </Campo>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Campo label="Tipo de inventario">
-                  <select name="modo_inventario" defaultValue="pieza_unica" className={clasesInput}>
-                    <option value="pieza_unica">Pieza única</option>
-                    <option value="por_cantidad">Referencia por cantidad</option>
-                  </select>
-                </Campo>
-                <Campo label="Cantidad inicial" helpText="Solo si es por cantidad.">
-                  <input name="cantidad_inicial_producto" type="number" step="1" min="1" className={clasesInput} />
-                </Campo>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Queda como borrador en Producción — luego se completa foto, material y demás desde
-                ahí. El costo real de esta línea se le asigna al recibir la mercadería.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <Campo label="Cantidad a comprar" required>
-                  <input name="cantidad" type="number" step="0.001" min="0.001" required className={clasesInput} />
-                </Campo>
-                <Campo label="Costo unitario (GTQ)" required>
-                  <input name="costo_unitario" type="number" step="0.01" min="0" required className={clasesInput} />
-                </Campo>
-              </div>
-              <div>
-                <BotonPrimario>Crear pieza y agregar</BotonPrimario>
-              </div>
-            </form>
-          </details>
-        </SeccionFormulario>
-      )}
-
       {ordenTipada.estado === 'borrador' && puedeAutorizar && (
         <SeccionFormulario icon={ShieldCheck} titulo="Autorización">
           <div className="flex flex-wrap items-center gap-3">
@@ -445,6 +359,65 @@ export default async function OrdenCompraPage({
           </form>
         </SeccionFormulario>
       )}
+      </div>
+
+      {mostrarCarrito && (
+        <div className="flex flex-col gap-4">
+          <CarritoCompra ordenId={ordenTipada.id} productos={piezasDisponibles} />
+
+          <details className="rounded-xl border border-border bg-card p-5">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              La pieza no existe — crearla y agregarla de una vez
+            </summary>
+            <form action={crearProductoYAgregarLineaCompra} className="mt-3 flex flex-col gap-4">
+              <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
+              <Campo label="Nombre de la pieza" required>
+                <input name="nombre" required className={clasesInput} />
+              </Campo>
+              <Campo label="Categoría">
+                <select name="categoria_id" defaultValue="" className={clasesInput}>
+                  <option value="">Selecciona… (opcional)</option>
+                  {categorias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label="Origen">
+                <select name="origen" defaultValue="local" className={clasesInput}>
+                  <option value="local">Local</option>
+                  <option value="importado">Importado</option>
+                </select>
+              </Campo>
+              <Campo label="Tipo de inventario">
+                <select name="modo_inventario" defaultValue="pieza_unica" className={clasesInput}>
+                  <option value="pieza_unica">Pieza única</option>
+                  <option value="por_cantidad">Referencia por cantidad</option>
+                </select>
+              </Campo>
+              <Campo label="Cantidad inicial" helpText="Solo si es por cantidad.">
+                <input name="cantidad_inicial_producto" type="number" step="1" min="1" className={clasesInput} />
+              </Campo>
+              <p className="text-xs text-muted-foreground">
+                Queda como borrador en Artículos — luego se completa foto, material y demás desde
+                ahí. El costo real de esta línea se le asigna al recibir la mercadería.
+              </p>
+              <Campo label="Cantidad a comprar" required>
+                <input name="cantidad" type="number" step="0.001" min="0.001" required className={clasesInput} />
+              </Campo>
+              <Campo label="Costo unitario (GTQ)" required>
+                <input name="costo_unitario" type="number" step="0.01" min="0" required className={clasesInput} />
+              </Campo>
+              <div>
+                <BotonPrimario>Crear pieza y agregar</BotonPrimario>
+              </div>
+            </form>
+          </details>
+        </div>
+      )}
+      </div>
     </main>
   )
 }

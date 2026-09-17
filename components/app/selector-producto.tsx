@@ -30,11 +30,14 @@ export function SelectorProducto({
   name,
   placeholder = 'Buscar por código o nombre…',
   defaultProductoId,
+  onSeleccionar,
 }: {
   productos: ProductoSeleccionable[]
   name: string
   placeholder?: string
   defaultProductoId?: number | null
+  /** Opcional: además de exponer el id via el input oculto, avisa a un padre client-side (para armar un carrito, etc). */
+  onSeleccionar?: (producto: ProductoSeleccionable | null) => void
 }) {
   const seleccionInicial = productos.find((p) => p.id === defaultProductoId) ?? null
   const [seleccionado, setSeleccionado] = useState<ProductoSeleccionable | null>(seleccionInicial)
@@ -74,6 +77,7 @@ export function SelectorProducto({
             onClick={() => {
               setSeleccionado(null)
               setConsulta('')
+              onSeleccionar?.(null)
             }}
             className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive"
             aria-label="Quitar selección"
@@ -111,6 +115,7 @@ export function SelectorProducto({
                   onClick={() => {
                     setSeleccionado(p)
                     setAbierto(false)
+                    onSeleccionar?.(p)
                   }}
                   className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
                 >

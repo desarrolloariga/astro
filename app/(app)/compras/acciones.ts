@@ -91,6 +91,46 @@ export async function agregarLineaCompra(formData: FormData) {
   redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Línea agregada')}`)
 }
 
+export type LineaCarritoCompra = {
+  producto_id: number | null
+  descripcion: string
+  cantidad: number
+  costo_unitario: number
+  descuento_pct: number
+}
+
+/** Agrega varias líneas de una vez — el "carrito" que se arma del lado derecho de la orden. */
+export async function agregarLineasCompraMasivo(ordenId: number, lineas: LineaCarritoCompra[]) {
+  if (!(await tienePermiso('compras', 'crear'))) redirect('/inicio')
+
+  if (!ordenId) redirect('/compras')
+  if (!Array.isArray(lineas) || lineas.length === 0) {
+    redirect(`/compras/${ordenId}?error=${encodeURIComponent('El carrito está vacío')}`)
+  }
+
+  const supabase = await createClient()
+  let ok = 0
+  let fallidos = 0
+  for (const l of lineas) {
+    const { error } = await supabase.rpc('fn_agregar_linea_compra', {
+      p_orden_compra_id: ordenId,
+      p_producto_id: l.producto_id,
+      p_descripcion: l.descripcion,
+      p_cantidad: l.cantidad,
+      p_costo_unitario: l.costo_unitario,
+      p_descuento_pct: l.descuento_pct ?? 0,
+    })
+    if (error) fallidos++
+    else ok++
+  }
+
+  revalidatePath(`/compras/${ordenId}`)
+  const mensaje =
+    `${ok} línea${ok !== 1 ? 's' : ''} agregada${ok !== 1 ? 's' : ''}` +
+    (fallidos > 0 ? ` · ${fallidos} no se pudieron agregar` : '')
+  redirect(`/compras/${ordenId}?${fallidos > 0 ? 'error' : 'ok'}=${encodeURIComponent(mensaje)}`)
+}
+
 export async function autorizarOrdenCompra(formData: FormData) {
   if (!(await tienePermiso('compras', 'autorizar'))) redirect('/inicio')
 
