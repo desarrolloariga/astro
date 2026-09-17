@@ -33,6 +33,8 @@ import {
   ShoppingCart,
   Ship,
   UserPlus,
+  Layers,
+  UploadCloud,
   type LucideIcon,
 } from 'lucide-react'
 import type { Rol } from '@/lib/usuario'
@@ -184,7 +186,7 @@ export const secciones: SeccionNav[] = [
     ],
   },
   {
-    titulo: 'Producción',
+    titulo: 'Artículos',
     slug: 'produccion',
     items: [
       {
@@ -199,6 +201,26 @@ export const secciones: SeccionNav[] = [
         descripcion: 'Alta de un artículo con fotos',
         href: '/produccion/nueva',
         icono: PackagePlus,
+        roles: ['admin', 'produccion'],
+      },
+    ],
+  },
+  {
+    titulo: 'Producción',
+    slug: 'existencias',
+    items: [
+      {
+        etiqueta: 'Existencias',
+        descripcion: 'Cantidades disponibles por artículo, sin costos ni precios',
+        href: '/existencias',
+        icono: Layers,
+        roles: ['admin', 'produccion'],
+      },
+      {
+        etiqueta: 'Cargar inventario',
+        descripcion: 'Suma cantidades por Excel (referencia + cantidad)',
+        href: '/existencias/cargar',
+        icono: UploadCloud,
         roles: ['admin', 'produccion'],
       },
     ],
