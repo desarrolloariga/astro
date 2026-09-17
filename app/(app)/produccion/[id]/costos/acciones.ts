@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 
-const NIVELES_VALIDOS = ['introduccion', 'socio_comercial', 'importacion']
+const NIVELES_VALIDOS = ['introduccion', 'socio_comercial', 'importacion', 'descuento']
 
 export async function cambiarNivelGanancia(formData: FormData) {
   const usuario = await obtenerUsuarioActual()
@@ -16,8 +16,9 @@ export async function cambiarNivelGanancia(formData: FormData) {
   const productoId = String(formData.get('producto_id') ?? '').trim()
   const nivelGanancia = String(formData.get('nivel_ganancia') ?? '').trim()
 
-  if (!productoId || !NIVELES_VALIDOS.includes(nivelGanancia)) {
-    redirect('/produccion')
+  if (!productoId) redirect('/produccion')
+  if (!NIVELES_VALIDOS.includes(nivelGanancia)) {
+    redirect(`/produccion/${productoId}/costos?error=${encodeURIComponent('Nivel de ganancia inválido')}`)
   }
 
   const supabase = await createClient()
