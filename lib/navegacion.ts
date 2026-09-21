@@ -278,6 +278,15 @@ export const secciones: SeccionNav[] = [
         permiso: { modulo: 'inventario', accion: 'transferir' },
         subgrupo: 'Inventario',
       },
+      {
+        etiqueta: 'Bodegas',
+        descripcion: 'Alta, baja y datos de cada bodega (CEDI)',
+        href: '/bodegas',
+        icono: Warehouse,
+        roles: ['admin', 'coordinador', 'produccion'],
+        permiso: { modulo: 'inventario', accion: 'transferir' },
+        subgrupo: 'Inventario',
+      },
     ],
   },
   {

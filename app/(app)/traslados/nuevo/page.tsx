@@ -54,9 +54,9 @@ export default async function NuevoTrasladoPage({
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <p className="text-sm font-semibold text-foreground">Necesitas al menos 2 bodegas activas</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Crea otra bodega (tipo CEDI) desde{' '}
-            <Link href="/admin/tiendas" className="text-primary hover:underline">
-              Tiendas y bodegas
+            Crea otra bodega desde{' '}
+            <Link href="/bodegas" className="text-primary hover:underline">
+              Bodegas
             </Link>{' '}
             para poder trasladar inventario entre ellas.
           </p>
