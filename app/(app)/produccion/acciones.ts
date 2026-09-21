@@ -259,7 +259,9 @@ export async function publicarPiezasMasivo(productoIds: number[]) {
 
   revalidatePath('/produccion')
   const mensaje = `${ok} artículo${ok !== 1 ? 's' : ''} publicado${ok !== 1 ? 's' : ''} al CEDI` +
-    (fallidos > 0 ? ` · ${fallidos} no se pudieron publicar (ficha incompleta o sin foto)` : '')
+    (fallidos > 0
+      ? ` · ${fallidos} no se pudieron publicar (ficha incompleta, sin foto, o hay más de una bodega activa y hace falta elegir una desde "Nuevo artículo")`
+      : '')
   redirect(`/produccion?${fallidos > 0 ? 'aviso' : 'ok'}=${encodeURIComponent(mensaje)}`)
 }
 

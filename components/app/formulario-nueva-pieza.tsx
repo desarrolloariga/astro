@@ -298,8 +298,8 @@ export function FormularioNuevaPieza({
         {cedis.length > 1 && (
           <label className="flex items-center gap-2 text-sm text-foreground">
             Bodega destino
-            <select name="tienda_destino_id" defaultValue="" className={clasesInput}>
-              <option value="">Cualquier CEDI activo</option>
+            <select name="tienda_destino_id" defaultValue="" className={clasesInput} title="Obligatorio solo si publicas directo — hay más de una bodega activa">
+              <option value="">Elige una bodega (obligatorio para publicar)</option>
               {cedis.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}

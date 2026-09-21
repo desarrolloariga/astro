@@ -36,6 +36,7 @@ import {
   Layers,
   UploadCloud,
   PackageCheck,
+  ArrowRightLeft,
   type LucideIcon,
 } from 'lucide-react'
 import type { Rol } from '@/lib/usuario'
@@ -266,6 +267,15 @@ export const secciones: SeccionNav[] = [
         icono: PackageSearch,
         roles: ['admin', 'coordinador', 'asesor', 'produccion'],
         permiso: { modulo: 'logistica', accion: 'gestionar' },
+        subgrupo: 'Inventario',
+      },
+      {
+        etiqueta: 'Traslados',
+        descripcion: 'Mover inventario y artículos entre bodegas',
+        href: '/traslados',
+        icono: ArrowRightLeft,
+        roles: ['admin', 'coordinador', 'produccion'],
+        permiso: { modulo: 'inventario', accion: 'transferir' },
         subgrupo: 'Inventario',
       },
     ],

@@ -77,6 +77,18 @@ export const estadosImportacion: ConfigEstado = {
   cancelada: { etiqueta: 'Cancelada', clases: 'bg-destructive/10 text-destructive' },
 }
 
+export const estadosTraslado: ConfigEstado = {
+  en_transito: { etiqueta: 'En tránsito', clases: 'bg-accent text-accent-foreground' },
+  recibida: { etiqueta: 'Recibido', clases: 'bg-primary/10 text-primary' },
+  con_incidencia: { etiqueta: 'Con incidencia', clases: 'bg-destructive/10 text-destructive' },
+}
+
+export const estadosRecepcionLinea: ConfigEstado = {
+  pendiente: { etiqueta: 'Pendiente', clases: 'bg-accent text-accent-foreground' },
+  confirmado: { etiqueta: 'Confirmado', clases: 'bg-primary/10 text-primary' },
+  incidencia: { etiqueta: 'Incidencia', clases: 'bg-destructive/10 text-destructive' },
+}
+
 export const estadosContratacion: ConfigEstado = {
   solicitada: { etiqueta: 'Solicitada', clases: 'bg-accent text-accent-foreground' },
   en_evaluacion: { etiqueta: 'En evaluación', clases: 'bg-brand-deep-muted/40 text-brand-deep' },
