@@ -10,6 +10,7 @@ type ProductoTraslado = ProductoSeleccionable & {
   modo_inventario: 'pieza_unica' | 'por_cantidad'
   tienda_id: number | null
 }
+type Existencia = { producto_id: number; tienda_id: number; cantidad_disponible: number }
 
 type LineaCarrito = {
   key: string
@@ -20,11 +21,18 @@ type LineaCarrito = {
   cantidad: number | null
 }
 
-export function CarritoTraslado({ bodegas, productos }: { bodegas: Bodega[]; productos: ProductoTraslado[] }) {
+export function CarritoTraslado({
+  bodegas,
+  productos,
+  existencias,
+}: {
+  bodegas: Bodega[]
+  productos: ProductoTraslado[]
+  existencias: Existencia[]
+}) {
   const [origenId, setOrigenId] = useState('')
   const [destinoId, setDestinoId] = useState('')
   const [seleccionActual, setSeleccionActual] = useState<ProductoSeleccionable | null>(null)
-  const [cantidad, setCantidad] = useState('')
   const [carrito, setCarrito] = useState<LineaCarrito[]>([])
   const [selectorKey, setSelectorKey] = useState(0)
   const [pending, startTransition] = useTransition()
@@ -32,21 +40,29 @@ export function CarritoTraslado({ bodegas, productos }: { bodegas: Bodega[]; pro
 
   const productoSeleccionado = productos.find((p) => p.id === seleccionActual?.id) ?? null
 
+  const disponiblePorCantidad = useMemo(() => {
+    if (!origenId || !productoSeleccionado || productoSeleccionado.modo_inventario !== 'por_cantidad') return 0
+    const origen = Number(origenId)
+    return (
+      existencias.find((e) => e.producto_id === productoSeleccionado.id && e.tienda_id === origen)
+        ?.cantidad_disponible ?? 0
+    )
+  }, [existencias, origenId, productoSeleccionado])
+
   const productosDisponibles = useMemo(() => {
     if (!origenId) return []
     const origen = Number(origenId)
-    return productos.filter((p) =>
-      p.modo_inventario === 'pieza_unica'
-        ? p.estado === 'disponible_cedi' && p.tienda_id === origen
-        : true,
-    )
-  }, [productos, origenId])
+    return productos.filter((p) => {
+      if (p.modo_inventario === 'pieza_unica') return p.estado === 'disponible_cedi' && p.tienda_id === origen
+      const disponible = existencias.find((e) => e.producto_id === p.id && e.tienda_id === origen)?.cantidad_disponible ?? 0
+      return disponible > 0
+    })
+  }, [productos, existencias, origenId])
 
   function agregarAlCarrito() {
     if (!seleccionActual || !productoSeleccionado) return
     if (productoSeleccionado.modo_inventario === 'por_cantidad') {
-      const cant = Number(cantidad.replace(',', '.'))
-      if (!Number.isFinite(cant) || cant <= 0) return
+      if (disponiblePorCantidad <= 0) return
       setCarrito((prev) => [
         ...prev,
         {
@@ -55,7 +71,7 @@ export function CarritoTraslado({ bodegas, productos }: { bodegas: Bodega[]; pro
           codigo: seleccionActual.codigo,
           nombre: seleccionActual.nombre,
           modoInventario: 'por_cantidad',
-          cantidad: cant,
+          cantidad: disponiblePorCantidad,
         },
       ])
     } else {
@@ -72,7 +88,6 @@ export function CarritoTraslado({ bodegas, productos }: { bodegas: Bodega[]; pro
       ])
     }
     setSeleccionActual(null)
-    setCantidad('')
     setSelectorKey((k) => k + 1)
   }
 
@@ -106,7 +121,7 @@ export function CarritoTraslado({ bodegas, productos }: { bodegas: Bodega[]; pro
   const puedeAgregar =
     seleccionActual != null &&
     productoSeleccionado != null &&
-    (productoSeleccionado.modo_inventario === 'pieza_unica' || Number(cantidad) > 0)
+    (productoSeleccionado.modo_inventario === 'pieza_unica' || disponiblePorCantidad > 0)
 
   return (
     <div className="flex flex-col gap-6">
@@ -169,15 +184,11 @@ export function CarritoTraslado({ bodegas, productos }: { bodegas: Bodega[]; pro
               onSeleccionar={setSeleccionActual}
             />
             {productoSeleccionado?.modo_inventario === 'por_cantidad' && (
-              <input
-                type="number"
-                step="0.001"
-                min="0.001"
-                placeholder="Cantidad a trasladar"
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-              />
+              <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+                Se traslada todo el disponible en esta bodega:{' '}
+                <strong className="text-foreground">{disponiblePorCantidad} unidades</strong> — los
+                artículos por cantidad no se pueden dividir entre dos bodegas.
+              </p>
             )}
             <button
               type="button"

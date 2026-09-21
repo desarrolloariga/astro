@@ -17,7 +17,7 @@ export default async function NuevoTrasladoPage({
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: bodegas }, { data: productos }] = await Promise.all([
+  const [{ data: bodegas }, { data: productos }, { data: existencias }] = await Promise.all([
     supabase.from('tiendas').select('id, nombre').eq('tipo', 'cedi').eq('activo', true).order('nombre'),
     supabase
       .from('productos')
@@ -25,6 +25,7 @@ export default async function NuevoTrasladoPage({
       .eq('activo', true)
       .in('estado', ['disponible_cedi'])
       .order('codigo'),
+    supabase.from('inventario_cantidad').select('producto_id, tienda_id, cantidad_disponible'),
   ])
 
   return (
@@ -62,7 +63,7 @@ export default async function NuevoTrasladoPage({
           </p>
         </div>
       ) : (
-        <CarritoTraslado bodegas={bodegas ?? []} productos={productos ?? []} />
+        <CarritoTraslado bodegas={bodegas ?? []} productos={productos ?? []} existencias={existencias ?? []} />
       )}
     </main>
   )
