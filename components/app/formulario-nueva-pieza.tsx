@@ -11,7 +11,6 @@ type Material = { id: number; nombre: string }
 type Proveedor = { id: number; nombre: string }
 /** Un factor por clave y, opcionalmente, por nivel de ganancia — la excepción de nivel gana sobre el global. */
 type ParametroPrecio = { clave: string; nivel_ganancia: string | null; valor_pct: number }
-type Cedi = { id: number; nombre: string }
 
 const NIVELES_GANANCIA = [
   { valor: 'introduccion', etiqueta: 'Introducción (15% empresa / 10% embajador)' },
@@ -30,13 +29,11 @@ export function FormularioNuevaPieza({
   materiales,
   proveedores,
   parametrosPrecio,
-  cedis,
 }: {
   categorias: Categoria[]
   materiales: Material[]
   proveedores: Proveedor[]
   parametrosPrecio: ParametroPrecio[]
-  cedis: Cedi[]
 }) {
   const [categoriaId, setCategoriaId] = useState('')
   const [origen, setOrigen] = useState('local')
@@ -295,19 +292,6 @@ export function FormularioNuevaPieza({
       </SeccionFormulario>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        {cedis.length > 1 && (
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            Bodega destino
-            <select name="tienda_destino_id" defaultValue="" className={clasesInput} title="Obligatorio solo si publicas directo — hay más de una bodega activa">
-              <option value="">Elige una bodega (obligatorio para publicar)</option>
-              {cedis.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
         <BotonSecundario type="submit" name="accion" value="borrador">
           Guardar borrador
         </BotonSecundario>

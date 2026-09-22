@@ -179,7 +179,6 @@ export async function crearPieza(formData: FormData) {
   if (publicar) {
     const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', {
       p_producto_id: pieza.id,
-      p_tienda_destino_id: aNumero(formData.get('tienda_destino_id')),
     })
     if (errorPublicar) {
       revalidatePath('/produccion')
@@ -260,7 +259,7 @@ export async function publicarPiezasMasivo(productoIds: number[]) {
   revalidatePath('/produccion')
   const mensaje = `${ok} artículo${ok !== 1 ? 's' : ''} publicado${ok !== 1 ? 's' : ''} al CEDI` +
     (fallidos > 0
-      ? ` · ${fallidos} no se pudieron publicar (ficha incompleta, sin foto, o hay más de una bodega activa y hace falta elegir una desde "Nuevo artículo")`
+      ? ` · ${fallidos} no se pudieron publicar (ficha incompleta o sin foto)`
       : '')
   redirect(`/produccion?${fallidos > 0 ? 'aviso' : 'ok'}=${encodeURIComponent(mensaje)}`)
 }

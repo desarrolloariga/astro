@@ -8,6 +8,8 @@ export type FiltrosInventario = {
   materialId: number | null
   estado: string
   tiendaId: number | null
+  fechaDesde: string
+  fechaHasta: string
   pagina: number
 }
 
@@ -24,6 +26,12 @@ function aNumeroONull(valor: string | undefined): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+/** Valida "AAAA-MM-DD" tal cual lo entrega un &lt;input type="date"&gt; — cualquier otra cosa se descarta en vez de mandarla cruda a una comparación de fecha. */
+function aFechaONull(valor: string | undefined): string {
+  const texto = (valor ?? '').trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : ''
+}
+
 export function parsearFiltrosInventario(searchParams: SearchParamsInventario): FiltrosInventario {
   const paginaRaw = Number(unoSolo(searchParams.pagina) ?? '1')
   return {
@@ -32,6 +40,8 @@ export function parsearFiltrosInventario(searchParams: SearchParamsInventario): 
     materialId: aNumeroONull(unoSolo(searchParams.material_id)),
     estado: (unoSolo(searchParams.estado) ?? '').trim(),
     tiendaId: aNumeroONull(unoSolo(searchParams.tienda_id)),
+    fechaDesde: aFechaONull(unoSolo(searchParams.fecha_desde)),
+    fechaHasta: aFechaONull(unoSolo(searchParams.fecha_hasta)),
     pagina: Number.isFinite(paginaRaw) && paginaRaw > 0 ? Math.floor(paginaRaw) : 1,
   }
 }
@@ -47,6 +57,8 @@ export function construirQueryStringInventario(
   if (f.materialId != null) params.set('material_id', String(f.materialId))
   if (f.estado) params.set('estado', f.estado)
   if (f.tiendaId != null) params.set('tienda_id', String(f.tiendaId))
+  if (f.fechaDesde) params.set('fecha_desde', f.fechaDesde)
+  if (f.fechaHasta) params.set('fecha_hasta', f.fechaHasta)
   if (f.pagina > 1) params.set('pagina', String(f.pagina))
   return params.toString()
 }

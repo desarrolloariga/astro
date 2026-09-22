@@ -62,6 +62,12 @@ export default async function ProduccionPage({
   if (filtros.estado && ESTADOS_PRODUCCION.includes(filtros.estado)) {
     consulta = consulta.eq('estado', filtros.estado)
   }
+  if (filtros.fechaDesde) consulta = consulta.gte('fecha_creacion', `${filtros.fechaDesde}T00:00:00`)
+  if (filtros.fechaHasta) {
+    const siguiente = new Date(`${filtros.fechaHasta}T00:00:00`)
+    siguiente.setDate(siguiente.getDate() + 1)
+    consulta = consulta.lt('fecha_creacion', siguiente.toISOString().slice(0, 19))
+  }
   const buscarSeguro = filtros.buscar.replace(/[,()]/g, ' ').trim()
   if (buscarSeguro) {
     consulta = consulta.or(`nombre.ilike.%${buscarSeguro}%,codigo.ilike.%${buscarSeguro}%`)
@@ -177,6 +183,14 @@ export default async function ProduccionPage({
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          Creado desde
+          <input type="date" name="fecha_desde" defaultValue={filtros.fechaDesde} className={clasesCampo} />
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          hasta
+          <input type="date" name="fecha_hasta" defaultValue={filtros.fechaHasta} className={clasesCampo} />
+        </label>
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
