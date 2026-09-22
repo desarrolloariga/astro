@@ -249,6 +249,12 @@ export default async function InventarioPage({
             CEDI y se despacha directamente desde ahí.
           </p>
         </div>
+        <Link
+          href="/inventario/por-bodega"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/60"
+        >
+          Ver existencias por bodega →
+        </Link>
       </div>
 
       <form className="flex flex-wrap items-center gap-2">

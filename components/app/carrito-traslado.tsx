@@ -33,6 +33,7 @@ export function CarritoTraslado({
   const [origenId, setOrigenId] = useState('')
   const [destinoId, setDestinoId] = useState('')
   const [seleccionActual, setSeleccionActual] = useState<ProductoSeleccionable | null>(null)
+  const [cantidadInput, setCantidadInput] = useState('')
   const [carrito, setCarrito] = useState<LineaCarrito[]>([])
   const [selectorKey, setSelectorKey] = useState(0)
   const [pending, startTransition] = useTransition()
@@ -62,7 +63,8 @@ export function CarritoTraslado({
   function agregarAlCarrito() {
     if (!seleccionActual || !productoSeleccionado) return
     if (productoSeleccionado.modo_inventario === 'por_cantidad') {
-      if (disponiblePorCantidad <= 0) return
+      const cantidad = Number(cantidadInput)
+      if (!cantidad || cantidad <= 0 || cantidad > disponiblePorCantidad) return
       setCarrito((prev) => [
         ...prev,
         {
@@ -71,9 +73,10 @@ export function CarritoTraslado({
           codigo: seleccionActual.codigo,
           nombre: seleccionActual.nombre,
           modoInventario: 'por_cantidad',
-          cantidad: disponiblePorCantidad,
+          cantidad,
         },
       ])
+      setCantidadInput('')
     } else {
       setCarrito((prev) => [
         ...prev,
@@ -121,7 +124,10 @@ export function CarritoTraslado({
   const puedeAgregar =
     seleccionActual != null &&
     productoSeleccionado != null &&
-    (productoSeleccionado.modo_inventario === 'pieza_unica' || disponiblePorCantidad > 0)
+    (productoSeleccionado.modo_inventario === 'pieza_unica' ||
+      (disponiblePorCantidad > 0 &&
+        Number(cantidadInput) > 0 &&
+        Number(cantidadInput) <= disponiblePorCantidad))
 
   return (
     <div className="flex flex-col gap-6">
@@ -181,14 +187,28 @@ export function CarritoTraslado({
               key={selectorKey}
               productos={productosDisponibles}
               name="producto_id_traslado"
-              onSeleccionar={setSeleccionActual}
+              onSeleccionar={(p) => {
+                setSeleccionActual(p)
+                setCantidadInput('')
+              }}
             />
             {productoSeleccionado?.modo_inventario === 'por_cantidad' && (
-              <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                Se traslada todo el disponible en esta bodega:{' '}
-                <strong className="text-foreground">{disponiblePorCantidad} unidades</strong> — los
-                artículos por cantidad no se pueden dividir entre dos bodegas.
-              </p>
+              <label className="flex flex-col gap-1.5 text-sm text-foreground">
+                Cantidad a trasladar
+                <input
+                  type="number"
+                  min={1}
+                  max={disponiblePorCantidad}
+                  step="1"
+                  value={cantidadInput}
+                  onChange={(e) => setCantidadInput(e.target.value)}
+                  placeholder={`Máximo ${disponiblePorCantidad}`}
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                />
+                <span className="text-xs text-muted-foreground">
+                  Disponible en esta bodega: <strong className="text-foreground">{disponiblePorCantidad} unidades</strong>
+                </span>
+              </label>
             )}
             <button
               type="button"

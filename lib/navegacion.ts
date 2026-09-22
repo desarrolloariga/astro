@@ -37,6 +37,7 @@ import {
   UploadCloud,
   PackageCheck,
   ArrowRightLeft,
+  Table2,
   type LucideIcon,
 } from 'lucide-react'
 import type { Rol } from '@/lib/usuario'
@@ -234,8 +235,17 @@ export const secciones: SeccionNav[] = [
         subgrupo: 'Producción',
       },
       {
-        etiqueta: 'Inventario por bodega',
-        descripcion: 'Piezas, valoración y costo por tienda o CEDI',
+        etiqueta: 'Existencias por bodega',
+        descripcion: 'Reporte tabular de cantidades por artículo y bodega, sin costos',
+        href: '/inventario/por-bodega',
+        icono: Table2,
+        roles: ['admin', 'coordinador', 'contabilidad', 'supervisor', 'tienda', 'produccion'],
+        permiso: { modulo: 'inventario', accion: 'ver' },
+        subgrupo: 'Inventario',
+      },
+      {
+        etiqueta: 'Valorización de inventario',
+        descripcion: 'KPIs, gráficas y costo de todo el inventario en la red',
         href: '/inventario',
         icono: Warehouse,
         roles: ['admin', 'coordinador', 'contabilidad', 'supervisor', 'tienda'],

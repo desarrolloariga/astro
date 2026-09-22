@@ -78,11 +78,14 @@ export default async function ExistenciasPage({
   const { data: piezasData, count: total } = await consulta
   const piezas = piezasData ?? []
 
-  // Cantidad viva de las piezas ya publicadas (por_cantidad) —
+  // Cantidad viva de las piezas ya publicadas (por_cantidad) — suma
+  // el disponible de TODAS las bodegas, no solo la de
+  // productos.tienda_id: el stock de una referencia puede estar
+  // repartido entre varias bodegas (ver 20260921100003).
   // cantidad_inicial solo aplica antes de publicar, después vive en
   // inventario_cantidad (ver comentario en 20260814100001).
   const publicadasPorCantidad = piezas.filter(
-    (p) => p.modo_inventario === 'por_cantidad' && p.estado !== 'en_produccion' && p.tienda_id != null,
+    (p) => p.modo_inventario === 'por_cantidad' && p.estado !== 'en_produccion',
   )
   const { data: inventarioData } =
     publicadasPorCantidad.length > 0
@@ -96,9 +99,8 @@ export default async function ExistenciasPage({
       : { data: [] as { producto_id: number; tienda_id: number; cantidad_disponible: number }[] }
 
   const cantidadViva = new Map<number, number>()
-  for (const p of publicadasPorCantidad) {
-    const fila = (inventarioData ?? []).find((i) => i.producto_id === p.id && i.tienda_id === p.tienda_id)
-    if (fila) cantidadViva.set(p.id, fila.cantidad_disponible)
+  for (const fila of inventarioData ?? []) {
+    cantidadViva.set(fila.producto_id, (cantidadViva.get(fila.producto_id) ?? 0) + fila.cantidad_disponible)
   }
 
   const totalPaginas = calcularTotalPaginas(total ?? 0, TAMANO_PAGINA)
