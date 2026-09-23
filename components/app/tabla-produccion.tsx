@@ -16,6 +16,7 @@ const ETIQUETAS_NIVEL_GANANCIA: Record<string, string> = {
 }
 
 type Imagen = { url: string; es_principal: boolean; orden: number }
+type Cedi = { id: number; nombre: string; es_cedi_principal: boolean }
 
 export type FilaProduccion = {
   id: number
@@ -31,9 +32,11 @@ export type FilaProduccion = {
 
 const celda = 'px-2.5 py-1.5 whitespace-nowrap'
 
-export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
+export function TablaProduccion({ filas, cedis = [] }: { filas: FilaProduccion[]; cedis?: Cedi[] }) {
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
   const [pending, startTransition] = useTransition()
+  const cediPrincipal = cedis.find((c) => c.es_cedi_principal) ?? cedis[0] ?? null
+  const [bodegaMasiva, setBodegaMasiva] = useState(cediPrincipal ? String(cediPrincipal.id) : '')
 
   const elegibles = useMemo(() => filas.filter((f) => f.estado === 'en_produccion'), [filas])
   const todosSeleccionados = elegibles.length > 0 && elegibles.every((f) => seleccion.has(f.id))
@@ -59,7 +62,7 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
     if (ids.length === 0) return
     if (!window.confirm(`¿Publicar ${ids.length} artículo(s) al CEDI?`)) return
     startTransition(async () => {
-      await publicarPiezasMasivo(ids)
+      await publicarPiezasMasivo(ids, bodegaMasiva ? Number(bodegaMasiva) : null)
     })
   }
 
@@ -77,6 +80,21 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
       {seleccion.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
           <span className="text-xs font-semibold text-foreground">{seleccion.size} seleccionado(s)</span>
+          {cedis.length > 0 && (
+            <select
+              value={bodegaMasiva}
+              onChange={(e) => setBodegaMasiva(e.target.value)}
+              className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+              title="Bodega destino"
+            >
+              {cedis.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                  {c.es_cedi_principal ? ' (principal)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             disabled={pending}
@@ -185,16 +203,37 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
                             <Camera className="h-3 w-3" />
                             Fotos
                           </Link>
-                          <form action={publicarPieza} className="inline">
-                            <input type="hidden" name="producto_id" value={f.id} />
-                            <button
-                              type="submit"
-                              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary"
-                            >
+                          <details className="relative inline-block text-left">
+                            <summary className="inline-flex list-none cursor-pointer items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary">
                               <Send className="h-3 w-3" />
                               Publicar
-                            </button>
-                          </form>
+                            </summary>
+                            <form
+                              action={publicarPieza}
+                              className="absolute right-0 z-10 mt-1 flex w-48 flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-lg"
+                            >
+                              <input type="hidden" name="producto_id" value={f.id} />
+                              <select
+                                name="tienda_destino_id"
+                                defaultValue={cediPrincipal ? String(cediPrincipal.id) : ''}
+                                className="rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+                              >
+                                {cedis.length === 0 && <option value="">Sin bodegas activas</option>}
+                                {cedis.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.nombre}
+                                    {c.es_cedi_principal ? ' (principal)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="submit"
+                                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                              >
+                                Publicar
+                              </button>
+                            </form>
+                          </details>
                           <FormularioConConfirmacion
                             action={eliminarPiezaBorrador}
                             mensaje={`¿Eliminar "${f.nombre}"? Esta acción no se puede deshacer desde la app.`}

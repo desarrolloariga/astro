@@ -9,6 +9,7 @@ import { Campo, SeccionFormulario, BotonPrimario, clasesInput } from '@/componen
 type Categoria = { id: number; nombre: string; grupo: string }
 type Material = { id: number; nombre: string }
 type Proveedor = { id: number; nombre: string }
+type Cedi = { id: number; nombre: string; es_cedi_principal: boolean }
 /** Un factor por clave y, opcionalmente, por nivel de ganancia — la excepción de nivel gana sobre el global. */
 type ParametroPrecio = { clave: string; nivel_ganancia: string | null; valor_pct: number }
 
@@ -29,17 +30,20 @@ export function FormularioNuevaPieza({
   materiales,
   proveedores,
   parametrosPrecio,
+  cedis,
 }: {
   categorias: Categoria[]
   materiales: Material[]
   proveedores: Proveedor[]
   parametrosPrecio: ParametroPrecio[]
+  cedis: Cedi[]
 }) {
   const [categoriaId, setCategoriaId] = useState('')
   const [origen, setOrigen] = useState('local')
   const [costo, setCosto] = useState('')
   const [modoInventario, setModoInventario] = useState('pieza_unica')
   const [nivelGanancia, setNivelGanancia] = useState('socio_comercial')
+  const cediPrincipal = cedis.find((c) => c.es_cedi_principal) ?? cedis[0] ?? null
 
   const grupo = categorias.find((c) => String(c.id) === categoriaId)?.grupo ?? 'joyeria'
 
@@ -282,7 +286,7 @@ export function FormularioNuevaPieza({
       </SeccionFormulario>
 
       <SeccionFormulario icon={ImagePlus} titulo="Galería de fotos (opcional)">
-        <Campo label="Fotos del artículo" helpText="La primera será la principal. Opcional aquí — también puedes agregarlas después desde Traslados.">
+        <Campo label="Fotos del artículo" helpText="La primera será la principal. No es obligatoria para publicar — también puedes agregarlas después desde Traslados.">
           <input
             name="fotos"
             type="file"
@@ -293,8 +297,32 @@ export function FormularioNuevaPieza({
         </Campo>
       </SeccionFormulario>
 
+      <SeccionFormulario icon={Boxes} titulo="Publicación">
+        <Campo label="Bodega destino" helpText="Solo aplica si publicas de una vez — se puede cambiar antes de guardar.">
+          <select name="tienda_destino_id" defaultValue={cediPrincipal?.id ?? ''} className={clasesInput}>
+            {cedis.length === 0 && <option value="">Sin bodegas activas configuradas</option>}
+            {cedis.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+                {c.es_cedi_principal ? ' (CEDI principal)' : ''}
+              </option>
+            ))}
+          </select>
+        </Campo>
+      </SeccionFormulario>
+
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <BotonPrimario type="submit">Crear y publicar al CEDI</BotonPrimario>
+        <button
+          type="submit"
+          name="accion"
+          value="borrador"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground shadow-xs transition-all hover:bg-secondary active:translate-y-px"
+        >
+          Guardar borrador
+        </button>
+        <BotonPrimario type="submit" name="accion" value="publicar">
+          Guardar y publicar al CEDI
+        </BotonPrimario>
       </div>
     </form>
   )

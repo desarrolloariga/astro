@@ -35,6 +35,8 @@ export async function crearPieza(formData: FormData) {
   }
 
   const nombre = String(formData.get('nombre') ?? '').trim()
+  const publicar = formData.get('accion') === 'publicar'
+  const tiendaDestinoId = aNumero(formData.get('tienda_destino_id'))
   const modoInventario = formData.get('modo_inventario') === 'por_cantidad' ? 'por_cantidad' : 'pieza_unica'
   // Cantidad inicial es opcional — sin ella, la referencia se crea y
   // publica con 0 unidades, para cargarle inventario después desde
@@ -178,22 +180,32 @@ export async function crearPieza(formData: FormData) {
     }
   }
 
-  // Todo artículo creado pasa directo al CEDI — ya no hay paso de
-  // borrador ni botón "Publicar". Las fotos se agregan después desde
-  // Traslados, así que no bloquean la publicación.
-  const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', {
-    p_producto_id: pieza.id,
-  })
+  // Publicar vuelve a ser un paso aparte, opcional: queda como
+  // borrador por defecto para poder revisar costos primero. Solo si
+  // se eligió "Guardar y publicar" se llama a fn_publicar_producto,
+  // con la bodega destino elegida (o el CEDI principal si no se
+  // indicó ninguna).
+  if (publicar) {
+    const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', {
+      p_producto_id: pieza.id,
+      p_tienda_destino_id: tiendaDestinoId,
+    })
+    if (errorPublicar) {
+      revalidatePath('/produccion')
+      redirect(
+        `/produccion?aviso=${encodeURIComponent(
+          `Artículo ${codigo} guardado como borrador; no se publicó: ${errorPublicar.message}`,
+        )}`,
+      )
+    }
+  }
 
   revalidatePath('/produccion')
-  if (errorPublicar) {
-    redirect(
-      `/produccion?aviso=${encodeURIComponent(
-        `Artículo ${codigo} creado, pero no se pudo publicar al CEDI: ${errorPublicar.message}`,
-      )}`,
-    )
-  }
-  redirect(`/produccion?ok=${encodeURIComponent(`Artículo ${codigo} publicado al CEDI`)}`)
+  redirect(
+    `/produccion?ok=${encodeURIComponent(
+      publicar ? `Artículo ${codigo} publicado al CEDI` : `Artículo ${codigo} guardado como borrador`,
+    )}`,
+  )
 }
 
 export async function eliminarPiezaBorrador(formData: FormData) {
@@ -229,6 +241,7 @@ export async function publicarPieza(formData: FormData) {
   const supabase = await createClient()
   const { error } = await supabase.rpc('fn_publicar_producto', {
     p_producto_id: productoId,
+    p_tienda_destino_id: aNumero(formData.get('tienda_destino_id')),
   })
 
   revalidatePath('/produccion')
@@ -238,7 +251,7 @@ export async function publicarPieza(formData: FormData) {
   redirect(`/produccion?ok=${encodeURIComponent('Artículo publicado al CEDI')}`)
 }
 
-export async function publicarPiezasMasivo(productoIds: number[]) {
+export async function publicarPiezasMasivo(productoIds: number[], tiendaDestinoId?: number | null) {
   const usuario = await obtenerUsuarioActual()
   if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {
     redirect('/inicio')
@@ -249,7 +262,10 @@ export async function publicarPiezasMasivo(productoIds: number[]) {
   let ok = 0
   let fallidos = 0
   for (const id of productoIds) {
-    const { error } = await supabase.rpc('fn_publicar_producto', { p_producto_id: id })
+    const { error } = await supabase.rpc('fn_publicar_producto', {
+      p_producto_id: id,
+      p_tienda_destino_id: tiendaDestinoId ?? null,
+    })
     if (error) fallidos++
     else ok++
   }

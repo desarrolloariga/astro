@@ -90,6 +90,21 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilida
     redirect(`/produccion/carga-masiva?error=${encodeURIComponent('No hay artículos para cargar')}`)
   }
 
+  // Si se captura trazabilidad financiera (factura, subtotal o
+  // impuestos), el proveedor pasa a ser obligatorio — esa carga va a
+  // generar una orden de compra real (ordenes_compra.proveedor_id es
+  // NOT NULL), no solo el registro de trazabilidad.
+  const requiereOrdenCompra = Boolean(
+    trazabilidad && (trazabilidad.numero_factura || trazabilidad.subtotal || trazabilidad.impuestos),
+  )
+  if (requiereOrdenCompra && !trazabilidad?.proveedor_id) {
+    redirect(
+      `/produccion/carga-masiva?error=${encodeURIComponent(
+        'Indica el proveedor del lote — es obligatorio cuando capturas factura, subtotal o impuestos',
+      )}`,
+    )
+  }
+
   // Las filas cuyo código ya existe (producto_existente_id) no crean
   // un producto nuevo: solo reabastecen el inventario de ese producto
   // con la "cantidad_inicial" del Excel (ver fn_sumar_inventario_producto).
@@ -241,12 +256,46 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilida
     redirect(`/produccion/carga-masiva?error=${encodeURIComponent(mensaje)}`)
   }
 
+  // Orden de compra real (aparece en /compras/historial): una línea
+  // por cada producto creado con costo válido y cantidad > 0 — el
+  // insert preserva el orden de piezasNuevas, así se empareja cada
+  // fila creada con sus datos originales del Excel.
+  let ordenCompraId: number | null = null
+  if (requiereOrdenCompra && cargaMasivaId && creadas && creadas.length > 0) {
+    const lineasOrden = creadas
+      .map((fila, i) => {
+        const p = piezasNuevas[i]
+        const cantidad = p.modo_inventario === 'por_cantidad' ? p.cantidad_inicial : 1
+        if (fila.costo_produccion == null || fila.costo_produccion <= 0) return null
+        if (cantidad == null || cantidad <= 0) return null
+        return { producto_id: fila.id, cantidad, costo_unitario: fila.costo_produccion }
+      })
+      .filter((l): l is { producto_id: number; cantidad: number; costo_unitario: number } => l !== null)
+
+    if (lineasOrden.length > 0) {
+      const { data: idOrden, error: errorOrden } = await supabase.rpc(
+        'fn_crear_orden_compra_recibida_desde_carga_masiva',
+        {
+          p_carga_masiva_id: cargaMasivaId,
+          p_proveedor_id: trazabilidad!.proveedor_id,
+          p_numero_factura: trazabilidad!.numero_factura,
+          p_referencia_orden_compra: trazabilidad!.referencia_orden_compra,
+          p_impuestos: trazabilidad!.impuestos,
+          p_lineas: lineasOrden,
+        },
+      )
+      if (!errorOrden) ordenCompraId = idOrden
+    }
+  }
+
   // El precio ya no se escribe a mano: se calcula por fila, mejor
   // esfuerzo (una fila sin costo válido simplemente queda sin precio
   // y no se puede publicar todavía).
-  // Todo artículo con costo válido se publica directo al CEDI — igual
-  // que la creación individual, ya no hay paso de borrador. Una fila
-  // sin costo se queda en_produccion hasta que se le complete el
+  // Carga masiva sigue publicando directo al CEDI (a diferencia de
+  // crear un artículo individual, que volvió a tener paso de
+  // borrador) — decisión deliberada: un lote cargado por Excel ya
+  // trae costo y cantidad reales, no necesita revisión previa. Una
+  // fila sin costo se queda en_produccion hasta que se le complete el
   // costo desde su ficha (fn_publicar_producto lo exige).
   let sinCosto = 0
   let publicados = 0
@@ -270,13 +319,22 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilida
       : ''
 
   const avisoReabastecidos = reabastecidos > 0 ? ` · ${reabastecidos} artículo${reabastecidos !== 1 ? 's' : ''} reabastecido${reabastecidos !== 1 ? 's' : ''}` : ''
+  const avisoOrdenCompra = ordenCompraId
+    ? ` · orden de compra #${ordenCompraId} registrada en el historial de compras`
+    : ''
+
+  if (ordenCompraId) {
+    revalidatePath('/compras')
+    revalidatePath('/compras/historial')
+  }
 
   redirect(
     `/produccion?ok=${encodeURIComponent(
       `${publicados} artículo${publicados !== 1 ? 's' : ''} publicado${publicados !== 1 ? 's' : ''} al CEDI` +
         (sinCosto > 0 ? ` · ${sinCosto} sin costo, quedaron sin publicar` : '') +
         avisoDependencias +
-        avisoReabastecidos,
+        avisoReabastecidos +
+        avisoOrdenCompra,
     )}`,
   )
 }

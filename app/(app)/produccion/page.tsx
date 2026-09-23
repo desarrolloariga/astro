@@ -40,12 +40,14 @@ export default async function ProduccionPage({
   const filtros = parsearFiltrosInventario(sp)
   const supabase = await createClient()
 
-  const [{ data: categoriasData }, { data: materialesData }] = await Promise.all([
+  const [{ data: categoriasData }, { data: materialesData }, { data: cedisData }] = await Promise.all([
     supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
     supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+    supabase.from('tiendas').select('id, nombre, es_cedi_principal').eq('tipo', 'cedi').eq('activo', true).order('nombre'),
   ])
   const categorias = (categoriasData ?? []) as Categoria[]
   const materiales = (materialesData ?? []) as Material[]
+  const cedis = (cedisData ?? []) as { id: number; nombre: string; es_cedi_principal: boolean }[]
 
   // RLS: producción ve sus artículos; admin los ve todos
   let consulta = supabase
@@ -119,7 +121,7 @@ export default async function ProduccionPage({
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Producción</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatearNumero(totalArticulos ?? 0)} artículos
-            {(totalBorradores ?? 0) > 0 && ` · ${formatearNumero(totalBorradores ?? 0)} sin publicar (sin costo)`}
+            {(totalBorradores ?? 0) > 0 && ` · ${formatearNumero(totalBorradores ?? 0)} sin publicar`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -204,13 +206,13 @@ export default async function ProduccionPage({
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <p className="text-sm font-semibold text-foreground">Sin artículos para estos filtros</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Crea el primer artículo con su ficha técnica y costo — se publica directo al
-            inventario central (CEDI). Las fotos se agregan después desde Traslados.
+            Crea el primer artículo con su ficha técnica y costo — guárdalo como borrador para
+            revisarlo, o publícalo directo eligiendo la bodega destino.
           </p>
         </div>
       ) : (
         <>
-          <TablaProduccion filas={filasTabla} />
+          <TablaProduccion filas={filasTabla} cedis={cedis} />
           <Paginacion
             paginaActual={filtros.pagina}
             totalPaginas={totalPaginas}

@@ -345,6 +345,7 @@ export function CargadorMasivo({
   const [pending, startTransition] = useTransition()
 
   const totalCarga = (Number(subtotalCarga.replace(',', '.')) || 0) + (Number(impuestosCarga.replace(',', '.')) || 0)
+  const requiereProveedor = Boolean(numeroFactura.trim() || subtotalCarga.trim() || impuestosCarga.trim())
 
   const filasValidas = filas.filter((f) => f.datos !== null)
   const filasConError = filas.length - filasValidas.length
@@ -367,6 +368,10 @@ export function CargadorMasivo({
   }
 
   function confirmar() {
+    if (requiereProveedor && !proveedorCargaId) {
+      window.alert('Indica el proveedor del lote — es obligatorio cuando capturas factura, subtotal o impuestos.')
+      return
+    }
     if (filasConError > 0) {
       const detalleErrores = filas
         .filter((f) => f.errores.length > 0)
@@ -449,7 +454,10 @@ export function CargadorMasivo({
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
           Se aplica a toda la carga — de qué factura, orden de compra y proveedor salió este lote.
-          Distinto del "Proveedor" por fila del Excel (a quién se le asigna cada artículo).
+          Distinto del "Proveedor" por fila del Excel (a quién se le asigna cada artículo). Si
+          capturas factura, subtotal o impuestos, además de quedar aquí se genera una orden de
+          compra real (visible en Historial de compras) — por eso el proveedor pasa a ser
+          obligatorio en ese caso.
         </p>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Número de factura">
@@ -468,8 +476,17 @@ export function CargadorMasivo({
               className={clasesInput}
             />
           </Campo>
-          <Campo label="Proveedor del lote">
-            <select value={proveedorCargaId} onChange={(e) => setProveedorCargaId(e.target.value)} className={clasesInput}>
+          <Campo
+            label="Proveedor del lote"
+            required={requiereProveedor}
+            helpText={requiereProveedor ? 'Obligatorio: capturaste factura, subtotal o impuestos.' : undefined}
+          >
+            <select
+              value={proveedorCargaId}
+              onChange={(e) => setProveedorCargaId(e.target.value)}
+              required={requiereProveedor}
+              className={clasesInput}
+            >
               <option value="">Sin proveedor asignado</option>
               {proveedores.map((p) => (
                 <option key={p.id} value={p.id}>
