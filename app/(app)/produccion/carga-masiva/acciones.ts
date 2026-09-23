@@ -289,16 +289,14 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilida
   }
 
   // El precio ya no se escribe a mano: se calcula por fila, mejor
-  // esfuerzo (una fila sin costo válido simplemente queda sin precio
-  // y no se puede publicar todavía).
-  // Carga masiva sigue publicando directo al CEDI (a diferencia de
-  // crear un artículo individual, que volvió a tener paso de
-  // borrador) — decisión deliberada: un lote cargado por Excel ya
-  // trae costo y cantidad reales, no necesita revisión previa. Una
-  // fila sin costo se queda en_produccion hasta que se le complete el
-  // costo desde su ficha (fn_publicar_producto lo exige).
+  // esfuerzo (una fila sin costo válido simplemente queda sin precio).
+  // Carga masiva ya NO publica automático — igual que crear un
+  // artículo individual, queda como borrador (en_produccion) para
+  // poder revisar costos, cargar fotos, publicar o eliminar antes de
+  // que pase al CEDI. La orden de compra (si aplica) se sigue
+  // generando igual más abajo — la recepción física/factura es un
+  // hecho aparte de que el artículo ya esté publicado en el catálogo.
   let sinCosto = 0
-  let publicados = 0
   for (const fila of creadas ?? []) {
     if (fila.costo_produccion == null || fila.costo_produccion <= 0) {
       sinCosto++
@@ -308,8 +306,6 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilida
       p_producto_id: fila.id,
       p_motivo: 'carga_masiva',
     })
-    const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', { p_producto_id: fila.id })
-    if (!errorPublicar) publicados++
   }
 
   const dependenciasCreadas = categoriasCreadas.length + materialesCreados.length + proveedoresCreados.length
@@ -328,10 +324,11 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilida
     revalidatePath('/compras/historial')
   }
 
+  const totalCreados = (creadas ?? []).length
   redirect(
     `/produccion?ok=${encodeURIComponent(
-      `${publicados} artículo${publicados !== 1 ? 's' : ''} publicado${publicados !== 1 ? 's' : ''} al CEDI` +
-        (sinCosto > 0 ? ` · ${sinCosto} sin costo, quedaron sin publicar` : '') +
+      `${totalCreados} artículo${totalCreados !== 1 ? 's' : ''} creado${totalCreados !== 1 ? 's' : ''} como borrador — revísalos en producción` +
+        (sinCosto > 0 ? ` (${sinCosto} sin costo todavía)` : '') +
         avisoDependencias +
         avisoReabastecidos +
         avisoOrdenCompra,

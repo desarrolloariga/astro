@@ -39,8 +39,8 @@ export default async function CargaMasivaPage({
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Carga masiva de artículos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Descarga la plantilla, complétala y súbela. Los artículos con costo se publican
-            directo al CEDI — las fotos se agregan después desde Traslados.
+            Descarga la plantilla, complétala y súbela. Los artículos quedan como borrador en
+            producción para revisar costos, cargar fotos y publicar al CEDI cuando estén listos.
           </p>
         </div>
         <Link
