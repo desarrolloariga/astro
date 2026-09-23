@@ -209,8 +209,13 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
 
   // El precio ya no se escribe a mano: se calcula por fila, mejor
   // esfuerzo (una fila sin costo válido simplemente queda sin precio
-  // hasta que se complete su ficha).
+  // y no se puede publicar todavía).
+  // Todo artículo con costo válido se publica directo al CEDI — igual
+  // que la creación individual, ya no hay paso de borrador. Una fila
+  // sin costo se queda en_produccion hasta que se le complete el
+  // costo desde su ficha (fn_publicar_producto lo exige).
   let sinCosto = 0
+  let publicados = 0
   for (const fila of creadas ?? []) {
     if (fila.costo_produccion == null || fila.costo_produccion <= 0) {
       sinCosto++
@@ -220,6 +225,8 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
       p_producto_id: fila.id,
       p_motivo: 'carga_masiva',
     })
+    const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', { p_producto_id: fila.id })
+    if (!errorPublicar) publicados++
   }
 
   const dependenciasCreadas = categoriasCreadas.length + materialesCreados.length + proveedoresCreados.length
@@ -232,8 +239,8 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
 
   redirect(
     `/produccion?ok=${encodeURIComponent(
-      `${creadas?.length ?? 0} artículos cargados como borrador` +
-        (sinCosto > 0 ? ` (${sinCosto} sin costo, sin precio todavía)` : '') +
+      `${publicados} artículo${publicados !== 1 ? 's' : ''} publicado${publicados !== 1 ? 's' : ''} al CEDI` +
+        (sinCosto > 0 ? ` · ${sinCosto} sin costo, quedaron sin publicar` : '') +
         avisoDependencias +
         avisoReabastecidos,
     )}`,

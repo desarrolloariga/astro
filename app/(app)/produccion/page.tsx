@@ -14,7 +14,7 @@ const TAMANO_PAGINA_PRODUCCION = 25
 
 const ESTADOS_PRODUCCION = ['en_produccion', 'disponible_cedi', 'disponible_tienda', 'baja']
 const ETIQUETAS_ESTADO_PRODUCCION: Record<string, string> = {
-  en_produccion: 'Borrador',
+  en_produccion: 'Sin publicar',
   disponible_cedi: 'Publicado (CEDI)',
   disponible_tienda: 'Publicado (tienda)',
   baja: 'De baja',
@@ -118,7 +118,8 @@ export default async function ProduccionPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Producción</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatearNumero(totalArticulos ?? 0)} artículos · {formatearNumero(totalBorradores ?? 0)} en borrador
+            {formatearNumero(totalArticulos ?? 0)} artículos
+            {(totalBorradores ?? 0) > 0 && ` · ${formatearNumero(totalBorradores ?? 0)} sin publicar (sin costo)`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -203,8 +204,8 @@ export default async function ProduccionPage({
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <p className="text-sm font-semibold text-foreground">Sin artículos para estos filtros</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Crea el primer artículo con su ficha técnica y fotos; al publicarlo ingresará al
-            inventario central (CEDI).
+            Crea el primer artículo con su ficha técnica y costo — se publica directo al
+            inventario central (CEDI). Las fotos se agregan después desde Traslados.
           </p>
         </div>
       ) : (

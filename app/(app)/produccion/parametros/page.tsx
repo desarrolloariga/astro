@@ -39,7 +39,7 @@ const clasesCampoFiltro =
 
 const ESTADOS = ['en_produccion', 'disponible_cedi', 'disponible_tienda']
 const ETIQUETAS_ESTADO: Record<string, string> = {
-  en_produccion: 'Borrador',
+  en_produccion: 'Sin publicar',
   disponible_cedi: 'Publicado (CEDI)',
   disponible_tienda: 'Publicado (tienda)',
 }

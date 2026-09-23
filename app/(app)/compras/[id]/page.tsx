@@ -293,6 +293,10 @@ export default async function OrdenCompraPage({
 
       {(ordenTipada.estado === 'autorizada' || ordenTipada.estado === 'recibida_parcial') && puedeRecibir && (
         <SeccionFormulario icon={PackageCheck} titulo="Recibir mercadería">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Reconfirma cantidad y costo real de cada línea — al recibir, el artículo se publica
+            directo al CEDI.
+          </p>
           <div className="flex flex-col gap-3">
             {listaDetalles
               .filter((d) => d.cantidad_recibida < d.cantidad)
@@ -317,19 +321,19 @@ export default async function OrdenCompraPage({
                     min="0.001"
                     required
                     placeholder="Cantidad recibida"
+                    defaultValue={d.cantidad - d.cantidad_recibida}
                     className="w-40 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
                   />
-                  {d.producto_id && (
-                    <input
-                      name="costo_unitario_real"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Costo real (opcional)"
-                      className="w-44 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
-                    />
-                  )}
-                  <BotonPrimario className="px-4 py-2 text-xs">Recibir</BotonPrimario>
+                  <input
+                    name="costo_unitario_real"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Costo real"
+                    defaultValue={d.costo_unitario}
+                    className="w-44 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
+                  />
+                  <BotonPrimario className="px-4 py-2 text-xs">Recibir y publicar</BotonPrimario>
                 </form>
               ))}
           </div>
@@ -400,9 +404,13 @@ export default async function OrdenCompraPage({
               <Campo label="Cantidad inicial" helpText="Solo si es por cantidad.">
                 <input name="cantidad_inicial_producto" type="number" step="1" min="1" className={clasesInput} />
               </Campo>
+              <Campo label="Referencia del proveedor" helpText="Código/SKU que el proveedor usa para este artículo (opcional).">
+                <input name="referencia_proveedor" className={clasesInput} />
+              </Campo>
               <p className="text-xs text-muted-foreground">
-                Queda como borrador en Artículos — luego se completa foto, material y demás desde
-                ahí. El costo real de esta línea se le asigna al recibir la mercadería.
+                Se crea con el proveedor de esta orden. El costo real y la publicación al CEDI se
+                confirman al recibir la mercadería — foto, material y demás se completan después
+                desde CEDI.
               </p>
               <Campo label="Cantidad a comprar" required>
                 <input name="cantidad" type="number" step="0.001" min="0.001" required className={clasesInput} />

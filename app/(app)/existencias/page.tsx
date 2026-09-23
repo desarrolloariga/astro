@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { UploadCloud, CheckCircle2, AlertCircle, Layers, PlusCircle } from 'lucide-react'
+import { UploadCloud, CheckCircle2, AlertCircle, Layers, PlusCircle, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearNumero } from '@/lib/formato'
@@ -14,12 +14,12 @@ import {
 } from '@/lib/inventario'
 import { sumarInventarioUnitario } from './acciones'
 
-export const metadata = { title: 'Existencias — ASTRO' }
+export const metadata = { title: 'CEDI — ASTRO' }
 
 const TAMANO_PAGINA = 25
 const ESTADOS = ['en_produccion', 'disponible_cedi', 'disponible_tienda', 'baja']
 const ETIQUETAS_ESTADO: Record<string, string> = {
-  en_produccion: 'Borrador',
+  en_produccion: 'Sin publicar',
   disponible_cedi: 'Publicado (CEDI)',
   disponible_tienda: 'Publicado (tienda)',
   baja: 'De baja',
@@ -110,9 +110,10 @@ export default async function ExistenciasPage({
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Existencias</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">CEDI</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatearNumero(total ?? 0)} artículos · solo cantidades, sin costos ni precios
+            {formatearNumero(total ?? 0)} artículos · solo cantidades, sin costos ni precios · edita
+            nombre, descripción y fotos
           </p>
         </div>
         <Link
@@ -184,6 +185,7 @@ export default async function ExistenciasPage({
                   <th className="px-4 py-3 font-semibold">Estado</th>
                   <th className="px-4 py-3 font-semibold text-right">Cantidad</th>
                   <th className="px-4 py-3 font-semibold text-right">Sumar inventario</th>
+                  <th className="px-4 py-3 font-semibold text-right">Editar</th>
                 </tr>
               </thead>
               <tbody>
@@ -238,6 +240,15 @@ export default async function ExistenciasPage({
                         ) : (
                           <span className="text-xs text-muted-foreground">No aplica</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/existencias/${p.id}/editar`}
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Editar
+                        </Link>
                       </td>
                     </tr>
                   )

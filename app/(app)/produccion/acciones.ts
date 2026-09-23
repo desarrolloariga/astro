@@ -35,7 +35,6 @@ export async function crearPieza(formData: FormData) {
   }
 
   const nombre = String(formData.get('nombre') ?? '').trim()
-  const publicar = formData.get('accion') === 'publicar'
   const modoInventario = formData.get('modo_inventario') === 'por_cantidad' ? 'por_cantidad' : 'pieza_unica'
   const cantidadInicial = modoInventario === 'por_cantidad' ? aNumero(formData.get('cantidad_inicial')) : null
   const categoriaId = aNumero(formData.get('categoria_id'))
@@ -105,6 +104,7 @@ export async function crearPieza(formData: FormData) {
     codigo_barras: campoOpcional(formData, 'codigo_barras') ?? null,
     etiquetas: etiquetasDesdeTexto(formData.get('etiquetas')),
     proveedor_id: aNumero(formData.get('proveedor_id')),
+    referencia_proveedor: campoOpcional(formData, 'referencia_proveedor') ?? null,
     punto_reorden: aNumero(formData.get('punto_reorden')),
   }
 
@@ -176,26 +176,22 @@ export async function crearPieza(formData: FormData) {
     }
   }
 
-  if (publicar) {
-    const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', {
-      p_producto_id: pieza.id,
-    })
-    if (errorPublicar) {
-      revalidatePath('/produccion')
-      redirect(
-        `/produccion?aviso=${encodeURIComponent(
-          `Artículo ${codigo} guardado como borrador; no se publicó: ${errorPublicar.message}`,
-        )}`,
-      )
-    }
-  }
+  // Todo artículo creado pasa directo al CEDI — ya no hay paso de
+  // borrador ni botón "Publicar". Las fotos se agregan después desde
+  // Traslados, así que no bloquean la publicación.
+  const { error: errorPublicar } = await supabase.rpc('fn_publicar_producto', {
+    p_producto_id: pieza.id,
+  })
 
   revalidatePath('/produccion')
-  redirect(
-    `/produccion?ok=${encodeURIComponent(
-      publicar ? `Artículo ${codigo} publicado al CEDI` : `Artículo ${codigo} guardado como borrador`,
-    )}`,
-  )
+  if (errorPublicar) {
+    redirect(
+      `/produccion?aviso=${encodeURIComponent(
+        `Artículo ${codigo} creado, pero no se pudo publicar al CEDI: ${errorPublicar.message}`,
+      )}`,
+    )
+  }
+  redirect(`/produccion?ok=${encodeURIComponent(`Artículo ${codigo} publicado al CEDI`)}`)
 }
 
 export async function eliminarPiezaBorrador(formData: FormData) {
@@ -259,7 +255,7 @@ export async function publicarPiezasMasivo(productoIds: number[]) {
   revalidatePath('/produccion')
   const mensaje = `${ok} artículo${ok !== 1 ? 's' : ''} publicado${ok !== 1 ? 's' : ''} al CEDI` +
     (fallidos > 0
-      ? ` · ${fallidos} no se pudieron publicar (ficha incompleta o sin foto)`
+      ? ` · ${fallidos} no se pudieron publicar (ficha incompleta: falta nombre o costo)`
       : '')
   redirect(`/produccion?${fallidos > 0 ? 'aviso' : 'ok'}=${encodeURIComponent(mensaje)}`)
 }
@@ -294,13 +290,14 @@ export async function agregarFotosPieza(formData: FormData) {
 
   const productoId = aNumero(formData.get('producto_id'))
   if (!productoId) redirect('/produccion')
+  const rutaRetorno = String(formData.get('ruta_retorno') ?? '').trim() || `/produccion/${productoId}/fotos`
 
   const fotos = formData
     .getAll('fotos')
     .filter((f): f is File => f instanceof File && f.size > 0)
 
   if (fotos.length === 0) {
-    redirect(`/produccion/${productoId}/fotos?error=${encodeURIComponent('Selecciona al menos una foto')}`)
+    redirect(`${rutaRetorno}?error=${encodeURIComponent('Selecciona al menos una foto')}`)
   }
 
   const supabase = await createClient()
@@ -311,6 +308,8 @@ export async function agregarFotosPieza(formData: FormData) {
 
   const admin = createAdminClient()
   let orden = count ?? 0
+  let subidas = 0
+  let ultimoError: string | null = null
   for (const foto of fotos) {
     const extension = foto.name.split('.').pop()?.toLowerCase() || 'jpg'
     const ruta = `${productoId}/${orden}-${Date.now()}.${extension}`
@@ -318,21 +317,40 @@ export async function agregarFotosPieza(formData: FormData) {
       .from(BUCKET)
       .upload(ruta, foto, { contentType: foto.type || 'image/jpeg' })
 
-    if (!errorSubida) {
-      const { data: publica } = admin.storage.from(BUCKET).getPublicUrl(ruta)
-      await supabase.from('producto_imagenes').insert({
-        producto_id: productoId,
-        url: publica.publicUrl,
-        orden,
-        es_principal: orden === 0,
-      })
-      orden++
+    if (errorSubida) {
+      ultimoError = errorSubida.message
+      continue
     }
+
+    const { data: publica } = admin.storage.from(BUCKET).getPublicUrl(ruta)
+    const { error: errorFila } = await supabase.from('producto_imagenes').insert({
+      producto_id: productoId,
+      url: publica.publicUrl,
+      orden,
+      es_principal: orden === 0,
+    })
+    if (errorFila) {
+      ultimoError = errorFila.message
+      continue
+    }
+    orden++
+    subidas++
   }
 
-  revalidatePath(`/produccion/${productoId}/fotos`)
+  revalidatePath(rutaRetorno)
   revalidatePath('/produccion')
-  redirect(`/produccion/${productoId}/fotos?ok=${encodeURIComponent('Fotos agregadas')}`)
+  revalidatePath('/existencias')
+  if (subidas === 0) {
+    redirect(`${rutaRetorno}?error=${encodeURIComponent(ultimoError ?? 'No se pudo subir ninguna foto')}`)
+  }
+  if (ultimoError) {
+    redirect(
+      `${rutaRetorno}?ok=${encodeURIComponent(
+        `${subidas} foto${subidas !== 1 ? 's' : ''} agregada${subidas !== 1 ? 's' : ''} · algunas fallaron: ${ultimoError}`,
+      )}`,
+    )
+  }
+  redirect(`${rutaRetorno}?ok=${encodeURIComponent('Fotos agregadas')}`)
 }
 
 export async function eliminarFotoPieza(formData: FormData) {
@@ -344,11 +362,13 @@ export async function eliminarFotoPieza(formData: FormData) {
   const productoId = aNumero(formData.get('producto_id'))
   const imagenId = aNumero(formData.get('imagen_id'))
   if (!productoId || !imagenId) redirect('/produccion')
+  const rutaRetorno = String(formData.get('ruta_retorno') ?? '').trim() || `/produccion/${productoId}/fotos`
 
   const supabase = await createClient()
   const { error } = await supabase.from('producto_imagenes').delete().eq('id', imagenId)
 
-  revalidatePath(`/produccion/${productoId}/fotos`)
-  if (error) redirect(`/produccion/${productoId}/fotos?error=${encodeURIComponent(error.message)}`)
-  redirect(`/produccion/${productoId}/fotos?ok=${encodeURIComponent('Foto eliminada')}`)
+  revalidatePath(rutaRetorno)
+  revalidatePath('/existencias')
+  if (error) redirect(`${rutaRetorno}?error=${encodeURIComponent(error.message)}`)
+  redirect(`${rutaRetorno}?ok=${encodeURIComponent('Foto eliminada')}`)
 }

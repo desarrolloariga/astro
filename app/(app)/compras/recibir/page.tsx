@@ -11,9 +11,10 @@ export const metadata = { title: 'Recibir órdenes de compra — ASTRO' }
 
 type Detalle = {
   id: number
-  producto_id: number | null
+  producto_id: number
   descripcion: string
   cantidad: number
+  costo_unitario: number
   cantidad_recibida: number
 }
 type Orden = {
@@ -37,7 +38,7 @@ export default async function RecibirOrdenesCompraPage({
   const { data } = await supabase
     .from('ordenes_compra')
     .select(
-      'id, estado, fecha_autorizacion, proveedores ( nombre ), orden_compra_detalles ( id, producto_id, descripcion, cantidad, cantidad_recibida )',
+      'id, estado, fecha_autorizacion, proveedores ( nombre ), orden_compra_detalles ( id, producto_id, descripcion, cantidad, costo_unitario, cantidad_recibida )',
     )
     .in('estado', ['autorizada', 'recibida_parcial'])
     .order('fecha_autorizacion', { ascending: true })
@@ -60,7 +61,8 @@ export default async function RecibirOrdenesCompraPage({
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Todas las órdenes autorizadas con mercadería pendiente de recibir, en un solo lugar —
-          recibir aquí carga la cantidad directo al inventario.
+          reconfirma cantidad y costo de cada línea; al recibir, el artículo se publica directo al
+          CEDI.
         </p>
       </div>
 
@@ -127,19 +129,19 @@ export default async function RecibirOrdenesCompraPage({
                         min="0.001"
                         required
                         placeholder="Cantidad recibida"
+                        defaultValue={d.cantidad - d.cantidad_recibida}
                         className="w-40 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
                       />
-                      {d.producto_id && (
-                        <input
-                          name="costo_unitario_real"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="Costo real (opcional)"
-                          className="w-44 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
-                        />
-                      )}
-                      <BotonPrimario className="px-4 py-2 text-xs">Recibir</BotonPrimario>
+                      <input
+                        name="costo_unitario_real"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Costo real"
+                        defaultValue={d.costo_unitario}
+                        className="w-44 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-colors focus:border-primary focus:outline-none focus:ring-4 focus:ring-ring/10"
+                      />
+                      <BotonPrimario className="px-4 py-2 text-xs">Recibir y publicar</BotonPrimario>
                     </form>
                   ))}
                 </div>

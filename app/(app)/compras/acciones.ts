@@ -75,52 +75,8 @@ export async function crearOrdenCompraConLineas(
   redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Orden creada con sus líneas')}`)
 }
 
-export async function agregarLineaCompra(formData: FormData) {
-  if (!(await tienePermiso('compras', 'crear'))) redirect('/inicio')
-
-  const ordenId = aNumero(formData.get('orden_compra_id'))
-  const productoId = aNumero(formData.get('producto_id'))
-  const cantidad = aNumero(formData.get('cantidad'))
-  const costoUnitario = aNumero(formData.get('costo_unitario'))
-  let descripcion = String(formData.get('descripcion') ?? '').trim()
-
-  if (!ordenId) redirect('/compras')
-  if (!descripcion && !productoId) {
-    redirect(`/compras/${ordenId}?error=${encodeURIComponent('Elige un producto del maestro o escribe una descripción')}`)
-  }
-  if (cantidad == null || cantidad <= 0 || costoUnitario == null || costoUnitario < 0) {
-    redirect(`/compras/${ordenId}?error=${encodeURIComponent('Indica cantidad y costo válidos')}`)
-  }
-
-  const supabase = await createClient()
-
-  // Si se eligió una pieza del maestro y no se escribió descripción,
-  // se usa su propio nombre — el picker ya la identifica sin ambigüedad.
-  if (!descripcion && productoId) {
-    const { data: producto } = await supabase
-      .from('productos')
-      .select('codigo, nombre')
-      .eq('id', productoId)
-      .maybeSingle()
-    descripcion = producto ? `${producto.codigo} — ${producto.nombre}` : 'Producto vinculado'
-  }
-
-  const { error } = await supabase.rpc('fn_agregar_linea_compra', {
-    p_orden_compra_id: ordenId,
-    p_producto_id: productoId,
-    p_descripcion: descripcion,
-    p_cantidad: cantidad,
-    p_costo_unitario: costoUnitario,
-    p_descuento_pct: aNumero(formData.get('descuento_pct')) ?? 0,
-  })
-
-  revalidatePath(`/compras/${ordenId}`)
-  if (error) redirect(`/compras/${ordenId}?error=${encodeURIComponent(error.message)}`)
-  redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Línea agregada')}`)
-}
-
 export type LineaCarritoCompra = {
-  producto_id: number | null
+  producto_id: number
   descripcion: string
   cantidad: number
   costo_unitario: number
@@ -193,7 +149,7 @@ export async function recibirLineaCompra(formData: FormData) {
 
   revalidatePath(`/compras/${ordenId}`)
   if (error) redirect(`/compras/${ordenId}?error=${encodeURIComponent(error.message)}`)
-  redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Recepción registrada')}`)
+  redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Recepción registrada y publicada al CEDI')}`)
 }
 
 export async function marcarFacturadaCompra(formData: FormData) {
@@ -269,6 +225,7 @@ export async function crearProductoYAgregarLineaCompra(formData: FormData) {
   const cantidadInicial = modoInventario === 'por_cantidad' ? aNumero(formData.get('cantidad_inicial_producto')) : null
   const cantidad = aNumero(formData.get('cantidad'))
   const costoUnitario = aNumero(formData.get('costo_unitario'))
+  const referenciaProveedor = String(formData.get('referencia_proveedor') ?? '').trim() || null
 
   if (!ordenId) redirect('/compras')
   if (!nombre) {
@@ -284,9 +241,10 @@ export async function crearProductoYAgregarLineaCompra(formData: FormData) {
   const usuario = await obtenerUsuarioActual()
   const supabase = await createClient()
 
-  const [{ data: moneda }, { data: categoria }] = await Promise.all([
+  const [{ data: moneda }, { data: categoria }, { data: orden }] = await Promise.all([
     supabase.from('monedas').select('id').eq('codigo', 'GTQ').single(),
     supabase.from('categorias').select('nombre').eq('id', categoriaId).maybeSingle(),
+    supabase.from('ordenes_compra').select('proveedor_id').eq('id', ordenId).maybeSingle(),
   ])
 
   const prefijo = prefijoDesdeCategoria(categoria?.nombre)
@@ -306,6 +264,8 @@ export async function crearProductoYAgregarLineaCompra(formData: FormData) {
     cantidad_inicial: cantidadInicial,
     moneda_id: moneda?.id ?? null,
     creado_por: usuario.id,
+    proveedor_id: orden?.proveedor_id ?? null,
+    referencia_proveedor: referenciaProveedor,
   }
 
   let pieza: { id: number } | null = null

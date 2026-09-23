@@ -66,7 +66,7 @@ export function TablaProduccion({ filas }: { filas: FilaProduccion[] }) {
   function rechazar() {
     const ids = Array.from(seleccion)
     if (ids.length === 0) return
-    if (!window.confirm(`¿Rechazar ${ids.length} artículo(s)? Se eliminan como borrador y no se pueden recuperar desde la app.`)) return
+    if (!window.confirm(`¿Eliminar ${ids.length} artículo(s) sin publicar? No se pueden recuperar desde la app.`)) return
     startTransition(async () => {
       await rechazarPiezasMasivo(ids)
     })

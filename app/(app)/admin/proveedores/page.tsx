@@ -56,7 +56,7 @@ export default async function AdminProveedoresPage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Proveedores</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Base para las órdenes de compra e importaciones.
+          Base para las órdenes de compra y recepciones de oro y plata.
         </p>
       </div>
 

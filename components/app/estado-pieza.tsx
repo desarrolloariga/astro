@@ -1,7 +1,7 @@
 import { EstadoBadge, type ConfigEstado } from './estado-badge'
 
 const estados: ConfigEstado = {
-  en_produccion: { etiqueta: 'En producción', clases: 'bg-muted text-muted-foreground' },
+  en_produccion: { etiqueta: 'Sin publicar', clases: 'bg-muted text-muted-foreground' },
   disponible_cedi: { etiqueta: 'Disponible CEDI', clases: 'bg-primary/10 text-primary' },
   en_transito: { etiqueta: 'En tránsito', clases: 'bg-accent text-accent-foreground' },
   disponible_tienda: { etiqueta: 'Disponible en tienda', clases: 'bg-primary/10 text-primary' },

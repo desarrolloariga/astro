@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, CheckCircle2, ArrowRightLeft, PlusCircle, PackageCheck, X } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ArrowRightLeft, PlusCircle, PackageCheck, X, Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora, formatearNumero } from '@/lib/formato'
@@ -119,6 +119,14 @@ export default async function TrasladosPage({
                         <span className="ml-1.5 text-xs text-muted-foreground">
                           {d.cantidad != null ? `${formatearNumero(d.cantidad)} unidades` : 'pieza única'}
                         </span>
+                        <Link
+                          href={`/produccion/${d.producto_id}/fotos`}
+                          target="_blank"
+                          className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                        >
+                          <Camera className="h-3 w-3" />
+                          Fotos
+                        </Link>
                         {d.comentario_incidencia && (
                           <p className="text-xs text-destructive">Incidencia: {d.comentario_incidencia}</p>
                         )}

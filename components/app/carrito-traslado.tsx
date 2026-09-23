@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { ArrowRightLeft, Trash2, PlusCircle } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRightLeft, Trash2, PlusCircle, Camera } from 'lucide-react'
 import { SelectorProducto, type ProductoSeleccionable } from '@/components/app/selector-producto'
 import { crearTraslado } from '@/app/(app)/traslados/acciones'
 
@@ -192,6 +193,16 @@ export function CarritoTraslado({
                 setCantidadInput('')
               }}
             />
+            {seleccionActual && (
+              <Link
+                href={`/produccion/${seleccionActual.id}/fotos`}
+                target="_blank"
+                className="inline-flex w-fit items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                Ver / agregar fotos de {seleccionActual.codigo}
+              </Link>
+            )}
             {productoSeleccionado?.modo_inventario === 'por_cantidad' && (
               <label className="flex flex-col gap-1.5 text-sm text-foreground">
                 Cantidad a trasladar

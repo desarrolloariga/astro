@@ -12,7 +12,7 @@ export type ProductoSeleccionable = {
 }
 
 const nombresEstado: Record<string, string> = {
-  en_produccion: 'Borrador',
+  en_produccion: 'Sin publicar',
   disponible_cedi: 'En CEDI',
   separada: 'Separada',
   vendida: 'Vendida',

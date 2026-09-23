@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Tag, Boxes, ClipboardList, Layers, Calculator, ImagePlus } from 'lucide-react'
 import { crearPieza } from '@/app/(app)/produccion/acciones'
 import { formatearPrecio } from '@/lib/formato'
-import { Campo, SeccionFormulario, BotonPrimario, BotonSecundario, clasesInput } from '@/components/app/formulario'
+import { Campo, SeccionFormulario, BotonPrimario, clasesInput } from '@/components/app/formulario'
 
 type Categoria = { id: number; nombre: string; grupo: string }
 type Material = { id: number; nombre: string }
@@ -212,6 +212,9 @@ export function FormularioNuevaPieza({
               ))}
             </select>
           </Campo>
+          <Campo label="Referencia del proveedor" helpText="Código/SKU que el proveedor usa para este artículo.">
+            <input name="referencia_proveedor" className={clasesInput} />
+          </Campo>
           <Campo label="Punto de reorden">
             <input
               name="punto_reorden"
@@ -279,8 +282,8 @@ export function FormularioNuevaPieza({
         </div>
       </SeccionFormulario>
 
-      <SeccionFormulario icon={ImagePlus} titulo="Galería de fotos">
-        <Campo label="Fotos del artículo" helpText="La primera será la principal. Se requiere al menos una foto para publicar al CEDI.">
+      <SeccionFormulario icon={ImagePlus} titulo="Galería de fotos (opcional)">
+        <Campo label="Fotos del artículo" helpText="La primera será la principal. Opcional aquí — también puedes agregarlas después desde Traslados.">
           <input
             name="fotos"
             type="file"
@@ -292,12 +295,7 @@ export function FormularioNuevaPieza({
       </SeccionFormulario>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <BotonSecundario type="submit" name="accion" value="borrador">
-          Guardar borrador
-        </BotonSecundario>
-        <BotonPrimario type="submit" name="accion" value="publicar">
-          Guardar y publicar al CEDI
-        </BotonPrimario>
+        <BotonPrimario type="submit">Crear y publicar al CEDI</BotonPrimario>
       </div>
     </form>
   )

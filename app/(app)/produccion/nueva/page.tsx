@@ -44,7 +44,8 @@ export default async function NuevaPiezaPage({
         </Link>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Nuevo artículo</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Completa la ficha técnica. Puedes guardarlo como borrador o publicarlo directo al CEDI.
+          Completa la ficha técnica y el costo — se publica directo al CEDI. Las fotos son
+          opcionales aquí; también se pueden agregar después desde Traslados.
         </p>
       </div>
 
