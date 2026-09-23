@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ShoppingCart, PlusCircle } from 'lucide-react'
+import { ShoppingCart, PlusCircle, History } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio, formatearFecha } from '@/lib/formato'
@@ -35,15 +35,24 @@ export default async function ComprasPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Órdenes de compra</h1>
           <p className="mt-1 text-sm text-muted-foreground">Compras locales, desde borrador hasta pago.</p>
         </div>
-        {puedeCrear && (
+        <div className="flex items-center gap-2">
           <Link
-            href="/compras/nueva"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+            href="/compras/historial"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
           >
-            <PlusCircle className="h-4 w-4" />
-            Nueva orden
+            <History className="h-4 w-4" />
+            Historial
           </Link>
-        )}
+          {puedeCrear && (
+            <Link
+              href="/compras/nueva"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Nueva orden
+            </Link>
+          )}
+        </div>
       </div>
 
       {lista.length === 0 ? (

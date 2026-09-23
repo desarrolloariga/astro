@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, Receipt, History, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Receipt, History, AlertCircle, AlertTriangle, CheckCircle2, PackageSearch } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { formatearPrecio, formatearFechaHora } from '@/lib/formato'
@@ -34,6 +34,17 @@ type Producto = {
   fecha_publicacion: string | null
   fecha_creacion: string
   categorias: { nombre: string } | null
+  proveedores: { nombre: string } | null
+  referencia_proveedor: string | null
+  compra_detalle_id: number | null
+  orden_compra_detalles: { orden_compra_id: number } | null
+  carga_masiva_id: number | null
+  cargas_masivas: {
+    numero_factura: string | null
+    referencia_orden_compra: string | null
+    fecha_creacion: string
+    proveedores: { nombre: string } | null
+  } | null
 }
 
 function diasSinVenta(p: Producto): number {
@@ -104,7 +115,7 @@ export default async function HojaDeCostosPage({
     supabase
       .from('productos')
       .select(
-        'id, codigo, nombre, origen, nivel_ganancia, costo_produccion, precio_venta, dias_sin_venta_descuento, fecha_ultima_venta, fecha_publicacion, fecha_creacion, categorias ( nombre )',
+        'id, codigo, nombre, origen, nivel_ganancia, costo_produccion, precio_venta, dias_sin_venta_descuento, fecha_ultima_venta, fecha_publicacion, fecha_creacion, categorias ( nombre ), proveedores ( nombre ), referencia_proveedor, compra_detalle_id, orden_compra_detalles!productos_compra_detalle_id_fkey ( orden_compra_id ), carga_masiva_id, cargas_masivas ( numero_factura, referencia_orden_compra, fecha_creacion, proveedores ( nombre ) )',
       )
       .eq('id', id)
       .maybeSingle(),
@@ -205,6 +216,67 @@ export default async function HojaDeCostosPage({
           </p>
         )}
       </section>
+
+      {(producto.proveedores || producto.referencia_proveedor || producto.orden_compra_detalles || producto.cargas_masivas) && (
+        <section className="rounded-xl border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <PackageSearch className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Origen / Trazabilidad
+            </h2>
+          </div>
+          <div className="flex flex-col gap-2 text-sm">
+            {producto.proveedores && (
+              <p className="text-foreground">
+                <span className="text-muted-foreground">Proveedor:</span> {producto.proveedores.nombre}
+              </p>
+            )}
+            {producto.referencia_proveedor && (
+              <p className="text-foreground">
+                <span className="text-muted-foreground">Referencia del proveedor:</span>{' '}
+                {producto.referencia_proveedor}
+              </p>
+            )}
+            {producto.orden_compra_detalles && (
+              <p className="text-foreground">
+                <span className="text-muted-foreground">Orden de compra:</span>{' '}
+                <Link
+                  href={`/compras/${producto.orden_compra_detalles.orden_compra_id}`}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  #{producto.orden_compra_detalles.orden_compra_id}
+                </Link>
+              </p>
+            )}
+            {producto.cargas_masivas && (
+              <>
+                <p className="text-foreground">
+                  <span className="text-muted-foreground">Carga masiva:</span>{' '}
+                  {formatearFechaHora(producto.cargas_masivas.fecha_creacion)}
+                </p>
+                {producto.cargas_masivas.numero_factura && (
+                  <p className="text-foreground">
+                    <span className="text-muted-foreground">Factura:</span>{' '}
+                    {producto.cargas_masivas.numero_factura}
+                  </p>
+                )}
+                {producto.cargas_masivas.referencia_orden_compra && (
+                  <p className="text-foreground">
+                    <span className="text-muted-foreground">Orden de compra:</span>{' '}
+                    {producto.cargas_masivas.referencia_orden_compra}
+                  </p>
+                )}
+                {producto.cargas_masivas.proveedores && (
+                  <p className="text-foreground">
+                    <span className="text-muted-foreground">Proveedor del lote:</span>{' '}
+                    {producto.cargas_masivas.proveedores.nombre}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+      )}
 
       {!ultimo ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">

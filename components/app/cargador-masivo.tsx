@@ -2,8 +2,10 @@
 
 import { useState, useTransition, type ChangeEvent } from 'react'
 import * as XLSX from 'xlsx'
-import { Download, Upload, CheckCircle2, AlertCircle, Sparkles, AlertTriangle } from 'lucide-react'
+import { Download, Upload, CheckCircle2, AlertCircle, Sparkles, AlertTriangle, FileText } from 'lucide-react'
 import { cargarPiezasMasivo } from '@/app/(app)/produccion/carga-masiva/acciones'
+import { Campo, clasesInput } from '@/components/app/formulario'
+import { formatearPrecio } from '@/lib/formato'
 
 type Categoria = { id: number; nombre: string }
 type Material = { id: number; nombre: string }
@@ -334,7 +336,15 @@ export function CargadorMasivo({
 }) {
   const [filas, setFilas] = useState<FilaValidada[]>([])
   const [nombreArchivo, setNombreArchivo] = useState('')
+  const [numeroFactura, setNumeroFactura] = useState('')
+  const [referenciaOrdenCompra, setReferenciaOrdenCompra] = useState('')
+  const [proveedorCargaId, setProveedorCargaId] = useState('')
+  const [notasCarga, setNotasCarga] = useState('')
+  const [subtotalCarga, setSubtotalCarga] = useState('')
+  const [impuestosCarga, setImpuestosCarga] = useState('')
   const [pending, startTransition] = useTransition()
+
+  const totalCarga = (Number(subtotalCarga.replace(',', '.')) || 0) + (Number(impuestosCarga.replace(',', '.')) || 0)
 
   const filasValidas = filas.filter((f) => f.datos !== null)
   const filasConError = filas.length - filasValidas.length
@@ -378,7 +388,14 @@ export function CargadorMasivo({
     }
     const datos = filas.map((f) => f.datos).filter((d): d is NonNullable<typeof d> => d !== null)
     startTransition(async () => {
-      await cargarPiezasMasivo(datos)
+      await cargarPiezasMasivo(datos, {
+        numero_factura: numeroFactura.trim() || null,
+        referencia_orden_compra: referenciaOrdenCompra.trim() || null,
+        proveedor_id: proveedorCargaId ? Number(proveedorCargaId) : null,
+        notas: notasCarga.trim() || null,
+        subtotal: subtotalCarga.trim() ? Number(subtotalCarga.replace(',', '.')) : null,
+        impuestos: impuestosCarga.trim() ? Number(impuestosCarga.replace(',', '.')) : null,
+      })
     })
   }
 
@@ -423,11 +440,87 @@ export function CargadorMasivo({
         </label>
       </section>
 
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+            3. Trazabilidad de la carga (opcional)
+          </h2>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Se aplica a toda la carga — de qué factura, orden de compra y proveedor salió este lote.
+          Distinto del "Proveedor" por fila del Excel (a quién se le asigna cada artículo).
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Campo label="Número de factura">
+            <input
+              value={numeroFactura}
+              onChange={(e) => setNumeroFactura(e.target.value)}
+              placeholder="FAC-2026-001"
+              className={clasesInput}
+            />
+          </Campo>
+          <Campo label="Orden de compra" helpText="Número o referencia de la orden — no necesita existir en el módulo Compras.">
+            <input
+              value={referenciaOrdenCompra}
+              onChange={(e) => setReferenciaOrdenCompra(e.target.value)}
+              placeholder="OC-2026-014"
+              className={clasesInput}
+            />
+          </Campo>
+          <Campo label="Proveedor del lote">
+            <select value={proveedorCargaId} onChange={(e) => setProveedorCargaId(e.target.value)} className={clasesInput}>
+              <option value="">Sin proveedor asignado</option>
+              {proveedores.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo label="Subtotal de la factura">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={subtotalCarga}
+              onChange={(e) => setSubtotalCarga(e.target.value)}
+              placeholder="0.00"
+              className={clasesInput}
+            />
+          </Campo>
+          <Campo label="Impuestos de la factura">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={impuestosCarga}
+              onChange={(e) => setImpuestosCarga(e.target.value)}
+              placeholder="0.00"
+              className={clasesInput}
+            />
+          </Campo>
+          <Campo label="Notas" className="sm:col-span-2">
+            <input
+              value={notasCarga}
+              onChange={(e) => setNotasCarga(e.target.value)}
+              placeholder="Detalle adicional (opcional)"
+              className={clasesInput}
+            />
+          </Campo>
+        </div>
+        {(subtotalCarga.trim() || impuestosCarga.trim()) && (
+          <p className="mt-3 text-right text-sm font-bold text-foreground">
+            Total de la factura: {formatearPrecio(totalCarga)}
+          </p>
+        )}
+      </section>
+
       {filas.length > 0 && (
         <section className="rounded-xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-              3. Previsualización ({filas.length} filas)
+              4. Previsualización ({filas.length} filas)
             </h2>
             {filasConError === 0 ? (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">

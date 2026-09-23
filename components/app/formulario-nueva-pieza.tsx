@@ -97,14 +97,13 @@ export function FormularioNuevaPieza({
             </select>
           </Campo>
           {modoInventario === 'por_cantidad' && (
-            <Campo label="Cantidad inicial" required>
+            <Campo label="Cantidad inicial" helpText="Opcional — déjalo vacío para crear la referencia sin stock y cargarlo después desde CEDI.">
               <input
                 name="cantidad_inicial"
                 type="number"
                 step="1"
                 min="1"
-                required
-                placeholder="10"
+                placeholder="Opcional"
                 className={clasesInput}
               />
             </Campo>

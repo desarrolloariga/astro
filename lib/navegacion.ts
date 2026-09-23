@@ -328,6 +328,14 @@ export const secciones: SeccionNav[] = [
         permiso: { modulo: 'compras', accion: 'recibir' },
       },
       {
+        etiqueta: 'Historial de compras',
+        descripcion: 'Órdenes recibidas con factura, valores e impuestos',
+        href: '/compras/historial',
+        icono: History,
+        roles: ['admin', 'coordinador', 'contabilidad', 'produccion'],
+        permiso: { modulo: 'compras', accion: 'ver' },
+      },
+      {
         etiqueta: 'Recepción de oro y plata',
         descripcion: 'Ingreso directo por peso y cantidad, sin orden de compra',
         href: '/recepcion-metal',

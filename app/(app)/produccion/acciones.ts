@@ -36,7 +36,12 @@ export async function crearPieza(formData: FormData) {
 
   const nombre = String(formData.get('nombre') ?? '').trim()
   const modoInventario = formData.get('modo_inventario') === 'por_cantidad' ? 'por_cantidad' : 'pieza_unica'
-  const cantidadInicial = modoInventario === 'por_cantidad' ? aNumero(formData.get('cantidad_inicial')) : null
+  // Cantidad inicial es opcional — sin ella, la referencia se crea y
+  // publica con 0 unidades, para cargarle inventario después desde
+  // CEDI. La columna solo admite null o > 0 (nunca 0 explícito), así
+  // que un "0" escrito a mano se normaliza a "sin cantidad".
+  const cantidadInicialCruda = modoInventario === 'por_cantidad' ? aNumero(formData.get('cantidad_inicial')) : null
+  const cantidadInicial = cantidadInicialCruda != null && cantidadInicialCruda > 0 ? cantidadInicialCruda : null
   const categoriaId = aNumero(formData.get('categoria_id'))
   const nivelGananciaRaw = String(formData.get('nivel_ganancia') ?? '')
   const nivelGanancia = ['introduccion', 'socio_comercial', 'importacion'].includes(nivelGananciaRaw)
@@ -45,9 +50,6 @@ export async function crearPieza(formData: FormData) {
 
   if (!nombre) {
     redirect('/produccion/nueva?error=El%20nombre%20es%20obligatorio')
-  }
-  if (modoInventario === 'por_cantidad' && (cantidadInicial == null || cantidadInicial <= 0)) {
-    redirect('/produccion/nueva?error=Indica%20la%20cantidad%20inicial')
   }
 
   const atributos: Record<string, string> = {}

@@ -71,7 +71,16 @@ async function resolverOCrearCatalogo(
   return { mapa, creadas: faltantes }
 }
 
-export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
+export type TrazabilidadCargaMasiva = {
+  numero_factura: string | null
+  referencia_orden_compra: string | null
+  proveedor_id: number | null
+  notas: string | null
+  subtotal: number | null
+  impuestos: number | null
+}
+
+export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[], trazabilidad?: TrazabilidadCargaMasiva) {
   const usuario = await obtenerUsuarioActual()
   if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') {
     redirect('/inicio')
@@ -172,6 +181,30 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
 
   const { data: moneda } = await supabase.from('monedas').select('id').eq('codigo', 'GTQ').single()
 
+  // Trazabilidad: si se indicó factura, orden de compra o proveedor
+  // del lote, se registra una sola vez para toda la carga y cada
+  // artículo nuevo queda enlazado a ese registro.
+  let cargaMasivaId: number | null = null
+  const hayTrazabilidad =
+    trazabilidad &&
+    (trazabilidad.numero_factura ||
+      trazabilidad.referencia_orden_compra ||
+      trazabilidad.proveedor_id ||
+      trazabilidad.notas ||
+      trazabilidad.subtotal ||
+      trazabilidad.impuestos)
+  if (hayTrazabilidad) {
+    const { data: idCarga, error: errorCarga } = await supabase.rpc('fn_crear_carga_masiva', {
+      p_numero_factura: trazabilidad!.numero_factura,
+      p_referencia_orden_compra: trazabilidad!.referencia_orden_compra,
+      p_proveedor_id: trazabilidad!.proveedor_id,
+      p_notas: trazabilidad!.notas,
+      p_subtotal: trazabilidad!.subtotal,
+      p_impuestos: trazabilidad!.impuestos,
+    })
+    if (!errorCarga) cargaMasivaId = idCarga
+  }
+
   const filas = piezasNuevas.map((p) => ({
     codigo: p.codigo.trim(),
     nombre: p.nombre.trim(),
@@ -195,6 +228,7 @@ export async function cargarPiezasMasivo(piezas: PiezaCargaMasiva[]) {
     proveedor_id: p.proveedor ? (mapaProveedores.get(p.proveedor.toLowerCase()) ?? null) : null,
     punto_reorden: p.punto_reorden,
     nivel_ganancia: p.nivel_ganancia,
+    carga_masiva_id: cargaMasivaId,
   }))
 
   const { data: creadas, error } = await supabase.from('productos').insert(filas).select('id, costo_produccion')

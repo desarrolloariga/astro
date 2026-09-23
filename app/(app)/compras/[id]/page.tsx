@@ -14,6 +14,7 @@ import {
   marcarPagadaCompra,
   cancelarOrdenCompra,
   crearProductoYAgregarLineaCompra,
+  actualizarImpuestosOrdenCompra,
 } from '../acciones'
 
 export const metadata = { title: 'Orden de compra — ASTRO' }
@@ -33,6 +34,7 @@ type Orden = {
   id: number
   estado: string
   subtotal: number
+  impuestos: number
   total: number
   notas: string | null
   condiciones_pago: string | null
@@ -92,7 +94,7 @@ export default async function OrdenCompraPage({
     supabase
       .from('ordenes_compra')
       .select(
-        'id, estado, subtotal, total, notas, condiciones_pago, fecha_entrega_esperada, direccion_entrega, metodo_envio, referencia_proveedor, notas_proveedor, numero_factura_proveedor, fecha_creacion, fecha_autorizacion, fecha_recepcion_total, fecha_facturacion, fecha_pago, proveedores ( nombre )',
+        'id, estado, subtotal, impuestos, total, notas, condiciones_pago, fecha_entrega_esperada, direccion_entrega, metodo_envio, referencia_proveedor, notas_proveedor, numero_factura_proveedor, fecha_creacion, fecha_autorizacion, fecha_recepcion_total, fecha_facturacion, fecha_pago, proveedores ( nombre )',
       )
       .eq('id', ordenId)
       .maybeSingle(),
@@ -257,6 +259,22 @@ export default async function OrdenCompraPage({
           </tbody>
           <tfoot>
             <tr className="border-t border-border">
+              <td colSpan={4} className="px-4 py-2.5 text-right text-sm text-muted-foreground">
+                Subtotal
+              </td>
+              <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-foreground">
+                {formatearPrecio(ordenTipada.subtotal)}
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={4} className="px-4 py-2.5 text-right text-sm text-muted-foreground">
+                Impuestos
+              </td>
+              <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-foreground">
+                {formatearPrecio(ordenTipada.impuestos)}
+              </td>
+            </tr>
+            <tr className="border-t border-border">
               <td colSpan={4} className="px-4 py-2.5 text-right text-sm font-semibold text-foreground">
                 Total
               </td>
@@ -266,6 +284,29 @@ export default async function OrdenCompraPage({
             </tr>
           </tfoot>
         </table>
+
+        {ordenTipada.estado === 'borrador' && puedeCrear && (
+          <form action={actualizarImpuestosOrdenCompra} className="mt-3 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="orden_compra_id" value={ordenTipada.id} />
+            <Campo label="Impuestos de la factura">
+              <input
+                name="impuestos"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={ordenTipada.impuestos || ''}
+                placeholder="0.00"
+                className={clasesInput}
+              />
+            </Campo>
+            <button
+              type="submit"
+              className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+            >
+              Actualizar impuestos
+            </button>
+          </form>
+        )}
       </section>
 
       {ordenTipada.estado === 'borrador' && puedeAutorizar && (

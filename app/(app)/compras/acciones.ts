@@ -115,6 +115,24 @@ export async function agregarLineasCompraMasivo(ordenId: number, lineas: LineaCa
   redirect(`/compras/${ordenId}?${fallidos > 0 ? 'error' : 'ok'}=${encodeURIComponent(mensaje)}`)
 }
 
+export async function actualizarImpuestosOrdenCompra(formData: FormData) {
+  if (!(await tienePermiso('compras', 'crear'))) redirect('/inicio')
+
+  const ordenId = aNumero(formData.get('orden_compra_id'))
+  const impuestos = aNumero(formData.get('impuestos'))
+  if (!ordenId) redirect('/compras')
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('fn_actualizar_impuestos_orden_compra', {
+    p_orden_compra_id: ordenId,
+    p_impuestos: impuestos ?? 0,
+  })
+
+  revalidatePath(`/compras/${ordenId}`)
+  if (error) redirect(`/compras/${ordenId}?error=${encodeURIComponent(error.message)}`)
+  redirect(`/compras/${ordenId}?ok=${encodeURIComponent('Impuestos actualizados')}`)
+}
+
 export async function autorizarOrdenCompra(formData: FormData) {
   if (!(await tienePermiso('compras', 'autorizar'))) redirect('/inicio')
 
