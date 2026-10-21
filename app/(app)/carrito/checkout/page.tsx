@@ -38,6 +38,8 @@ export default async function CheckoutBackofficePage({
   const totalModo = modo === 'mi' ? totalParaMi : total
   const { data: bolsaData } = usuario.rol === 'embajador' ? await supabase.rpc('fn_mi_bolsa') : { data: null }
   const saldoBolsa = Number((bolsaData as { disponible: number }[] | null)?.[0]?.disponible ?? 0)
+  const { data: parametroTope } = await supabase.from('parametros').select('valor').eq('clave', 'pct_max_billetera').maybeSingle()
+  const pctMaxBilletera = Math.min(100, Math.max(0, Number(parametroTope?.valor ?? 95) || 95))
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -68,6 +70,7 @@ export default async function CheckoutBackofficePage({
         totalParaMi={totalParaMi}
         paraClienteInicial={modo === 'cliente'}
         saldoBolsa={saldoBolsa}
+        pctMaxBilletera={pctMaxBilletera}
         permitirCompraPropia
         nombreUsuario={usuario.nombre}
       />

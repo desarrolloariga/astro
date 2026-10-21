@@ -43,6 +43,7 @@ export function FormularioEnvioPago({
   totalParaMi,
   paraClienteInicial,
   saldoBolsa = 0,
+  pctMaxBilletera = 95,
 }: {
   action: (formData: FormData) => void | Promise<void>
   camposOcultos?: Record<string, string>
@@ -56,13 +57,17 @@ export function FormularioEnvioPago({
   paraClienteInicial?: boolean
   /** Saldo de bolsa del embajador: solo se ofrece al comprar para sí. */
   saldoBolsa?: number
+  /** % máximo de la compra que se puede pagar con la Billetera (parámetro pct_max_billetera). */
+  pctMaxBilletera?: number
 }) {
   const [paraCliente, setParaCliente] = useState(permitirCompraPropia ? Boolean(paraClienteInicial) : true)
   const totalVigente = !paraCliente && totalParaMi != null ? totalParaMi : total
   const ofreceBolsa = Boolean(permitirCompraPropia) && !paraCliente && saldoBolsa > 0
   const [usarBolsa, setUsarBolsa] = useState(true)
   const conBolsa = ofreceBolsa && usarBolsa
-  const deBolsa = conBolsa ? Math.min(saldoBolsa, totalVigente) : 0
+  // Tope: la Billetera paga como máximo pctMaxBilletera% del total (igual que la base).
+  const topeBilletera = Math.round(totalVigente * pctMaxBilletera) / 100
+  const deBolsa = conBolsa ? Math.min(saldoBolsa, topeBilletera) : 0
   const restante = Math.max(0, Math.round((totalVigente - deBolsa) * 100) / 100)
 
   // Si el servidor devuelve un error, la página se recarga con ?error=…: se
@@ -235,13 +240,15 @@ export function FormularioEnvioPago({
               </span>
               <span className="block text-xs text-white/75">
                 {usarBolsa
-                  ? restante === 0
-                    ? `Tu Billetera cubre todo (${formatearPrecio(deBolsa)}): no necesitas comprobante y el pedido pasa directo a despacho.`
-                    : `Se usan ${formatearPrecio(deBolsa)} de tu Billetera; pagas ${formatearPrecio(restante)} con transferencia o depósito.`
+                  ? `Se usan ${formatearPrecio(deBolsa)} de tu Billetera; pagas ${formatearPrecio(restante)} con transferencia o depósito.`
                   : 'Pagarás todo con transferencia o depósito.'}
               </span>
             </span>
           </label>
+          <p className="relative mt-2 text-[11px] text-white/70">
+            Con la Billetera puedes pagar hasta el {pctMaxBilletera}% de la compra; el resto (al menos el {100 - pctMaxBilletera}%) se
+            paga con transferencia o depósito y su comprobante.
+          </p>
         </section>
       )}
 
