@@ -1,11 +1,15 @@
+import { cache } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 /**
  * Cliente Supabase para Server Components, Server Actions y Route Handlers.
  * Usa las cookies de la sesión del usuario (RLS aplica) y el esquema `public`.
+ *
+ * Memorizado por request (React cache): el layout y la página comparten
+ * el mismo cliente en vez de crear uno nuevo por cada consulta.
  */
-export async function createClient() {
+export const createClient = cache(async () => {
   const cookieStore = await cookies()
 
   return createServerClient(
@@ -30,4 +34,4 @@ export async function createClient() {
       },
     },
   )
-}
+})

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -24,19 +25,23 @@ export type UsuarioActual = {
  * Usuario ASTRO de la sesión actual (fila de public.usuarios + rol).
  * Redirige a /login si no hay sesión o el usuario no existe en ASTRO
  * (p. ej. credenciales del otro sistema del proyecto compartido).
+ *
+ * Rendimiento: la sesión se valida con getClaims(), que verifica la
+ * firma del JWT localmente (claves asimétricas del proyecto) en vez de
+ * ir al servidor de Auth en cada navegación como getUser(). Y se
+ * memoriza por request: layout y página comparten una sola consulta.
  */
-export async function obtenerUsuarioActual(): Promise<UsuarioActual> {
+export const obtenerUsuarioActual = cache(async (): Promise<UsuarioActual> => {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: sesion } = await supabase.auth.getClaims()
+  const authUid = sesion?.claims?.sub
+  if (!authUid) redirect('/login')
 
   const { data } = await supabase
     .from('usuarios')
     .select('id, nombre, correo, tienda_id, roles(nombre)')
-    .eq('auth_uid', user.id)
+    .eq('auth_uid', authUid)
     .eq('activo', true)
     .single()
 
@@ -51,4 +56,4 @@ export async function obtenerUsuarioActual(): Promise<UsuarioActual> {
     rol: (roles?.nombre ?? 'embajador') as Rol,
     tienda_id: data.tienda_id,
   }
-}
+})

@@ -39,11 +39,13 @@ export async function actualizarSesion(request: NextRequest) {
     },
   )
 
-  // IMPORTANTE: no ejecutar lógica entre createServerClient y getUser() —
+  // IMPORTANTE: no ejecutar lógica entre createServerClient y getClaims() —
   // puede provocar cierres de sesión aleatorios.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims() verifica el JWT localmente con las claves públicas del
+  // proyecto (y refresca la sesión si venció); getUser() iba al servidor
+  // de Auth en cada request.
+  const { data: sesion } = await supabase.auth.getClaims()
+  const user = sesion?.claims?.sub ? { id: sesion.claims.sub } : null
 
   const { pathname } = request.nextUrl
 

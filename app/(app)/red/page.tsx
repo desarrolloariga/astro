@@ -6,6 +6,7 @@ import { obtenerUsuarioActual } from '@/lib/usuario'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora, formatearNumero, formatearPrecio } from '@/lib/formato'
 import { crearEmbajador } from './acciones'
+import { PremiosMiRed } from '@/components/app/premios-mi-red'
 
 export const metadata = { title: 'Mi red — ASTRO' }
 
@@ -123,6 +124,12 @@ export default async function MiRedPage({
             <span>{ok}</span>
           </div>
         )}
+        {error && (
+          <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         <div className="rounded-xl border border-border bg-card p-5">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
@@ -204,6 +211,8 @@ export default async function MiRedPage({
           </p>
         </div>
 
+        <PremiosMiRed usuarioId={usuario.id} />
+
         {links.length > 0 && (
           <div className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
@@ -282,6 +291,8 @@ export default async function MiRedPage({
           <span>{error}</span>
         </div>
       )}
+
+      <PremiosMiRed usuarioId={usuario.id} />
 
       {puedeCrear && (
         <details className="rounded-xl border border-border bg-card">

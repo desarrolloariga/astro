@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Gem, Menu, X, LogOut, Search, ChevronDown, ShoppingCart } from 'lucide-react'
+import { Gem, Menu, X, LogOut, Search, ChevronDown, ShoppingCart, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { cerrarSesion } from '@/app/(auth)/acciones'
-import { seccionesParaRol, nombresRol, agruparPorSubgrupo } from '@/lib/navegacion'
+import { seccionesParaRol, nombresRol, agruparPorSubgrupo, type ItemNav } from '@/lib/navegacion'
 import type { Rol } from '@/lib/usuario'
 
 /** Ícono de carrito con contador — enlaza a /carrito. */
@@ -14,7 +14,7 @@ function BotonCarrito({ unidades }: { unidades: number }) {
   return (
     <Link
       href="/carrito"
-      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-secondary"
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-foreground/80 md:h-9 md:w-9 transition-colors hover:bg-secondary"
       aria-label={`Carrito (${unidades})`}
     >
       <ShoppingCart className="h-5 w-5" />
@@ -24,6 +24,69 @@ function BotonCarrito({ unidades }: { unidades: number }) {
         </span>
       )}
     </Link>
+  )
+}
+
+/** Módulos que van en la barra inferior del celular, en orden de prioridad (los primeros 4 que el usuario pueda ver). */
+const PRIORIDAD_BARRA = [
+  '/inicio',
+  '/catalogo',
+  '/pedidos',
+  '/red',
+  '/logistica',
+  '/contabilidad/comprobantes',
+  '/ventas',
+  '/produccion',
+  '/inventario',
+  '/compras',
+  '/links',
+  '/ranking',
+]
+
+function esActivo(pathname: string, href: string) {
+  return pathname === href || (href !== '/inicio' && pathname.startsWith(href + '/'))
+}
+
+/** Barra inferior tipo app (solo celular): accesos directos + botón de menú completo. */
+function BarraInferior({ items, pathname, onMenu }: { items: ItemNav[]; pathname: string; onMenu: () => void }) {
+  return (
+    <nav
+      aria-label="Accesos rápidos"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur md:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="mx-auto grid max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length + 1}, minmax(0, 1fr))` }}>
+        {items.map((item) => {
+          const activo = esActivo(pathname, item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={activo ? 'page' : undefined}
+              className={cn(
+                'flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors',
+                activo ? 'text-primary' : 'text-muted-foreground',
+              )}
+            >
+              <span className={cn('flex h-7 w-12 items-center justify-center rounded-full transition-colors', activo && 'bg-primary/10')}>
+                <item.icono className="h-5 w-5" strokeWidth={2} />
+              </span>
+              <span className="max-w-full truncate px-1">{item.etiqueta}</span>
+            </Link>
+          )
+        })}
+        <button
+          type="button"
+          onClick={onMenu}
+          className="flex h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground"
+        >
+          <span className="flex h-7 w-12 items-center justify-center rounded-full">
+            <LayoutGrid className="h-5 w-5" strokeWidth={2} />
+          </span>
+          Menú
+        </button>
+      </div>
+    </nav>
   )
 }
 
@@ -59,6 +122,26 @@ export function AppShell({
     () => seccionesParaRol(usuario.rol, permisosExtra, permisosRevocados),
     [usuario.rol, permisosExtra, permisosRevocados],
   )
+
+  // Con el menú abierto en el celular, la página de atrás no se desplaza; Escape lo cierra.
+  useEffect(() => {
+    if (!abierto) return
+    const previo = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAbierto(false)
+    }
+    window.addEventListener('keydown', alTeclear)
+    return () => {
+      document.body.style.overflow = previo
+      window.removeEventListener('keydown', alTeclear)
+    }
+  }, [abierto])
+
+  const itemsBarra = useMemo(() => {
+    const todos = seccionesVisibles.flatMap((s) => s.items)
+    return PRIORIDAD_BARRA.map((href) => todos.find((i) => i.href === href)).filter((i): i is ItemNav => Boolean(i)).slice(0, 4)
+  }, [seccionesVisibles])
 
   const consulta = busqueda.trim().toLowerCase()
   const seccionesFiltradas = consulta
@@ -96,7 +179,7 @@ export function AppShell({
       {/* Menú lateral — siempre visible desde md:, en móvil sigue siendo un cajón deslizable */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-xl transition-transform duration-300 ease-out',
+          'fixed inset-y-0 left-0 z-40 flex w-[85vw] max-w-72 flex-col border-r border-sidebar-border bg-sidebar pt-[env(safe-area-inset-top)] shadow-xl transition-transform duration-300 ease-out md:w-72 md:pt-0',
           'md:sticky md:top-0 md:z-0 md:h-svh md:shrink-0 md:translate-x-0 md:shadow-none',
           abierto ? 'translate-x-0' : '-translate-x-full',
         )}
@@ -135,7 +218,7 @@ export function AppShell({
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-4">
+        <nav className="flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
           {seccionesFiltradas.length === 0 && (
             <p className="px-3 pt-4 text-xs text-sidebar-foreground/50">Sin resultados</p>
           )}
@@ -156,7 +239,7 @@ export function AppShell({
                     onClick={() => alternarSeccion(seccion.slug)}
                     aria-expanded={expandida}
                     aria-label={expandida ? `Contraer ${seccion.titulo}` : `Expandir ${seccion.titulo}`}
-                    className="rounded p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground/80"
+                    className="rounded p-2.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground/80 md:p-1.5"
                   >
                     <ChevronDown
                       className={cn('h-3 w-3 transition-transform duration-200', !expandida && '-rotate-90')}
@@ -173,16 +256,14 @@ export function AppShell({
                           </p>
                         )}
                         {grupo.items.map((item) => {
-                          const activo =
-                            pathname === item.href ||
-                            (item.href !== '/inicio' && pathname.startsWith(item.href + '/'))
+                          const activo = esActivo(pathname, item.href)
                           return (
                             <Link
                               key={item.href}
                               href={item.href}
                               onClick={() => setAbierto(false)}
                               className={cn(
-                                'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:gap-2.5 md:py-1.5 md:text-xs',
                                 activo
                                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                                   : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
@@ -202,7 +283,7 @@ export function AppShell({
           })}
         </nav>
 
-        <div className="shrink-0 border-t border-sidebar-border p-3">
+        <div className="shrink-0 border-t border-sidebar-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-3">
           <div className="flex items-center gap-3 rounded-md px-3 py-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
               {iniciales}
@@ -218,7 +299,7 @@ export function AppShell({
             <form action={cerrarSesion}>
               <button
                 type="submit"
-                className="text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
+                className="flex h-10 w-10 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground md:h-auto md:w-auto"
                 aria-label="Cerrar sesión"
               >
                 <LogOut className="h-[18px] w-[18px]" />
@@ -230,11 +311,11 @@ export function AppShell({
 
       {/* Columna derecha: barra superior (solo móvil) + contenido */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20">
+        <header className="sticky top-0 z-20 bg-card/90 pt-[env(safe-area-inset-top)] md:bg-transparent md:pt-0">
           <div className="flex h-16 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur md:hidden">
             <button
               onClick={() => setAbierto(true)}
-              className="flex shrink-0 items-center gap-2 rounded-md px-2.5 py-2 text-foreground/80 transition-colors hover:bg-secondary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-secondary"
               aria-label="Abrir menú"
             >
               <Menu className="h-5 w-5" />
@@ -262,8 +343,10 @@ export function AppShell({
           <div className="h-1.5 bg-brand-deeper" />
         </header>
 
-        <div className="flex-1">{children}</div>
+        <div className="pb-barra-movil flex-1">{children}</div>
       </div>
+
+      {itemsBarra.length > 0 && <BarraInferior items={itemsBarra} pathname={pathname} onMenu={() => setAbierto(true)} />}
     </div>
   )
 }

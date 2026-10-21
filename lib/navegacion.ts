@@ -38,6 +38,7 @@ import {
   PackageCheck,
   ArrowRightLeft,
   Table2,
+  Gift,
   type LucideIcon,
 } from 'lucide-react'
 import type { Rol } from '@/lib/usuario'
@@ -422,6 +423,14 @@ export const secciones: SeccionNav[] = [
         href: '/admin/fidelizacion',
         icono: Heart,
         roles: ['admin', 'coordinador'],
+      },
+      {
+        etiqueta: 'Premiaciones',
+        descripcion: 'Premios canjeables por puntos y entrega de canjes',
+        href: '/premiaciones',
+        icono: Gift,
+        roles: ['admin', 'coordinador'],
+        permiso: { modulo: 'incentivos', accion: 'editar' },
       },
     ],
   },

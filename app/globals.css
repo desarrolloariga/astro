@@ -172,3 +172,34 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ------------------------------------------------------------
+ * iPhone / iOS
+ * ------------------------------------------------------------ */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Safari hace zoom al enfocar un campo con letra menor a 16 px y la
+ * pantalla queda desacomodada. Solo en iOS (dispositivos táctiles de
+ * Apple) los campos usan 16 px; en computador se ven igual que antes.
+ */
+@supports (-webkit-touch-callout: none) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Espacio reservado para la barra inferior de navegación en celular. */
+.pb-barra-movil {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .pb-barra-movil {
+    padding-bottom: 0;
+  }
+}

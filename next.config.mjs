@@ -17,6 +17,12 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Volver a un módulo visitado hace menos de 30 s es instantáneo (se
+    // reutiliza lo ya cargado en el navegador). Cualquier acción que
+    // guarde datos (revalidatePath) limpia este caché.
+    staleTimes: {
+      dynamic: 30,
+    },
   },
   turbopack: {
     root: fileURLToPath(new URL('.', import.meta.url)),

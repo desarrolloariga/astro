@@ -338,7 +338,7 @@ export function GeneradorLink({
         </section>
       )}
 
-      <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/95 p-4 backdrop-blur">
+      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/95 p-4 backdrop-blur md:bottom-0">
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{resumen}</span>
           {' · '}las ventas que entren por este enlace quedan a tu nombre.

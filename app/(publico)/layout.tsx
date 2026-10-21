@@ -5,7 +5,7 @@ export default function PublicoLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <header className="sticky top-0 z-20">
+      <header className="sticky top-0 z-20 bg-card pt-[env(safe-area-inset-top)]">
         <div className="flex h-16 items-center gap-2 border-b border-border bg-card/90 px-4 backdrop-blur md:px-6">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deeper text-brand-deeper-foreground">
             <Gem className="h-5 w-5" strokeWidth={1.8} />
