@@ -7,7 +7,7 @@ import { Campo, SeccionFormulario, clasesInput } from '@/components/app/formular
 import { formatearPrecio } from '@/lib/formato'
 import { MapaUbicacion } from '@/components/app/mapa-ubicacion'
 
-const DEPARTAMENTOS = [
+export const DEPARTAMENTOS = [
   'Guatemala', 'Alta Verapaz', 'Baja Verapaz', 'Chimaltenango', 'Chiquimula', 'El Progreso', 'Escuintla',
   'Huehuetenango', 'Izabal', 'Jalapa', 'Jutiapa', 'Petén', 'Quetzaltenango', 'Quiché', 'Retalhuleu',
   'Sacatepéquez', 'San Marcos', 'Santa Rosa', 'Sololá', 'Suchitepéquez', 'Totonicapán', 'Zacapa',
