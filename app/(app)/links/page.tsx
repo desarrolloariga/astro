@@ -11,6 +11,7 @@ import { CodigoQr } from '@/components/app/codigo-qr'
 import { EstadoBadge, estadosVenta } from '@/components/app/estado-badge'
 import { cn } from '@/lib/utils'
 import { desactivarLink, fijarComisionLink } from './acciones'
+import { TopEnlaces, type FilaTop, type OrdenTop } from '@/components/app/top-enlaces'
 
 export const metadata = { title: 'Enlaces — ASTRO' }
 
@@ -86,14 +87,15 @@ function Metrica({ icono: Icono, etiqueta, valor, detalle }: { icono: typeof Eye
 export default async function LinksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; error?: string; nuevo?: string; estado?: string }>
+  searchParams: Promise<{ ok?: string; error?: string; nuevo?: string; estado?: string; vista?: string; orden?: string }>
 }) {
   const usuario = await obtenerUsuarioActual()
   if (!['tienda', 'asesor', 'embajador', 'admin', 'coordinador', 'supervisor'].includes(usuario.rol)) redirect('/inicio')
   const puedeGenerar = ['tienda', 'asesor', 'embajador', 'admin'].includes(usuario.rol)
 
   const puedeFijarComision = await tienePermiso('links', 'fijar_comision')
-  const { ok, error, nuevo, estado: filtroEstado } = await searchParams
+  const { ok, error, nuevo, estado: filtroEstado, vista, orden } = await searchParams
+  const verTop = vista === 'top'
   const supabase = await createClient()
   const baseUrl = await obtenerUrlBase()
 
@@ -138,7 +140,7 @@ export default async function LinksPage({
   )
 
   const ventasPorLink = new Map<number, VentaLink[]>()
-  if (lista.length > 0) {
+  if (!verTop && lista.length > 0) {
     // ventas.link_id no tiene FK declarada hacia links_venta: se consulta aparte.
     const { data: ventasData } = await supabase
       .from('ventas')
@@ -170,6 +172,26 @@ export default async function LinksPage({
   }
 
   const nuevoLink = nuevo ? todos.find((l) => l.token === nuevo) : undefined
+
+  // Pestaña "Top y métricas": todos los enlaces visibles con sus resultados.
+  const filasTop: FilaTop[] = todos.map((l) => {
+    const r = resumen.get(l.id)
+    const generada = Number(r?.comision_generada ?? 0)
+    return {
+      id: l.id,
+      nombre: l.nombre ?? nombresTipo[l.tipo] ?? l.tipo,
+      tipo: l.tipo,
+      dueno: l.vendedor_id !== usuario.id ? (l.vendedor?.nombre ?? null) : null,
+      activo: estadoReal(l) === 'activo',
+      visitas: l.contador_visitas,
+      ventas: r?.ventas ?? 0,
+      monto: Number(r?.monto_total ?? 0),
+      comision: generada > 0 ? generada : Number(r?.comision_estimada ?? 0),
+    }
+  })
+  const ordenTop: OrdenTop = ['visitas', 'ventas', 'monto', 'comision', 'conversion'].includes(orden ?? '')
+    ? (orden as OrdenTop)
+    : 'ventas'
   const pestanas = [
     { valor: undefined, etiqueta: 'Todos' },
     { valor: 'activos', etiqueta: 'Activos' },
@@ -221,6 +243,28 @@ export default async function LinksPage({
         </div>
       )}
 
+      <div className="flex gap-1 border-b border-border">
+        {[
+          { href: '/links', etiqueta: 'Mis enlaces', activa: !verTop },
+          { href: '/links?vista=top', etiqueta: 'Top y métricas', activa: verTop },
+        ].map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={cn(
+              '-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors',
+              t.activa ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {t.etiqueta}
+          </Link>
+        ))}
+      </div>
+
+      {verTop ? (
+        <TopEnlaces filas={filasTop} orden={ordenTop} nombresTipo={nombresTipo} />
+      ) : (
+      <>
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
           { etiqueta: 'Enlaces', valor: formatearNumero(lista.length) },
@@ -443,6 +487,8 @@ export default async function LinksPage({
         Las ventas anuladas no suman. La comisión se muestra «calculada» cuando ya está registrada en comisiones; mientras
         tanto se estima con el % de catálogo del enlace.
       </p>
+      </>
+      )}
     </main>
   )
 }
