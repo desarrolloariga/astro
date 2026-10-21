@@ -9,6 +9,7 @@ import { FormularioEnvioPago } from '@/components/app/formulario-envio-pago'
 import type { ItemCarrito } from '@/lib/publico/carrito'
 import { confirmarMiCarrito } from '../acciones'
 import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
+import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
 
 export const metadata = { title: 'Realizar compra — ASTRO' }
 
@@ -39,6 +40,7 @@ export default async function CheckoutBackofficePage({
   const { data: bolsaData } = usuario.rol === 'embajador' ? await supabase.rpc('fn_mi_bolsa') : { data: null }
   const saldoBolsa = Number((bolsaData as { disponible: number }[] | null)?.[0]?.disponible ?? 0)
   const { data: parametroTope } = await supabase.from('parametros').select('valor').eq('clave', 'pct_max_billetera').maybeSingle()
+  const politicaEnvio = await obtenerPoliticaEnvio(supabase)
   const pctMaxBilletera = Math.min(100, Math.max(0, Number(parametroTope?.valor ?? 95) || 95))
 
   return (
@@ -53,7 +55,7 @@ export default async function CheckoutBackofficePage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Realizar compra</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {items.length} artículo{items.length !== 1 ? 's' : ''} · total {formatearPrecio(totalModo)}
+          {items.length} artículo{items.length !== 1 ? 's' : ''} · productos {formatearPrecio(totalModo)} (el envío se calcula abajo)
         </p>
       </div>
 
@@ -71,6 +73,7 @@ export default async function CheckoutBackofficePage({
         paraClienteInicial={modo === 'cliente'}
         saldoBolsa={saldoBolsa}
         pctMaxBilletera={pctMaxBilletera}
+        politicaEnvio={politicaEnvio}
         permitirCompraPropia
         nombreUsuario={usuario.nombre}
       />

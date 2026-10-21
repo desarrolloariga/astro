@@ -45,7 +45,7 @@ export function CartScreen() {
   const { lineas, ocupado } = app.estado
   const restante = useApartado()
   const pct = Math.min(100, Math.max(0, Math.round((restante / (MINUTOS_RETENCION * 60)) * 100)))
-  const total = app.subtotal
+  const total = app.subtotal + app.envio
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -143,7 +143,12 @@ export function CartScreen() {
 
             <div style={{ ...card, borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <SummaryRow label="Subtotal" value={money(app.subtotal)} />
-              <SummaryRow label="Envío" value="Se coordina contigo" />
+              <SummaryRow label="Envío" value={app.envio === 0 ? 'Gratis' : money(app.envio)} />
+              {app.faltaEnvioGratis != null && app.faltaEnvioGratis > 0 && (
+                <span style={{ fontSize: 12, fontWeight: 600, color: T.primary }}>
+                  Agrega {money(app.faltaEnvioGratis)} más y tu envío es gratis
+                </span>
+              )}
               <div style={{ height: 1, background: T.borderSoft }} />
               <SummaryRow label="Total" value={money(total)} strong />
             </div>

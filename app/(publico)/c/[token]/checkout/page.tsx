@@ -7,6 +7,7 @@ import { formatearPrecio } from '@/lib/formato'
 import { Countdown } from '@/components/publico/countdown'
 import { FormularioEnvioPago } from '@/components/app/formulario-envio-pago'
 import { confirmarCompra } from '../acciones'
+import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
 
 export const metadata = { title: 'Finalizar compra — ASTRO' }
 
@@ -52,6 +53,7 @@ export default async function CheckoutPage({
   }
 
   const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
+  const politicaEnvio = await obtenerPoliticaEnvio(supabase)
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -107,7 +109,7 @@ export default async function CheckoutPage({
         </div>
       </div>
 
-      <FormularioEnvioPago action={confirmarCompra} camposOcultos={{ token }} total={total} />
+      <FormularioEnvioPago action={confirmarCompra} camposOcultos={{ token }} total={total} politicaEnvio={politicaEnvio} />
     </main>
   )
 }

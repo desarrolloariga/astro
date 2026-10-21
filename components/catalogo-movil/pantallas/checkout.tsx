@@ -94,7 +94,7 @@ function Step({ n, label, state }: { n: number; label: string; state: 'done' | '
 export function CheckoutScreen() {
   const app = useCatalogo()
   const { lineas, metodoPago, ocupado } = app.estado
-  const total = app.subtotal
+  const total = app.subtotal + app.envio
   const [error, setError] = useState('')
   const [archivo, setArchivo] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -313,7 +313,7 @@ export function CheckoutScreen() {
               <SummaryRow key={l.producto_id} label={`${l.nombre} × ${l.cantidad}`} value={money(l.precio * l.cantidad)} />
             ))}
             <div style={{ height: 1, background: T.borderSoft }} />
-            <SummaryRow label="Envío" value="Se coordina contigo" />
+            <SummaryRow label="Envío" value={app.envio === 0 ? 'Gratis' : money(app.envio)} />
             <SummaryRow label="Total" value={money(total)} strong />
           </div>
         </div>

@@ -10,13 +10,14 @@ export type VentaDesglose = {
   descuento_embajador: number | null
   total: number
   precio_embajador: boolean | null
+  envio_cobrado?: number | null
   venta_detalles: { cantidad: number; precio: number; productos: { codigo: string; nombre: string } | null }[]
   pagos: { id: number; metodo: string; monto: number; estado: string }[]
 }
 
 /** Columnas a pedir a Supabase para armar el desglose (anidado bajo ventas). */
 export const SELECT_DESGLOSE =
-  'id, subtotal, descuento_desempeno, descuento_embajador, total, precio_embajador, venta_detalles ( cantidad, precio, productos ( codigo, nombre ) ), pagos ( id, metodo, monto, estado )'
+  'id, subtotal, descuento_desempeno, descuento_embajador, total, precio_embajador, envio_cobrado, venta_detalles ( cantidad, precio, productos ( codigo, nombre ) ), pagos ( id, metodo, monto, estado )'
 
 const nombresMetodo: Record<string, string> = {
   bolsa: 'Billetera ASTRO',
@@ -69,7 +70,8 @@ export function DesgloseVenta({
   const sumaLineas = redondear(lineas.reduce((a, l) => a + Number(l.precio) * l.cantidad, 0))
   const descDesempeno = Number(venta.descuento_desempeno ?? 0)
   const descEmbajador = Number(venta.descuento_embajador ?? 0)
-  const totalCalculado = redondear(sumaLineas - descDesempeno - descEmbajador)
+  const envio = Number(venta.envio_cobrado ?? 0)
+  const totalCalculado = redondear(sumaLineas - descDesempeno - descEmbajador + envio)
   const cuadraTotal = Math.abs(totalCalculado - Number(venta.total)) < 0.01
 
   const r = resumenBolsa(venta)
@@ -179,6 +181,12 @@ export function DesgloseVenta({
                 <tr>
                   <td colSpan={4} className="pr-2 text-right text-muted-foreground">Descuento del embajador</td>
                   <td className="text-right">−{formatearPrecio(descEmbajador)}</td>
+                </tr>
+              )}
+              {envio > 0 && (
+                <tr>
+                  <td colSpan={4} className="pr-2 text-right text-muted-foreground">+ Envío cobrado</td>
+                  <td className="text-right">{formatearPrecio(envio)}</td>
                 </tr>
               )}
               <tr>

@@ -2,6 +2,7 @@
 
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import type { InfoCatalogo, LineaCarrito, Pantalla, Producto, RangoPrecio } from '@/lib/catalogo-movil/tipos'
+import type { PoliticaEnvio } from '@/lib/envio'
 import { GLOBAL_CSS, T } from './tokens'
 import { CatalogoProvider, useCatalogo } from './store'
 import { HomeScreen } from './pantallas/inicio'
@@ -52,6 +53,7 @@ export function CatalogoMovil(props: {
   lineas: LineaCarrito[]
   pantallaInicial?: Pantalla
   productoInicial?: number | null
+  politicaEnvio?: PoliticaEnvio | null
 }) {
   return (
     <div className="fixed inset-0 z-50 md:hidden" style={{ background: T.bg }}>
@@ -79,6 +81,7 @@ export function CatalogoMovil(props: {
           lineasIniciales={props.lineas}
           pantallaInicial={props.pantallaInicial}
           productoInicial={props.productoInicial}
+          politicaEnvio={props.politicaEnvio}
         >
           <Pantallas />
         </CatalogoProvider>

@@ -21,6 +21,7 @@ import {
   type ResultadoCarrito,
 } from '@/app/(publico)/c/[token]/acciones-movil'
 import { TOAST_MS } from './tokens'
+import { calcularEnvio, faltaParaEnvioGratis, type PoliticaEnvio } from '@/lib/envio'
 
 type Toast = { texto: string; tipo: 'ok' | 'error' }
 export type MetodoPago = 'transferencia' | 'deposito'
@@ -148,6 +149,9 @@ type Contexto = {
   chips: Chip[]
   cartCount: number
   subtotal: number
+  /** Envío que se cobrará (política vigente, compra por enlace). */
+  envio: number
+  faltaEnvioGratis: number | null
   producto: (id: number | null) => Producto | null
   enCarrito: (id: number) => LineaCarrito | undefined
   go: (to: Pantalla) => void
@@ -204,6 +208,7 @@ export function CatalogoProvider({
   lineasIniciales,
   pantallaInicial = 'home',
   productoInicial = null,
+  politicaEnvio = null,
   children,
 }: {
   info: InfoCatalogo
@@ -212,6 +217,7 @@ export function CatalogoProvider({
   lineasIniciales: LineaCarrito[]
   pantallaInicial?: Pantalla
   productoInicial?: number | null
+  politicaEnvio?: PoliticaEnvio | null
   children: ReactNode
 }) {
   const [estado, dispatch] = useReducer(reducer, null, () => ({
@@ -329,6 +335,8 @@ export function CatalogoProvider({
       chips,
       cartCount,
       subtotal,
+      envio: calcularEnvio(politicaEnvio, subtotal, 'publico'),
+      faltaEnvioGratis: faltaParaEnvioGratis(politicaEnvio, subtotal, 'publico'),
       producto,
       enCarrito: (id) => estado.lineas.find((l) => l.producto_id === id),
       go: (to) => dispatch({ type: 'go', to }),
@@ -383,7 +391,7 @@ export function CatalogoProvider({
         return r.error
       },
     }
-  }, [estado, info, visibles, rangos, porId, aplicarResultado, conOcupado])
+  }, [estado, info, visibles, rangos, porId, aplicarResultado, conOcupado, politicaEnvio])
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }

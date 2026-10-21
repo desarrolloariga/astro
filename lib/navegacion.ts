@@ -438,7 +438,7 @@ export const secciones: SeccionNav[] = [
       },
       {
         etiqueta: 'Precios',
-        descripcion: 'Factores del motor de precios calculado',
+        descripcion: 'Factores del motor de precios y políticas de envío',
         href: '/admin/precios',
         icono: Calculator,
         roles: ['admin'],

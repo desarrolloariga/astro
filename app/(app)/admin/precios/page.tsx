@@ -5,6 +5,7 @@ import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora } from '@/lib/formato'
 import { actualizarParametroPrecio, crearExcepcionParametroPrecio, desactivarParametroPrecio } from './acciones'
 import { Campo, BotonPrimario, clasesInput as clasesCampo } from '@/components/app/formulario'
+import { PestanasPrecios, PoliticaEnvioPanel } from '@/components/app/politica-envio-panel'
 
 export const metadata = { title: 'Precios — ASTRO' }
 
@@ -54,11 +55,11 @@ type Categoria = { id: number; nombre: string }
 export default async function AdminPreciosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; error?: string }>
+  searchParams: Promise<{ ok?: string; error?: string; vista?: string }>
 }) {
   if (!(await tienePermiso('precios', 'editar'))) redirect('/inicio')
 
-  const { ok, error } = await searchParams
+  const { ok, error, vista } = await searchParams
   const supabase = await createClient()
 
   const [{ data: parametros }, { data: categorias }] = await Promise.all([
@@ -100,6 +101,12 @@ export default async function AdminPreciosPage({
         </div>
       )}
 
+      <PestanasPrecios activa={vista === 'envios' ? 'envios' : 'factores'} />
+
+      {vista === 'envios' ? (
+        <PoliticaEnvioPanel />
+      ) : (
+      <>
       <section className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
           <Calculator className="h-4 w-4 text-primary" /> Factores globales
@@ -246,6 +253,8 @@ export default async function AdminPreciosPage({
           </form>
         </details>
       </section>
+      </>
+      )}
     </main>
   )
 }

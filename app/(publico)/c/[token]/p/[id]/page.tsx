@@ -9,6 +9,7 @@ import { PanelBolsa } from '@/components/catalogo/panel-bolsa'
 import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import { CatalogoMovil } from '@/components/catalogo-movil/catalogo-movil'
 import { adaptarLinea, adaptarProducto, calcularRangosPrecio } from '@/lib/catalogo-movil/datos'
+import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
 import '@/app/catalogo-tema.css'
 
 export const metadata = { title: 'Pieza — ASTRO' }
@@ -39,6 +40,7 @@ export default async function PiezaPublicaPage({
   }
 
   const piezas = (piezasData ?? []) as PiezaCatalogo[]
+  const politicaEnvio = await obtenerPoliticaEnvio(supabase)
   const productosMovil = piezas.map(adaptarProducto)
   const pieza = piezas.find((p) => String(p.id) === id)
 
@@ -55,6 +57,7 @@ export default async function PiezaPublicaPage({
       info={{ token, vendedor: info.vendedor_nombre, titulo: info.nombre && info.tipo !== 'catalogo' ? info.nombre : 'Catálogo' }}
       productos={productosMovil}
       rangos={calcularRangosPrecio(productosMovil)}
+      politicaEnvio={politicaEnvio}
       lineas={carrito.map(adaptarLinea)}
       pantallaInicial="detail"
       productoInicial={pieza.id}

@@ -25,6 +25,8 @@ type ER = {
   comisiones_bolsa: number
   comisiones_red: number
   premios: number
+  ingresos_envio?: number
+  costo_envios?: number
   gastos_operativos: number
   gastos_por_categoria: { categoria: string; monto: number }[]
   utilidad_operativa: number
@@ -63,6 +65,8 @@ const FILAS: Fila[] = [
   { etiqueta: 'Comisiones de embajadores (Billetera ASTRO)', clave: 'comisiones_bolsa', signo: -1 },
   { etiqueta: 'Comisiones de red y bonos', clave: 'comisiones_red', signo: -1 },
   { etiqueta: 'Premios entregados', clave: 'premios', signo: -1 },
+  { etiqueta: 'Ingresos por envío cobrado', clave: 'ingresos_envio', signo: 1 },
+  { etiqueta: 'Costo de envíos', clave: 'costo_envios', signo: -1, nota: 'costo real de enviar cada pedido, aunque haya sido gratis' },
   { etiqueta: 'Gastos operativos', clave: 'gastos_operativos', signo: -1 },
   { etiqueta: 'UTILIDAD OPERATIVA', clave: 'utilidad_operativa', tipo: 'resultado' },
   { etiqueta: 'Gastos financieros', clave: 'gastos_financieros', signo: -1 },

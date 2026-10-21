@@ -86,3 +86,20 @@ export async function desactivarParametroPrecio(formData: FormData) {
   if (error) redirect(`/admin/precios?error=${encodeURIComponent(error.message)}`)
   redirect(`/admin/precios?ok=${encodeURIComponent('Excepción desactivada')}`)
 }
+
+export async function guardarPoliticaEnvio(formData: FormData) {
+  await exigirPermiso()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('fn_guardar_politica_envio', {
+    p_tarifa: aNumero(formData.get('tarifa')) ?? 0,
+    p_envio_gratis_desde: aNumero(formData.get('envio_gratis_desde')),
+    p_costo_real: aNumero(formData.get('costo_real')) ?? 0,
+    p_cobrar_publico: formData.get('cobrar_publico') === 'si',
+    p_cobrar_backoffice_cliente: formData.get('cobrar_backoffice_cliente') === 'si',
+    p_cobrar_compra_propia: formData.get('cobrar_compra_propia') === 'si',
+    p_notas: String(formData.get('notas') ?? '').trim() || null,
+  })
+  revalidatePath('/admin/precios')
+  if (error) redirect(`/admin/precios?vista=envios&error=${encodeURIComponent(error.message)}`)
+  redirect(`/admin/precios?vista=envios&ok=${encodeURIComponent('Política de envío guardada')}`)
+}
