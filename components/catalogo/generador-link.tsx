@@ -192,6 +192,7 @@ export function GeneradorLink({
                 {d} días
               </option>
             ))}
+            <option value="0">Sin vencimiento</option>
           </select>
         </label>
       </section>

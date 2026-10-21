@@ -292,7 +292,7 @@ export default async function LinksPage({
                     <p className="text-xs text-muted-foreground">
                       {!esMio && l.vendedor && <>De {l.vendedor.nombre} · </>}
                       Creado {formatearFechaHora(l.fecha_creacion)}
-                      {l.fecha_vencimiento && ` · Vence ${formatearFechaHora(l.fecha_vencimiento)}`}
+                      {l.fecha_vencimiento ? ` · Vence ${formatearFechaHora(l.fecha_vencimiento)}` : ' · Sin vencimiento'}
                     </p>
                   </div>
                   <span
