@@ -51,7 +51,7 @@ export default async function BandejaComprobantesPage({
   const verBolsa = vista === 'bolsa'
   const supabase = await createClient()
 
-  const [{ data }, { data: bolsaData }] = await Promise.all([
+  const [{ data }, { data: bolsaData }, { data: cuentasData }] = await Promise.all([
     supabase
       .from('comprobantes')
       .select(
@@ -69,7 +69,9 @@ export default async function BandejaComprobantesPage({
       .neq('estado', 'rechazado')
       .order('fecha_creacion', { ascending: false })
       .limit(50),
+    supabase.from('cuentas_bancarias').select('id, nombre').eq('activa', true).neq('tipo', 'caja').order('nombre'),
   ])
+  const cuentas = (cuentasData ?? []) as { id: number; nombre: string }[]
 
   const lista = (data ?? []) as unknown as ComprobantePendiente[]
   const comprasBolsa = ((bolsaData ?? []) as unknown as { id: number; fecha_creacion: string; ventas: VentaConDatos | null }[])
@@ -263,9 +265,33 @@ export default async function BandejaComprobantesPage({
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <form action={revisarComprobante} className="flex items-center gap-2">
+                  <form action={revisarComprobante} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="comprobante_id" value={c.id} />
                     <input type="hidden" name="accion" value="aprobar" />
+                    {cuentas.length > 0 && (
+                      <>
+                        <select
+                          name="cuenta_id"
+                          defaultValue={cuentas.length === 1 ? cuentas[0].id : ''}
+                          title="Cuenta donde entró el dinero"
+                          className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs"
+                        >
+                          <option value="">Cuenta destino: registrar después</option>
+                          {cuentas.map((ct) => (
+                            <option key={ct.id} value={ct.id}>
+                              Entró a: {ct.nombre}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="date"
+                          name="fecha_acreditacion"
+                          defaultValue={c.fecha_pago ?? undefined}
+                          title="Fecha en que se acreditó en el banco"
+                          className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs"
+                        />
+                      </>
+                    )}
                     <button
                       type="submit"
                       className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:opacity-90"

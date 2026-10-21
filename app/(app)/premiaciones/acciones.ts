@@ -61,6 +61,7 @@ export async function guardarPremio(formData: FormData) {
     p_stock: aEntero(formData.get('stock')),
     p_imagenes: [...mantener, ...subidas],
     p_activo: formData.get('activo') === 'si',
+    p_costo: Number(String(formData.get('costo') ?? '0').replace(',', '.')) || 0,
   })
 
   revalidatePath('/premiaciones')

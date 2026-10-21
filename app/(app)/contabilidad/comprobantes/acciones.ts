@@ -43,6 +43,20 @@ export async function revisarComprobante(formData: FormData) {
   // Pago aprobado y pedido liberado → se genera la Orden de despacho
   // (PDF). Si falla, la aprobación ya quedó hecha: solo se avisa.
   let avisoPdf = ''
+  // Si se eligió la cuenta donde entró el dinero, el cobro queda en el libro de bancos.
+  const cuentaId = aNumero(formData.get('cuenta_id'))
+  if (aprobado && cuentaId) {
+    const { data: comp } = await supabase.from('comprobantes').select('pago_id').eq('id', comprobanteId).maybeSingle()
+    if (comp?.pago_id) {
+      const { error: errorBanco } = await supabase.rpc('fn_banco_registrar_cobro', {
+        p_pago_id: comp.pago_id,
+        p_cuenta_id: cuentaId,
+        p_fecha: String(formData.get('fecha_acreditacion') ?? '').trim() || new Date().toISOString().slice(0, 10),
+      })
+      if (errorBanco) avisoPdf += ` · no se registró en bancos: ${errorBanco.message}`
+      else revalidatePath('/contabilidad/bancos')
+    }
+  }
   if (aprobado) {
     const { data: fila } = await supabase
       .from('comprobantes')

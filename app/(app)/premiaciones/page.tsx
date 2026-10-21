@@ -20,6 +20,7 @@ type Premio = {
   stock: number | null
   imagenes: string[]
   activo: boolean
+  costo: number
 }
 
 type Canje = {
@@ -43,7 +44,7 @@ function FormularioPremio({ premio }: { premio?: Premio }) {
   return (
     <form action={guardarPremio} encType="multipart/form-data" className="flex flex-col gap-3">
       {premio && <input type="hidden" name="id" value={premio.id} />}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px_140px]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_130px_130px_140px]">
         <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
           Nombre del premio
           <input name="nombre" required defaultValue={premio?.nombre} className={clasesCampo} />
@@ -55,6 +56,10 @@ function FormularioPremio({ premio }: { premio?: Premio }) {
         <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
           Stock <span className="font-normal text-muted-foreground">(vacío = sin límite)</span>
           <input name="stock" type="number" min="0" step="1" defaultValue={premio?.stock ?? ''} className={clasesCampo} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
+          Costo para la empresa (Q) <span className="font-normal text-muted-foreground">(gasto al entregar)</span>
+          <input name="costo" type="number" min="0" step="0.01" defaultValue={premio?.costo ?? 0} className={clasesCampo} />
         </label>
       </div>
       <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
@@ -109,7 +114,7 @@ export default async function PremiacionesPage({
   const { ok, error } = await searchParams
 
   const [{ data: premiosData }, { data: pendientesData }, { data: historialData }] = await Promise.all([
-    supabase.from('premios_canje').select('id, nombre, descripcion, puntos, stock, imagenes, activo').order('activo', { ascending: false }).order('puntos'),
+    supabase.from('premios_canje').select('id, nombre, descripcion, puntos, stock, imagenes, activo, costo').order('activo', { ascending: false }).order('puntos'),
     supabase
       .from('canjes_premios')
       .select('id, puntos, estado, comentario, fecha_creacion, fecha_atencion, premio:premio_id ( nombre, imagenes ), usuario:usuario_id ( nombre, telefono )')
