@@ -36,6 +36,8 @@ export default async function CheckoutBackofficePage({
     0,
   )
   const totalModo = modo === 'mi' ? totalParaMi : total
+  const { data: bolsaData } = usuario.rol === 'embajador' ? await supabase.rpc('fn_mi_bolsa') : { data: null }
+  const saldoBolsa = Number((bolsaData as { disponible: number }[] | null)?.[0]?.disponible ?? 0)
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -65,6 +67,7 @@ export default async function CheckoutBackofficePage({
         total={total}
         totalParaMi={totalParaMi}
         paraClienteInicial={modo === 'cliente'}
+        saldoBolsa={saldoBolsa}
         permitirCompraPropia
         nombreUsuario={usuario.nombre}
       />

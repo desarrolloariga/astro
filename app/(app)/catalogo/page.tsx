@@ -9,6 +9,7 @@ import { FiltrosPanel } from '@/components/catalogo/filtros-panel'
 import { FiltroDrawer } from '@/components/catalogo/filtro-drawer'
 import { RejillaPiezas } from '@/components/catalogo/rejilla-piezas'
 import { Paginacion } from '@/components/catalogo/paginacion'
+import { TarjetasCategorias, VolverACategorias, esPortadaCategorias, resumirCategorias } from '@/components/catalogo/tarjetas-categorias'
 import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import { SelectorModoCompra } from '@/components/app/selector-modo-compra'
 import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
@@ -61,7 +62,7 @@ export default async function CatalogoPage({
 
   const [{ data: piezas, count }, { data: facetaData, count: totalSinFiltrar }, { data: carritoData }] = await Promise.all([
     consulta,
-    supabase.from('vw_catalogo').select('categoria, material, kilataje, precio_venta', { count: 'exact' }),
+    supabase.from('vw_catalogo').select('categoria, material, kilataje, precio_venta, imagen_principal', { count: 'exact' }),
     supabase.rpc('fn_ver_mi_carrito'),
   ])
   const idsEnCarrito = new Set(((carritoData ?? []) as { producto_id: number }[]).map((c) => c.producto_id))
@@ -80,11 +81,20 @@ export default async function CatalogoPage({
     precio_embajador: preciosEmbajador.get(p.id) ?? null,
   }))
   const facetas = calcularOpcionesFacetas(facetaData ?? [])
+  const categorias = resumirCategorias(facetaData ?? [])
+  const portada = esPortadaCategorias(filtros, filtros.verTodo, categorias.length)
   const totalConFiltro = count ?? 0
   const totalPaginas = Math.max(1, Math.ceil(totalConFiltro / TAMANO_PAGINA))
   const filtrosPaginados = { ...filtros, pagina: Math.min(filtros.pagina, totalPaginas) }
 
   const rutaBase = '/catalogo'
+  // Al cambiar el modo se conserva la búsqueda, filtros y página actuales.
+  const qs = new URLSearchParams(
+    Object.entries(sp).flatMap(([k, v]) =>
+      k === 'ok' || k === 'error' || v == null ? [] : (Array.isArray(v) ? v : [v]).map((x) => [k, x] as [string, string]),
+    ),
+  ).toString()
+  const volverCatalogo = qs ? `/catalogo?${qs}` : '/catalogo'
   const panelFiltros = (
     <FiltrosPanel
       filtros={filtros}
@@ -116,7 +126,7 @@ export default async function CatalogoPage({
           )}
         </div>
 
-        <SelectorModoCompra modo={modo} volver="/catalogo" esEmbajador={esEmbajador} />
+        <SelectorModoCompra modo={modo} volver={volverCatalogo} esEmbajador={esEmbajador} />
 
         {ok && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[4px] bg-[var(--cat-surface)] px-4 py-2.5 text-[13px] text-[var(--cat-tinta)]">
@@ -130,17 +140,25 @@ export default async function CatalogoPage({
           <div className="rounded-[4px] bg-destructive/10 px-4 py-2.5 text-[13px] text-destructive">{error}</div>
         )}
 
-        <FiltroDrawer panel={panelFiltros} />
-        <div className="hidden lg:block">{panelFiltros}</div>
+        {portada ? (
+          <TarjetasCategorias categorias={categorias} rutaBase={rutaBase} totalPiezas={totalSinFiltrar ?? 0} />
+        ) : (
+          <>
+            {categorias.length > 1 && <VolverACategorias rutaBase={rutaBase} categoria={filtros.categoria || undefined} />}
 
-        <RejillaPiezas
-          piezas={lista}
-          rutaDetalle={(id) => `/catalogo/${id}`}
-          rutaLimpiar={rutaBase}
-          accionesPublicas={{ idsEnCarrito, volver: '/catalogo' }}
-        />
+            <FiltroDrawer panel={panelFiltros} />
+            <div className="hidden lg:block">{panelFiltros}</div>
 
-        <Paginacion filtros={filtrosPaginados} totalPaginas={totalPaginas} rutaBase={rutaBase} />
+            <RejillaPiezas
+              piezas={lista}
+              rutaDetalle={(id) => `/catalogo/${id}`}
+              rutaLimpiar={rutaBase}
+              accionesPublicas={{ idsEnCarrito, volver: volverCatalogo }}
+            />
+
+            <Paginacion filtros={filtrosPaginados} totalPaginas={totalPaginas} rutaBase={rutaBase} />
+          </>
+        )}
       </main>
     </div>
   )

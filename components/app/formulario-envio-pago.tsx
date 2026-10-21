@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Truck, User, CreditCard, Users } from 'lucide-react'
+import { Truck, User, CreditCard, Users, Wallet } from 'lucide-react'
 import { Campo, SeccionFormulario, clasesInput } from '@/components/app/formulario'
 import { formatearPrecio } from '@/lib/formato'
 import { MapaUbicacion } from '@/components/app/mapa-ubicacion'
@@ -13,7 +13,7 @@ export const DEPARTAMENTOS = [
   'Sacatepéquez', 'San Marcos', 'Santa Rosa', 'Sololá', 'Suchitepéquez', 'Totonicapán', 'Zacapa',
 ]
 
-function BotonConfirmar() {
+function BotonConfirmar({ texto = 'Confirmar pedido y enviar comprobante' }: { texto?: string }) {
   const { pending } = useFormStatus()
   return (
     <button
@@ -21,7 +21,7 @@ function BotonConfirmar() {
       disabled={pending}
       className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? 'Enviando pedido…' : 'Confirmar pedido y enviar comprobante'}
+      {pending ? 'Enviando pedido…' : texto}
     </button>
   )
 }
@@ -39,6 +39,7 @@ export function FormularioEnvioPago({
   nombreUsuario,
   totalParaMi,
   paraClienteInicial,
+  saldoBolsa = 0,
 }: {
   action: (formData: FormData) => void | Promise<void>
   camposOcultos?: Record<string, string>
@@ -50,9 +51,16 @@ export function FormularioEnvioPago({
   totalParaMi?: number
   /** Opción marcada al abrir (modo elegido en el catálogo). */
   paraClienteInicial?: boolean
+  /** Saldo de bolsa del embajador: solo se ofrece al comprar para sí. */
+  saldoBolsa?: number
 }) {
   const [paraCliente, setParaCliente] = useState(permitirCompraPropia ? Boolean(paraClienteInicial) : true)
   const totalVigente = !paraCliente && totalParaMi != null ? totalParaMi : total
+  const ofreceBolsa = Boolean(permitirCompraPropia) && !paraCliente && saldoBolsa > 0
+  const [usarBolsa, setUsarBolsa] = useState(true)
+  const conBolsa = ofreceBolsa && usarBolsa
+  const deBolsa = conBolsa ? Math.min(saldoBolsa, totalVigente) : 0
+  const restante = Math.max(0, Math.round((totalVigente - deBolsa) * 100) / 100)
 
   return (
     <form action={action} encType="multipart/form-data" className="flex flex-col gap-5">
@@ -60,6 +68,7 @@ export function FormularioEnvioPago({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       <input type="hidden" name="para_cliente" value={paraCliente ? 'si' : 'no'} />
+      <input type="hidden" name="usar_bolsa" value={conBolsa ? 'si' : 'no'} />
 
       {permitirCompraPropia && (
         <SeccionFormulario icon={Users} titulo="¿Para quién es la compra?">
@@ -145,54 +154,81 @@ export function FormularioEnvioPago({
         </div>
       </SeccionFormulario>
 
-      <SeccionFormulario icon={CreditCard} titulo="Pago">
-        <p className="mb-3 text-xs text-muted-foreground">
-          Realiza la transferencia o depósito por {formatearPrecio(totalVigente)} y adjunta el comprobante — el pedido
-          se libera para envío cuando contabilidad lo aprueba.
-        </p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Método" required>
-            <select name="metodo_pago" required defaultValue="" className={clasesInput}>
-              <option value="" disabled>
-                Elige un método
-              </option>
-              <option value="transferencia">Transferencia</option>
-              <option value="deposito">Depósito</option>
-            </select>
-          </Campo>
-          <Campo label="Número de referencia / boleta">
-            <input name="referencia_pago" className={clasesInput} />
-          </Campo>
-          <Campo label="Banco">
-            <input name="banco_origen" className={clasesInput} />
-          </Campo>
-          <Campo label="Fecha del pago">
-            <input name="fecha_pago" type="date" className={clasesInput} />
-          </Campo>
-          <Campo label="Monto pagado (GTQ)">
+      {ofreceBolsa && (
+        <SeccionFormulario icon={Wallet} titulo="Pagar con mi bolsa">
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background p-3">
             <input
-              key={totalVigente.toFixed(2)}
-              name="monto_declarado"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={totalVigente.toFixed(2)}
-              className={clasesInput}
+              type="checkbox"
+              checked={usarBolsa}
+              onChange={(e) => setUsarBolsa(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
             />
-          </Campo>
-          <Campo label="Comprobante (foto o PDF)" required>
-            <input
-              name="comprobante"
-              type="file"
-              required
-              accept="image/*,application/pdf"
-              className="w-full rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-semibold file:text-primary-foreground"
-            />
-          </Campo>
-        </div>
-      </SeccionFormulario>
+            <span className="text-sm">
+              <span className="block font-semibold text-foreground">
+                Usar mi saldo de bolsa ({formatearPrecio(saldoBolsa)} disponible)
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {usarBolsa
+                  ? restante === 0
+                    ? `Tu bolsa cubre todo (${formatearPrecio(deBolsa)}): no necesitas comprobante y el pedido pasa directo a despacho.`
+                    : `Se usan ${formatearPrecio(deBolsa)} de tu bolsa; pagas ${formatearPrecio(restante)} con transferencia o depósito.`
+                  : 'Pagarás todo con transferencia o depósito.'}
+              </span>
+            </span>
+          </label>
+        </SeccionFormulario>
+      )}
 
-      <BotonConfirmar />
+      {restante > 0 && (
+        <SeccionFormulario icon={CreditCard} titulo={deBolsa > 0 ? 'Pago del restante' : 'Pago'}>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Realiza la transferencia o depósito por {formatearPrecio(restante)} y adjunta el comprobante — el pedido
+            se libera para envío cuando contabilidad lo aprueba.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Campo label="Método" required>
+              <select name="metodo_pago" required defaultValue="" className={clasesInput}>
+                <option value="" disabled>
+                  Elige un método
+                </option>
+                <option value="transferencia">Transferencia</option>
+                <option value="deposito">Depósito</option>
+              </select>
+            </Campo>
+            <Campo label="Número de referencia / boleta">
+              <input name="referencia_pago" className={clasesInput} />
+            </Campo>
+            <Campo label="Banco">
+              <input name="banco_origen" className={clasesInput} />
+            </Campo>
+            <Campo label="Fecha del pago">
+              <input name="fecha_pago" type="date" className={clasesInput} />
+            </Campo>
+            <Campo label="Monto pagado (GTQ)">
+              <input
+                key={restante.toFixed(2)}
+                name="monto_declarado"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={restante.toFixed(2)}
+                className={clasesInput}
+              />
+            </Campo>
+            <Campo label="Comprobante (foto o PDF)" required>
+              <input
+                name="comprobante"
+                type="file"
+                required
+                accept="image/*,application/pdf"
+                className="w-full rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-semibold file:text-primary-foreground"
+              />
+            </Campo>
+          </div>
+        </SeccionFormulario>
+      )}
+
+      <BotonConfirmar texto={restante === 0 ? 'Confirmar pedido pagado con mi bolsa' : undefined} />
     </form>
   )
 }

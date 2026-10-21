@@ -18,6 +18,8 @@ export type FiltrosCatalogo = {
   kilataje: string
   orden: OrdenCatalogo
   pagina: number
+  /** Listado completo en vez de la portada de categorías. */
+  verTodo: boolean
 }
 
 type SearchParamsCatalogo = Record<string, string | string[] | undefined>
@@ -40,6 +42,7 @@ export function parsearFiltros(searchParams: SearchParamsCatalogo): FiltrosCatal
     kilataje: (unoSolo(searchParams.kilataje) ?? '').trim(),
     orden: ordenRaw === 'precio_asc' || ordenRaw === 'precio_desc' ? ordenRaw : 'recientes',
     pagina: Number.isFinite(paginaRaw) && paginaRaw > 0 ? Math.floor(paginaRaw) : 1,
+    verTodo: unoSolo(searchParams.ver) === 'todo',
   }
 }
 
@@ -56,6 +59,7 @@ export function construirQueryString(
   if (f.kilataje) params.set('kilataje', f.kilataje)
   if (f.orden !== 'recientes') params.set('orden', f.orden)
   if (f.pagina > 1) params.set('pagina', String(f.pagina))
+  if (f.verTodo) params.set('ver', 'todo')
   return params.toString()
 }
 

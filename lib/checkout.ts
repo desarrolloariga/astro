@@ -14,6 +14,7 @@ export function extraerDatosCheckout(formData: FormData) {
   const archivo = formData.get('comprobante')
   return {
     paraCliente: formData.get('para_cliente') !== 'no',
+    usarBolsa: formData.get('usar_bolsa') === 'si',
     cliente: {
       nombre: texto(formData, 'cliente_nombre'),
       telefono: texto(formData, 'cliente_telefono'),

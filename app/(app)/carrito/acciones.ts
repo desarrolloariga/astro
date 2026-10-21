@@ -1,11 +1,10 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
-import { COOKIE_MODO_COMPRA } from '@/lib/modo-compra'
+import { generarOrdenDespacho } from '@/lib/pdf/orden-despacho'
 import { extraerDatosCheckout, subirComprobanteCheckout, eliminarComprobanteCheckout } from '@/lib/checkout'
 
 /** Destino tras agregar/quitar: la página desde la que se hizo (solo rutas internas del backoffice). */
@@ -55,11 +54,14 @@ export async function confirmarMiCarrito(formData: FormData) {
     redirect(`/carrito/checkout?error=${encodeURIComponent('Elige el método de pago')}`)
   }
 
-  let rutaComprobante: string
-  try {
-    rutaComprobante = await subirComprobanteCheckout(datos.archivo, `usuario-${usuario.id}`)
-  } catch (e) {
-    redirect(`/carrito/checkout?error=${encodeURIComponent((e as Error).message)}`)
+  // Con bolsa puede no haber comprobante (si el saldo cubre todo); la base valida si falta.
+  let rutaComprobante: string | null = null
+  if (!(datos.usarBolsa && !datos.archivo)) {
+    try {
+      rutaComprobante = await subirComprobanteCheckout(datos.archivo, `usuario-${usuario.id}`)
+    } catch (e) {
+      redirect(`/carrito/checkout?error=${encodeURIComponent((e as Error).message)}`)
+    }
   }
 
   const supabase = await createClient()
@@ -68,27 +70,26 @@ export async function confirmarMiCarrito(formData: FormData) {
     p_cliente: datos.cliente,
     p_envio: datos.envio,
     p_pago: { ...datos.pago, url_archivo: rutaComprobante },
+    p_usar_bolsa: datos.usarBolsa,
   })
 
   if (error || !ventaId) {
-    await eliminarComprobanteCheckout(rutaComprobante)
+    if (rutaComprobante) await eliminarComprobanteCheckout(rutaComprobante)
     redirect(`/carrito/checkout?error=${encodeURIComponent(error?.message ?? 'No se pudo confirmar el pedido')}`)
   }
 
-  revalidatePath('/', 'layout')
-  redirect(`/pedidos?ok=${encodeURIComponent(`Pedido de la venta #${ventaId} enviado — el pago queda en revisión`)}`)
-}
+  // Pagado por completo con bolsa: el pedido ya está liberado → se genera la orden de despacho.
+  const { data: pedido } = await supabase.from('pedidos').select('id, estado').eq('venta_id', ventaId).maybeSingle()
+  let mensaje = `Pedido de la venta #${ventaId} enviado — el pago queda en revisión`
+  if (pedido?.estado === 'listo_para_despacho') {
+    mensaje = `Pedido #${pedido.id} pagado con tu bolsa — pasa directo a despacho`
+    try {
+      await generarOrdenDespacho(pedido.id, usuario.id)
+    } catch (e) {
+      mensaje += ` (no se pudo generar la orden de despacho: ${(e as Error).message})`
+    }
+  }
 
-/** Cambia "Comprar para mí / Para un cliente" (cookie) y vuelve a la página de origen. */
-export async function cambiarModoCompra(formData: FormData) {
-  const modo = formData.get('modo') === 'cliente' ? 'cliente' : 'mi'
-  const volver = String(formData.get('volver') ?? '')
-  ;(await cookies()).set(COOKIE_MODO_COMPRA, modo, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 365,
-  })
   revalidatePath('/', 'layout')
-  redirect(volver.startsWith('/') && !volver.startsWith('//') ? volver : '/catalogo')
+  redirect(`/pedidos?ok=${encodeURIComponent(mensaje)}`)
 }

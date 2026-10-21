@@ -32,6 +32,7 @@ export function FiltrosPanel({
 
   return (
     <form ref={formRef} method="get" action={rutaBase} className="flex flex-col gap-4">
+      {filtros.verTodo && <input type="hidden" name="ver" value="todo" />}
       <div className="flex flex-col gap-3 rounded-[4px] border border-[var(--cat-borde)] bg-[var(--cat-bg)] p-[14px] shadow-[var(--cat-sombra-barra)] lg:sticky lg:top-[74px] lg:z-10 lg:flex-row lg:flex-wrap lg:items-center lg:gap-[14px]">
         <div className="flex min-w-56 flex-1 items-center gap-2 rounded-[3px] border border-[var(--cat-borde-control)] bg-[var(--cat-surface)] px-3 py-2">
           <Search className="h-3.5 w-3.5 shrink-0 text-[var(--cat-rotulo)]" />

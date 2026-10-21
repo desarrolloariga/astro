@@ -6,6 +6,7 @@ import { RejillaPiezas } from '@/components/catalogo/rejilla-piezas'
 import { FiltrosPanel } from '@/components/catalogo/filtros-panel'
 import { FiltroDrawer } from '@/components/catalogo/filtro-drawer'
 import { Paginacion } from '@/components/catalogo/paginacion'
+import { TarjetasCategorias, VolverACategorias, esPortadaCategorias, resumirCategorias } from '@/components/catalogo/tarjetas-categorias'
 import { PanelBolsa } from '@/components/catalogo/panel-bolsa'
 import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import { CatalogoMovil } from '@/components/catalogo-movil/catalogo-movil'
@@ -57,6 +58,15 @@ export default async function CatalogoPublicoPage({
   const filtrosPaginados = { ...filtros, pagina: paginaActual }
 
   const rutaBase = `/c/${token}`
+  const categorias = resumirCategorias(todasLasPiezas)
+  const portada = esPortadaCategorias(filtros, filtros.verTodo, categorias.length)
+  // Tras agregar/quitar de la bolsa se vuelve a la misma categoría y página.
+  const qs = new URLSearchParams(
+    Object.entries(sp).flatMap(([k, v]) =>
+      k === 'ok' || k === 'error' || v == null ? [] : (Array.isArray(v) ? v : [v]).map((x) => [k, x] as [string, string]),
+    ),
+  ).toString()
+  const volver = qs ? `${rutaBase}?${qs}` : rutaBase
   const panelFiltros = (
     <FiltrosPanel
       filtros={filtros}
@@ -81,7 +91,7 @@ export default async function CatalogoPublicoPage({
       {movil}
       <div className="hidden md:block">
       <div className="catalogo-tema">
-        <div className="sticky top-0 z-30 border-b border-[var(--cat-borde)] bg-[var(--cat-bg)]/95 backdrop-blur">
+        <div className="sticky top-0 z-30 border-b border-[var(--cat-borde)] bg-[var(--cat-bg)]">
           <div className="mx-auto flex h-14 w-full max-w-[1440px] items-center justify-between px-4 md:px-10">
             <p className="truncate text-[10px] font-medium uppercase tracking-[.14em] text-[var(--cat-primario)]">
               {info.nombre && info.tipo !== 'catalogo' ? `${info.nombre} · ` : ''}Catálogo de {info.vendedor_nombre}
@@ -111,17 +121,25 @@ export default async function CatalogoPublicoPage({
             </div>
           )}
 
-          <FiltroDrawer panel={panelFiltros} />
-          <div className="hidden lg:block">{panelFiltros}</div>
+          {portada ? (
+            <TarjetasCategorias categorias={categorias} rutaBase={rutaBase} totalPiezas={todasLasPiezas.length} />
+          ) : (
+            <>
+              {categorias.length > 1 && <VolverACategorias rutaBase={rutaBase} categoria={filtros.categoria || undefined} />}
 
-          <RejillaPiezas
-            piezas={piezasPagina}
-            rutaDetalle={(id) => `${rutaBase}/p/${id}`}
-            rutaLimpiar={rutaBase}
-            accionesPublicas={{ idsEnCarrito, token }}
-          />
+              <FiltroDrawer panel={panelFiltros} />
+              <div className="hidden lg:block">{panelFiltros}</div>
 
-          <Paginacion filtros={filtrosPaginados} totalPaginas={totalPaginas} rutaBase={rutaBase} />
+              <RejillaPiezas
+                piezas={piezasPagina}
+                rutaDetalle={(id) => `${rutaBase}/p/${id}`}
+                rutaLimpiar={rutaBase}
+                accionesPublicas={{ idsEnCarrito, token, volver }}
+              />
+
+              <Paginacion filtros={filtrosPaginados} totalPaginas={totalPaginas} rutaBase={rutaBase} />
+            </>
+          )}
         </main>
       </div>
       </div>

@@ -66,7 +66,7 @@ export default async function PiezaPublicaPage({
       {movil}
       <div className="hidden md:block">
       <div className="catalogo-tema">
-        <div className="sticky top-0 z-30 border-b border-[var(--cat-borde)] bg-[var(--cat-bg)]/95 backdrop-blur">
+        <div className="sticky top-0 z-30 border-b border-[var(--cat-borde)] bg-[var(--cat-bg)]">
           <div className="mx-auto flex h-14 w-full max-w-[1000px] items-center justify-between px-4 md:px-10">
             <p className="truncate text-[10px] font-medium uppercase tracking-[.14em] text-[var(--cat-primario)]">
               Catálogo de {info.vendedor_nombre}
