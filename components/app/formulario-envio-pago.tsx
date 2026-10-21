@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Truck, User, CreditCard, Users, Wallet } from 'lucide-react'
 import { Campo, SeccionFormulario, clasesInput } from '@/components/app/formulario'
@@ -12,6 +12,8 @@ export const DEPARTAMENTOS = [
   'Huehuetenango', 'Izabal', 'Jalapa', 'Jutiapa', 'Petén', 'Quetzaltenango', 'Quiché', 'Retalhuleu',
   'Sacatepéquez', 'San Marcos', 'Santa Rosa', 'Sololá', 'Suchitepéquez', 'Totonicapán', 'Zacapa',
 ]
+
+const CLAVE_BORRADOR = 'astro_checkout_borrador'
 
 function BotonConfirmar({ texto = 'Confirmar pedido y enviar comprobante' }: { texto?: string }) {
   const { pending } = useFormStatus()
@@ -62,8 +64,66 @@ export function FormularioEnvioPago({
   const deBolsa = conBolsa ? Math.min(saldoBolsa, totalVigente) : 0
   const restante = Math.max(0, Math.round((totalVigente - deBolsa) * 100) / 100)
 
+  // Si el servidor devuelve un error, la página se recarga con ?error=…: se
+  // restaura lo que la persona había escrito (guardado al enviar) para no
+  // obligarla a llenar todo otra vez. El archivo del comprobante no se puede
+  // restaurar por seguridad del navegador.
+  const formRef = useRef<HTMLFormElement>(null)
+  const [borrador, setBorrador] = useState<Record<string, string> | null>(null)
+
+  useEffect(() => {
+    try {
+      const guardado = sessionStorage.getItem(CLAVE_BORRADOR)
+      if (!guardado) return
+      sessionStorage.removeItem(CLAVE_BORRADOR)
+      if (!new URLSearchParams(window.location.search).has('error')) return
+      const datos = JSON.parse(guardado) as Record<string, string>
+      if (permitirCompraPropia && datos.para_cliente) setParaCliente(datos.para_cliente === 'si')
+      if (datos.usar_bolsa) setUsarBolsa(datos.usar_bolsa === 'si')
+      setBorrador(datos)
+    } catch {
+      // sin almacenamiento disponible: se sigue sin restaurar
+    }
+  }, [permitirCompraPropia])
+
+  // Se aplica después de pintar (los campos de cliente/pago dependen del estado restaurado).
+  useEffect(() => {
+    const form = formRef.current
+    if (!borrador || !form) return
+    for (const [nombre, valor] of Object.entries(borrador)) {
+      const campo = form.elements.namedItem(nombre)
+      if (
+        (campo instanceof HTMLInputElement && !['hidden', 'file'].includes(campo.type)) ||
+        campo instanceof HTMLSelectElement ||
+        campo instanceof HTMLTextAreaElement
+      ) {
+        campo.value = valor
+      }
+    }
+  }, [borrador])
+
+  function guardarBorrador() {
+    const form = formRef.current
+    if (!form) return
+    const datos: Record<string, string> = {}
+    new FormData(form).forEach((valor, nombre) => {
+      if (typeof valor === 'string') datos[nombre] = valor
+    })
+    try {
+      sessionStorage.setItem(CLAVE_BORRADOR, JSON.stringify(datos))
+    } catch {
+      // sin almacenamiento disponible
+    }
+  }
+
   return (
-    <form action={action} encType="multipart/form-data" className="flex flex-col gap-5">
+    <form
+      ref={formRef}
+      action={action}
+      onSubmit={guardarBorrador}
+      encType="multipart/form-data"
+      className="flex flex-col gap-5"
+    >
       {Object.entries(camposOcultos ?? {}).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}

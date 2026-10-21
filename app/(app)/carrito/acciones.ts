@@ -50,7 +50,9 @@ export async function confirmarMiCarrito(formData: FormData) {
   if (datos.paraCliente && !datos.cliente.nombre) {
     redirect(`/carrito/checkout?error=${encodeURIComponent('Indica el nombre del cliente')}`)
   }
-  if (!datos.pago.metodo) {
+  // Con bolsa el método de pago solo hace falta si queda un restante por pagar;
+  // eso lo valida la base (si la bolsa cubre todo, no hay método ni comprobante).
+  if (!datos.usarBolsa && !datos.pago.metodo) {
     redirect(`/carrito/checkout?error=${encodeURIComponent('Elige el método de pago')}`)
   }
 
