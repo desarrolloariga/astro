@@ -7,6 +7,7 @@ import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora, formatearNumero, formatearPrecio } from '@/lib/formato'
 import { crearEmbajador } from './acciones'
 import { PremiosMiRed } from '@/components/app/premios-mi-red'
+import { ChipBilletera, TarjetaBilletera } from '@/components/app/billetera-astro'
 
 export const metadata = { title: 'Mi red — ASTRO' }
 
@@ -48,7 +49,7 @@ type MovimientoBolsa = {
 
 const nombresMovimiento: Record<string, string> = {
   abono: 'Comisión',
-  redencion: 'Compra con bolsa',
+  redencion: 'Compra con Billetera',
   reverso: 'Reverso',
   ajuste: 'Ajuste',
 }
@@ -115,7 +116,7 @@ export default async function MiRedPage({
       <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-8 md:px-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Mi red</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tu bolsa, tus puntos, tu contacto y el catálogo.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Tu Billetera ASTRO, tus puntos, tu contacto y el catálogo.</p>
         </div>
 
         {ok && (
@@ -131,6 +132,44 @@ export default async function MiRedPage({
           </div>
         )}
 
+        <TarjetaBilletera
+          saldo={formatearPrecio(Number(bolsa?.disponible ?? 0))}
+          titular="Tu comisión acumulada: úsala para pagar lo que compras para ti en el catálogo."
+        >
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { k: 'En espera', v: Number(bolsa?.en_espera ?? 0), d: 'pago por aprobar' },
+              { k: 'Ganado', v: Number(bolsa?.abonado ?? 0), d: 'histórico' },
+              { k: 'Usado', v: Number(bolsa?.redimido ?? 0), d: 'en compras' },
+            ].map((x) => (
+              <div key={x.k} className="rounded-xl bg-white/10 px-2 py-2 ring-1 ring-white/15 backdrop-blur-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-200">{x.k}</p>
+                <p className="text-sm font-bold text-white">{formatearPrecio(x.v)}</p>
+                <p className="text-[10px] text-white/60">{x.d}</p>
+              </div>
+            ))}
+          </div>
+          {movimientos.length > 0 && (
+            <div className="mt-4 flex flex-col gap-1.5 rounded-xl bg-black/15 p-3">
+              {movimientos.map((m) => (
+                <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="flex min-w-0 items-center gap-1.5 text-white/75">
+                    <Clock className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
+                      {nombresMovimiento[m.tipo] ?? m.tipo}
+                      {m.venta_id ? ` · venta #${m.venta_id}` : ''} · {formatearFechaHora(m.fecha)}
+                    </span>
+                  </span>
+                  <span className={Number(m.monto) >= 0 ? 'font-bold text-amber-300' : 'font-semibold text-white'}>
+                    {Number(m.monto) >= 0 ? '+' : '−'}
+                    {formatearPrecio(Math.abs(Number(m.monto)))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </TarjetaBilletera>
+
         <div className="rounded-xl border border-border bg-card p-5">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
             <Phone className="h-4 w-4 text-primary" />
@@ -143,50 +182,6 @@ export default async function MiRedPage({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Aún no tienes un asesor asignado.</p>
-          )}
-        </div>
-
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
-          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-foreground">
-            <Wallet className="h-4 w-4 text-primary" />
-            Tu bolsa
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Tu comisión acumulada. Úsala para pagar lo que compras para ti en el catálogo.
-          </p>
-          <p className="mt-3 text-3xl font-bold text-foreground">{formatearPrecio(Number(bolsa?.disponible ?? 0))}</p>
-          <p className="text-xs text-muted-foreground">disponible</p>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            {[
-              { k: 'En espera', v: Number(bolsa?.en_espera ?? 0), d: 'pago por aprobar' },
-              { k: 'Ganado', v: Number(bolsa?.abonado ?? 0), d: 'histórico' },
-              { k: 'Usado', v: Number(bolsa?.redimido ?? 0), d: 'en compras' },
-            ].map((x) => (
-              <div key={x.k} className="rounded-lg bg-card px-2 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{x.k}</p>
-                <p className="text-sm font-bold text-foreground">{formatearPrecio(x.v)}</p>
-                <p className="text-[10px] text-muted-foreground">{x.d}</p>
-              </div>
-            ))}
-          </div>
-          {movimientos.length > 0 && (
-            <div className="mt-4 flex flex-col gap-1.5">
-              {movimientos.map((m) => (
-                <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                    <Clock className="h-3 w-3 shrink-0" />
-                    <span className="truncate">
-                      {nombresMovimiento[m.tipo] ?? m.tipo}
-                      {m.venta_id ? ` · venta #${m.venta_id}` : ''} · {formatearFechaHora(m.fecha)}
-                    </span>
-                  </span>
-                  <span className={Number(m.monto) >= 0 ? 'font-semibold text-emerald-700' : 'font-semibold text-foreground'}>
-                    {Number(m.monto) >= 0 ? '+' : '−'}
-                    {formatearPrecio(Math.abs(Number(m.monto)))}
-                  </span>
-                </div>
-              ))}
-            </div>
           )}
         </div>
 
@@ -377,9 +372,8 @@ export default async function MiRedPage({
                   </span>
                   pts
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  <Wallet className="h-3.5 w-3.5 text-primary" />
-                  bolsa
+                <span className="inline-flex items-center gap-1.5">
+                  <ChipBilletera>Billetera</ChipBilletera>
                   <span className="font-semibold text-foreground">
                     {formatearPrecio(Number(incentivos.get(e.usuario_id)?.bolsa_disponible ?? 0))}
                   </span>

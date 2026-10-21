@@ -1,6 +1,7 @@
 import { CheckCircle2, AlertTriangle, Wallet, Landmark } from 'lucide-react'
 import { formatearPrecio } from '@/lib/formato'
 import { cn } from '@/lib/utils'
+import { ChipBilletera } from '@/components/app/billetera-astro'
 
 export type VentaDesglose = {
   id: number
@@ -18,7 +19,7 @@ export const SELECT_DESGLOSE =
   'id, subtotal, descuento_desempeno, descuento_embajador, total, precio_embajador, venta_detalles ( cantidad, precio, productos ( codigo, nombre ) ), pagos ( id, metodo, monto, estado )'
 
 const nombresMetodo: Record<string, string> = {
-  bolsa: 'Bolsa del embajador',
+  bolsa: 'Billetera ASTRO',
   transferencia: 'Transferencia',
   deposito: 'Depósito',
   tarjeta: 'Tarjeta',
@@ -45,17 +46,7 @@ export function EtiquetaBolsa({ venta }: { venta: VentaDesglose | null | undefin
   if (!venta) return null
   const r = resumenBolsa(venta)
   if (!r.conBolsa) return null
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-        r.total ? 'bg-emerald-600/10 text-emerald-700' : 'bg-amber-500/15 text-amber-800',
-      )}
-    >
-      <Wallet className="h-3 w-3" />
-      {r.total ? 'Pagada 100% con bolsa' : 'Pago mixto con bolsa'}
-    </span>
-  )
+  return <ChipBilletera>{r.total ? 'Pagada 100% con Billetera ASTRO' : 'Pago mixto con Billetera ASTRO'}</ChipBilletera>
 }
 
 /**
@@ -98,12 +89,19 @@ export function DesgloseVenta({
             <p className="text-base font-bold text-foreground">{formatearPrecio(Number(venta.total))}</p>
             {venta.precio_embajador && <p className="text-[11px] text-primary">a precio embajador</p>}
           </div>
-          <div className={cn('rounded-lg px-3 py-2', r.bolsa > 0 ? 'bg-emerald-600/10' : 'bg-secondary/60')}>
-            <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              <Wallet className="h-3 w-3" /> Pagado con bolsa
+          <div
+            className={cn(
+              'rounded-lg px-3 py-2',
+              r.bolsa > 0 ? 'bg-gradient-to-br from-[#0B2E8A] via-[#1D4ED8] to-[#F59E0B] text-white' : 'bg-secondary/60',
+            )}
+          >
+            <p className={cn('flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide', r.bolsa > 0 ? 'text-amber-200' : 'text-muted-foreground')}>
+              <Wallet className="h-3 w-3" /> Billetera ASTRO
             </p>
-            <p className="text-base font-bold text-foreground">{formatearPrecio(r.bolsa)}</p>
-            <p className="text-[11px] text-muted-foreground">{r.bolsa > 0 ? 'descontado del saldo, ya confirmado' : 'no usó bolsa'}</p>
+            <p className={cn('text-base font-bold', r.bolsa > 0 ? 'text-white' : 'text-foreground')}>{formatearPrecio(r.bolsa)}</p>
+            <p className={cn('text-[11px]', r.bolsa > 0 ? 'text-white/80' : 'text-muted-foreground')}>
+              {r.bolsa > 0 ? 'descontado del saldo, ya confirmado' : 'no usó Billetera'}
+            </p>
           </div>
           <div className={cn('rounded-lg px-3 py-2', r.otros > 0 ? 'bg-amber-500/10' : 'bg-secondary/60')}>
             <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -127,7 +125,7 @@ export function DesgloseVenta({
         </ul>
 
         <div className="flex flex-col gap-1 text-xs">
-          <Verificacion ok={cuadraPagos} texto={cuadraPagos ? 'Bolsa + dinero = total de la venta' : `Bolsa + dinero (${formatearPrecio(r.bolsa + r.otros)}) no suma el total`} />
+          <Verificacion ok={cuadraPagos} texto={cuadraPagos ? 'Billetera + dinero = total de la venta' : `Billetera + dinero (${formatearPrecio(r.bolsa + r.otros)}) no suma el total`} />
           {montoDeclarado != null && (
             <Verificacion
               ok={cuadraDeclarado}

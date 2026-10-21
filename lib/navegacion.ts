@@ -385,7 +385,7 @@ export const secciones: SeccionNav[] = [
       },
       {
         etiqueta: 'Estado de resultados',
-        descripcion: 'Ventas, costo, gastos y utilidad neta, con cuadres de cobros y bolsa',
+        descripcion: 'Ventas, costo, gastos y utilidad neta, con cuadres de cobros y Billetera ASTRO',
         href: '/contabilidad/estado-resultados',
         icono: LineChart,
         roles: ['admin', 'coordinador', 'contabilidad'],

@@ -60,7 +60,7 @@ const FILAS: Fila[] = [
   { etiqueta: 'Ingresos sin IVA', clave: 'ingresos_sin_iva', tipo: 'total' },
   { etiqueta: 'Costo de mercancía vendida', clave: 'cmv', signo: -1 },
   { etiqueta: 'UTILIDAD BRUTA', clave: 'utilidad_bruta', tipo: 'resultado' },
-  { etiqueta: 'Comisiones de embajadores (bolsa)', clave: 'comisiones_bolsa', signo: -1 },
+  { etiqueta: 'Comisiones de embajadores (Billetera ASTRO)', clave: 'comisiones_bolsa', signo: -1 },
   { etiqueta: 'Comisiones de red y bonos', clave: 'comisiones_red', signo: -1 },
   { etiqueta: 'Premios entregados', clave: 'premios', signo: -1 },
   { etiqueta: 'Gastos operativos', clave: 'gastos_operativos', signo: -1 },
@@ -272,7 +272,7 @@ export default async function EstadoResultadosPage({
             <dd className="text-right font-semibold text-foreground">{formatearPrecio(cc.ventas_pagadas)}</dd>
             <dt className="text-muted-foreground">Cobrado en dinero (transferencia, depósito, tarjeta)</dt>
             <dd className="text-right text-foreground">{formatearPrecio(cc.cobrado_dinero)}</dd>
-            <dt className="text-muted-foreground">Pagado con bolsa (sin entrada de dinero)</dt>
+            <dt className="text-muted-foreground">Pagado con Billetera ASTRO (sin entrada de dinero)</dt>
             <dd className="text-right text-foreground">{formatearPrecio(cc.cobrado_bolsa)}</dd>
             <dt className="border-t border-border pt-1.5 font-semibold text-foreground">Diferencia</dt>
             <dd className={cn('border-t border-border pt-1.5 text-right font-bold', cuadraCobros ? 'text-emerald-700' : 'text-destructive')}>
@@ -283,7 +283,7 @@ export default async function EstadoResultadosPage({
           </dl>
           <Verificacion
             ok={cuadraCobros}
-            texto={cuadraCobros ? 'Ventas pagadas = dinero cobrado + bolsa redimida' : 'Hay ventas pagadas cuyo cobro no cuadra: revisa sus pagos'}
+            texto={cuadraCobros ? 'Ventas pagadas = dinero cobrado + Billetera redimida' : 'Hay ventas pagadas cuyo cobro no cuadra: revisa sus pagos'}
           />
           <p className="text-xs text-muted-foreground">
             El dinero cobrado es lo que debe verse en los bancos: regístralo y concílialo en{' '}
@@ -297,7 +297,7 @@ export default async function EstadoResultadosPage({
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
           <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
             <Wallet className="h-4 w-4 text-primary" />
-            Cuadre de bolsa (deuda con embajadores)
+            Cuadre de Billetera ASTRO (deuda con embajadores)
           </h2>
           <dl className="grid grid-cols-[1fr_auto] gap-y-1.5 text-sm">
             <dt className="text-muted-foreground">Saldo al inicio</dt>
@@ -312,13 +312,13 @@ export default async function EstadoResultadosPage({
             <dd className="border-t border-border pt-1.5 text-right font-bold text-foreground">{formatearPrecio(cb.saldo_final)}</dd>
           </dl>
           <p className="text-xs text-muted-foreground">
-            La bolsa es una deuda de la empresa que se paga en producto: crece con las comisiones abonadas (al aprobarse cada
+            La Billetera ASTRO es una deuda de la empresa que se paga en producto: crece con las comisiones abonadas (al aprobarse cada
             pago) y baja cuando el embajador compra con ella. Saldo total hoy de todos los embajadores:{' '}
             <span className="font-semibold text-foreground">{formatearPrecio(cb.saldo_actual_total)}</span>.
           </p>
           <p className="text-xs text-muted-foreground">
             Diferencia esperada con la línea &quot;Comisiones de embajadores&quot;: allí cuenta la comisión de las ventas del
-            período aunque su pago aún no se apruebe; la bolsa solo se abona al aprobarse.
+            período aunque su pago aún no se apruebe; la Billetera solo se abona al aprobarse.
           </p>
         </div>
       </section>

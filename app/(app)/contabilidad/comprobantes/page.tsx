@@ -115,7 +115,7 @@ export default async function BandejaComprobantesPage({
       <div className="flex gap-1 border-b border-border">
         {[
           { href: '/contabilidad/comprobantes', etiqueta: `Por revisar (${lista.length})`, activa: !verBolsa },
-          { href: '/contabilidad/comprobantes?vista=bolsa', etiqueta: `Compras con bolsa (${comprasBolsa.length})`, activa: verBolsa },
+          { href: '/contabilidad/comprobantes?vista=bolsa', etiqueta: `Compras con Billetera ASTRO (${comprasBolsa.length})`, activa: verBolsa },
         ].map((t) => (
           <Link
             key={t.href}
@@ -133,13 +133,13 @@ export default async function BandejaComprobantesPage({
       {verBolsa ? (
         <>
           <p className="text-sm text-muted-foreground">
-            Compras de embajadores pagadas con su bolsa. Las pagadas al 100% no pasan por aprobación (salen directo a despacho);
+            Compras de embajadores pagadas con su Billetera ASTRO. Las pagadas al 100% no pasan por aprobación (salen directo a despacho);
             las mixtas aparecen también en &quot;Por revisar&quot; por la parte pagada con dinero.
           </p>
           {comprasBolsa.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
               <Wallet className="h-10 w-10 text-muted-foreground" strokeWidth={1.2} />
-              <p className="text-sm font-semibold text-foreground">Aún no hay compras con bolsa</p>
+              <p className="text-sm font-semibold text-foreground">Aún no hay compras con Billetera ASTRO</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -190,7 +190,7 @@ export default async function BandejaComprobantesPage({
           {conBolsaPendientes > 0 && (
             <p className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
               <Wallet className="h-3.5 w-3.5" />
-              {conBolsaPendientes} comprobante{conBolsaPendientes !== 1 ? 's' : ''} de compras pagadas en parte con bolsa: revisa
+              {conBolsaPendientes} comprobante{conBolsaPendientes !== 1 ? 's' : ''} de compras pagadas en parte con Billetera ASTRO: revisa
               que el monto en dinero corresponda solo al restante.
             </p>
           )}
@@ -220,7 +220,7 @@ export default async function BandejaComprobantesPage({
                     <p className="text-lg font-bold text-foreground">{c.pagos ? formatearPrecio(Number(c.pagos.monto)) : '—'}</p>
                     {bolsa?.conBolsa && venta && (
                       <p className="text-[11px] text-muted-foreground">
-                        de {formatearPrecio(Number(venta.total))} · {formatearPrecio(bolsa.bolsa)} con bolsa
+                        de {formatearPrecio(Number(venta.total))} · {formatearPrecio(bolsa.bolsa)} con Billetera
                       </p>
                     )}
                     {c.monto_declarado != null && c.pagos && Number(c.monto_declarado) !== Number(c.pagos.monto) && (

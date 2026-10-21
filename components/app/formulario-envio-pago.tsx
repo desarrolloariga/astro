@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Truck, User, CreditCard, Users, Wallet } from 'lucide-react'
+import { Truck, User, CreditCard, Users, Sparkles } from 'lucide-react'
 import { Campo, SeccionFormulario, clasesInput } from '@/components/app/formulario'
 import { formatearPrecio } from '@/lib/formato'
 import { MapaUbicacion } from '@/components/app/mapa-ubicacion'
+import { NOMBRE_BILLETERA, fondoBilletera } from '@/components/app/billetera-astro'
 
 export const DEPARTAMENTOS = [
   'Guatemala', 'Alta Verapaz', 'Baja Verapaz', 'Chimaltenango', 'Chiquimula', 'El Progreso', 'Escuintla',
@@ -215,28 +216,33 @@ export function FormularioEnvioPago({
       </SeccionFormulario>
 
       {ofreceBolsa && (
-        <SeccionFormulario icon={Wallet} titulo="Pagar con mi bolsa">
-          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background p-3">
+        <section className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-[0_18px_40px_-14px_rgba(11,46,138,0.55)] ${fondoBilletera}`}>
+          <div aria-hidden className="pointer-events-none absolute -right-8 -top-14 h-40 w-40 rounded-full bg-amber-300/25 blur-2xl" />
+          <p className="relative flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-300">
+            <Sparkles className="h-3.5 w-3.5" />
+            Pagar con mi {NOMBRE_BILLETERA}
+          </p>
+          <label className="relative mt-3 flex cursor-pointer items-start gap-3 rounded-xl bg-white/10 p-3 ring-1 ring-white/20 backdrop-blur-sm">
             <input
               type="checkbox"
               checked={usarBolsa}
               onChange={(e) => setUsarBolsa(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
+              className="mt-0.5 h-5 w-5 accent-amber-400"
             />
             <span className="text-sm">
-              <span className="block font-semibold text-foreground">
-                Usar mi saldo de bolsa ({formatearPrecio(saldoBolsa)} disponible)
+              <span className="block font-semibold text-white">
+                Usar mi saldo: <span className="text-amber-300">{formatearPrecio(saldoBolsa)}</span> disponible
               </span>
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-xs text-white/75">
                 {usarBolsa
                   ? restante === 0
-                    ? `Tu bolsa cubre todo (${formatearPrecio(deBolsa)}): no necesitas comprobante y el pedido pasa directo a despacho.`
-                    : `Se usan ${formatearPrecio(deBolsa)} de tu bolsa; pagas ${formatearPrecio(restante)} con transferencia o depósito.`
+                    ? `Tu Billetera cubre todo (${formatearPrecio(deBolsa)}): no necesitas comprobante y el pedido pasa directo a despacho.`
+                    : `Se usan ${formatearPrecio(deBolsa)} de tu Billetera; pagas ${formatearPrecio(restante)} con transferencia o depósito.`
                   : 'Pagarás todo con transferencia o depósito.'}
               </span>
             </span>
           </label>
-        </SeccionFormulario>
+        </section>
       )}
 
       {restante > 0 && (
@@ -288,7 +294,7 @@ export function FormularioEnvioPago({
         </SeccionFormulario>
       )}
 
-      <BotonConfirmar texto={restante === 0 ? 'Confirmar pedido pagado con mi bolsa' : undefined} />
+      <BotonConfirmar texto={restante === 0 ? 'Confirmar pedido pagado con mi Billetera ASTRO' : undefined} />
     </form>
   )
 }

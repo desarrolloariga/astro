@@ -84,7 +84,7 @@ export async function confirmarMiCarrito(formData: FormData) {
   const { data: pedido } = await supabase.from('pedidos').select('id, estado').eq('venta_id', ventaId).maybeSingle()
   let mensaje = `Pedido de la venta #${ventaId} enviado — el pago queda en revisión`
   if (pedido?.estado === 'listo_para_despacho') {
-    mensaje = `Pedido #${pedido.id} pagado con tu bolsa — pasa directo a despacho`
+    mensaje = `Pedido #${pedido.id} pagado con tu Billetera ASTRO — pasa directo a despacho`
     try {
       await generarOrdenDespacho(pedido.id, usuario.id)
     } catch (e) {
