@@ -14,6 +14,7 @@ const CLAVES = [
   'factor_empaque',
   'factor_impuesto',
   'factor_comision_embajador',
+  'factor_comision_bancaria',
 ] as const
 
 const nombresClave: Record<string, string> = {
@@ -22,6 +23,7 @@ const nombresClave: Record<string, string> = {
   factor_empaque: 'Empaque',
   factor_impuesto: 'Impuesto (IVA)',
   factor_comision_embajador: 'Comisión del embajador',
+  factor_comision_bancaria: 'Comisión bancaria',
 }
 
 const NIVELES_GANANCIA = [

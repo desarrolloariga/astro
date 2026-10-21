@@ -68,6 +68,8 @@ type Snapshot = {
   factor_empaque_pct: number | null
   factor_comision_pct: number | null
   factor_impuesto_pct: number | null
+  factor_comision_bancaria_pct: number | null
+  comision_bancaria: number | null
   motivo: string
   fecha_creacion: string
   usuarios: { nombre: string } | null
@@ -122,7 +124,7 @@ export default async function HojaDeCostosPage({
     supabase
       .from('producto_precio_historial')
       .select(
-        'id, costo_base, fuente_costo, costo_logistico, precio_antes_embajador, precio_sin_impuesto, base_comisionable, impuesto, precio_final, factor_margen_empresa_pct, factor_envio_pct, factor_empaque_pct, factor_comision_pct, factor_impuesto_pct, motivo, fecha_creacion, usuarios:calculado_por ( nombre )',
+        'id, costo_base, fuente_costo, costo_logistico, precio_antes_embajador, precio_sin_impuesto, base_comisionable, impuesto, precio_final, factor_margen_empresa_pct, factor_envio_pct, factor_empaque_pct, factor_comision_pct, factor_impuesto_pct, factor_comision_bancaria_pct, comision_bancaria, motivo, fecha_creacion, usuarios:calculado_por ( nombre )',
       )
       .eq('producto_id', id)
       .order('fecha_creacion', { ascending: false }),
@@ -317,6 +319,13 @@ export default async function HojaDeCostosPage({
               detalle={`${ultimo.factor_comision_pct ?? 0}% sobre el precio antes de embajador`}
               valor={formatearPrecio(ultimo.base_comisionable)}
             />
+            {ultimo.comision_bancaria != null && (
+              <Fila
+                etiqueta="Comisión bancaria"
+                detalle={`${ultimo.factor_comision_bancaria_pct ?? 0}% sobre el precio con comisión de embajador`}
+                valor={formatearPrecio(ultimo.comision_bancaria)}
+              />
+            )}
             <Fila
               etiqueta="Total a liquidar"
               detalle="Precio antes de embajador + IVA"

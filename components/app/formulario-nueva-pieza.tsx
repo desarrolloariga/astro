@@ -61,10 +61,11 @@ export function FormularioNuevaPieza({
     const factorMargen = buscarFactor(parametrosPrecio, 'factor_margen_empresa', nivelGanancia)
     const factorComision = buscarFactor(parametrosPrecio, 'factor_comision_embajador', nivelGanancia)
     const factorImpuesto = buscarFactor(parametrosPrecio, 'factor_impuesto', nivelGanancia)
+    const factorBanco = buscarFactor(parametrosPrecio, 'factor_comision_bancaria', nivelGanancia)
 
     const costoLogistico = costoNum * (1 + (factorEnvio + factorEmpaque) / 100)
     const precioAntesEmbajador = costoLogistico / (1 - factorMargen / 100)
-    const precioSinImpuesto = precioAntesEmbajador * (1 + factorComision / 100)
+    const precioSinImpuesto = precioAntesEmbajador * (1 + factorComision / 100) * (1 + factorBanco / 100)
     const impuesto = precioSinImpuesto * (factorImpuesto / 100)
     return { precioFinal: precioSinImpuesto + impuesto }
   }, [costo, nivelGanancia, parametrosPrecio])
