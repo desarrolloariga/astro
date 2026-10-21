@@ -37,6 +37,8 @@ export function FormularioEnvioPago({
   total,
   permitirCompraPropia,
   nombreUsuario,
+  totalParaMi,
+  paraClienteInicial,
 }: {
   action: (formData: FormData) => void | Promise<void>
   camposOcultos?: Record<string, string>
@@ -44,8 +46,13 @@ export function FormularioEnvioPago({
   /** Backoffice: el usuario puede comprar para sí mismo o para un cliente. */
   permitirCompraPropia?: boolean
   nombreUsuario?: string
+  /** Total cuando compra para sí (embajador: precio embajador). Por defecto, `total`. */
+  totalParaMi?: number
+  /** Opción marcada al abrir (modo elegido en el catálogo). */
+  paraClienteInicial?: boolean
 }) {
-  const [paraCliente, setParaCliente] = useState(!permitirCompraPropia)
+  const [paraCliente, setParaCliente] = useState(permitirCompraPropia ? Boolean(paraClienteInicial) : true)
+  const totalVigente = !paraCliente && totalParaMi != null ? totalParaMi : total
 
   return (
     <form action={action} encType="multipart/form-data" className="flex flex-col gap-5">
@@ -58,8 +65,21 @@ export function FormularioEnvioPago({
         <SeccionFormulario icon={Users} titulo="¿Para quién es la compra?">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {[
-              { valor: false, titulo: 'Para mí', detalle: nombreUsuario ? `A nombre de ${nombreUsuario}` : 'A tu nombre' },
-              { valor: true, titulo: 'Para un cliente', detalle: 'Capturas los datos de tu cliente' },
+              {
+                valor: false,
+                titulo: 'Para mí',
+                detalle:
+                  totalParaMi != null && totalParaMi < total
+                    ? `Precio embajador · ${formatearPrecio(totalParaMi)}`
+                    : nombreUsuario
+                      ? `A nombre de ${nombreUsuario}`
+                      : 'A tu nombre',
+              },
+              {
+                valor: true,
+                titulo: 'Para un cliente',
+                detalle: totalParaMi != null && totalParaMi < total ? `Precio público · ${formatearPrecio(total)}` : 'Capturas los datos de tu cliente',
+              },
             ].map((op) => (
               <button
                 key={op.titulo}
@@ -127,7 +147,7 @@ export function FormularioEnvioPago({
 
       <SeccionFormulario icon={CreditCard} titulo="Pago">
         <p className="mb-3 text-xs text-muted-foreground">
-          Realiza la transferencia o depósito por {formatearPrecio(total)} y adjunta el comprobante — el pedido
+          Realiza la transferencia o depósito por {formatearPrecio(totalVigente)} y adjunta el comprobante — el pedido
           se libera para envío cuando contabilidad lo aprueba.
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -150,7 +170,15 @@ export function FormularioEnvioPago({
             <input name="fecha_pago" type="date" className={clasesInput} />
           </Campo>
           <Campo label="Monto pagado (GTQ)">
-            <input name="monto_declarado" type="number" step="0.01" min="0" defaultValue={total.toFixed(2)} className={clasesInput} />
+            <input
+              key={totalVigente.toFixed(2)}
+              name="monto_declarado"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={totalVigente.toFixed(2)}
+              className={clasesInput}
+            />
           </Campo>
           <Campo label="Comprobante (foto o PDF)" required>
             <input

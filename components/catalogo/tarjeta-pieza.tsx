@@ -47,9 +47,22 @@ export function TarjetaPieza({
             {metadatos}
           </p>
           <div className="mt-auto pt-2">
-            <span className="text-[15px] font-medium text-[var(--cat-tinta)]">
-              {pieza.precio_venta != null ? formatearPrecio(pieza.precio_venta) : '—'}
-            </span>
+            {pieza.precio_embajador != null && pieza.precio_venta != null ? (
+              <div className="flex flex-col gap-0.5">
+                <span className="flex flex-wrap items-baseline gap-x-1.5 text-[15px]">
+                  <span className="text-[13px] text-[var(--cat-meta)] line-through">{formatearPrecio(pieza.precio_venta)}</span>
+                  <span className="text-[var(--cat-meta)]">–</span>
+                  <span className="font-semibold text-[var(--cat-primario)]">{formatearPrecio(pieza.precio_embajador)}</span>
+                </span>
+                <span className="text-[9.5px] font-medium uppercase tracking-[.12em] text-[var(--cat-primario)]">
+                  Precio embajador
+                </span>
+              </div>
+            ) : (
+              <span className="text-[15px] font-medium text-[var(--cat-tinta)]">
+                {pieza.precio_venta != null ? formatearPrecio(pieza.precio_venta) : '—'}
+              </span>
+            )}
           </div>
         </div>
       </Link>

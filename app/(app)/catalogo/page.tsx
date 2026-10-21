@@ -10,6 +10,8 @@ import { FiltroDrawer } from '@/components/catalogo/filtro-drawer'
 import { RejillaPiezas } from '@/components/catalogo/rejilla-piezas'
 import { Paginacion } from '@/components/catalogo/paginacion'
 import type { PiezaCatalogo } from '@/components/catalogo/tipos'
+import { SelectorModoCompra } from '@/components/app/selector-modo-compra'
+import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
 import '@/app/catalogo-tema.css'
 
 export const metadata = { title: 'Catálogo — ASTRO' }
@@ -66,7 +68,17 @@ export default async function CatalogoPage({
   const ok = typeof sp.ok === 'string' ? sp.ok : undefined
   const error = typeof sp.error === 'string' ? sp.error : undefined
 
-  const lista = (piezas ?? []) as PiezaCatalogo[]
+  const esEmbajador = usuario.rol === 'embajador'
+  const modo = await obtenerModoCompra()
+  // Embajador comprando para sí: precio público – precio embajador.
+  const preciosEmbajador =
+    esEmbajador && modo === 'mi'
+      ? await obtenerPreciosEmbajador(supabase, (piezas ?? []).map((p) => p.id as number))
+      : new Map<number, number>()
+  const lista = ((piezas ?? []) as PiezaCatalogo[]).map((p) => ({
+    ...p,
+    precio_embajador: preciosEmbajador.get(p.id) ?? null,
+  }))
   const facetas = calcularOpcionesFacetas(facetaData ?? [])
   const totalConFiltro = count ?? 0
   const totalPaginas = Math.max(1, Math.ceil(totalConFiltro / TAMANO_PAGINA))
@@ -103,6 +115,8 @@ export default async function CatalogoPage({
             </Link>
           )}
         </div>
+
+        <SelectorModoCompra modo={modo} volver="/catalogo" esEmbajador={esEmbajador} />
 
         {ok && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[4px] bg-[var(--cat-surface)] px-4 py-2.5 text-[13px] text-[var(--cat-tinta)]">

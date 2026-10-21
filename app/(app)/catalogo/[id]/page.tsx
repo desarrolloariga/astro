@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio } from '@/lib/formato'
 import { obtenerUrlBase } from '@/lib/url-publica'
+import { obtenerUsuarioActual } from '@/lib/usuario'
+import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
+import { SelectorModoCompra } from '@/components/app/selector-modo-compra'
 import { EstadoPieza } from '@/components/app/estado-pieza'
 import { CopyButton } from '@/components/app/copy-button'
 import { CodigoQr } from '@/components/app/codigo-qr'
@@ -69,6 +72,12 @@ export default async function FichaPiezaPage({
 
   const imagenes = (pieza?.imagenes ?? []).sort((a, b) => a.orden - b.orden)
 
+  const usuario = await obtenerUsuarioActual()
+  const esEmbajador = usuario.rol === 'embajador'
+  const modo = await obtenerModoCompra()
+  const precioEmbajador =
+    pieza && esEmbajador && modo === 'mi' ? ((await obtenerPreciosEmbajador(supabase, [pieza.id])).get(pieza.id) ?? null) : null
+
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 md:px-6">
       <Link
@@ -131,9 +140,21 @@ export default async function FichaPiezaPage({
               <p className="text-xs text-muted-foreground">{pieza.codigo}</p>
             </div>
 
-            <p className="text-2xl font-bold text-foreground">
-              {pieza.precio_venta != null ? formatearPrecio(pieza.precio_venta) : '—'}
-            </p>
+            {precioEmbajador != null && pieza.precio_venta != null ? (
+              <div className="flex flex-col gap-1">
+                <p className="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold">
+                  <span className="text-lg font-medium text-muted-foreground line-through">{formatearPrecio(pieza.precio_venta)}</span>
+                  <span className="text-muted-foreground">–</span>
+                  <span className="text-primary">{formatearPrecio(precioEmbajador)}</span>
+                </p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Tu precio de embajador</p>
+              </div>
+            ) : (
+              <p className="text-2xl font-bold text-foreground">
+                {pieza.precio_venta != null ? formatearPrecio(pieza.precio_venta) : '—'}
+              </p>
+            )}
+            <SelectorModoCompra modo={modo} volver={`/catalogo/${pieza.id}`} esEmbajador={esEmbajador} />
             {pieza.modo_inventario === 'por_cantidad' && (
               <p className="text-sm text-muted-foreground">
                 {pieza.stock_disponible ?? 0} unidades disponibles

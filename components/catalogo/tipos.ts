@@ -16,4 +16,6 @@ export type PiezaCatalogo = {
   imagenes?: { url: string; orden: number }[] | null
   modo_inventario?: 'pieza_unica' | 'por_cantidad'
   stock_disponible?: number | null
+  /** Solo embajador comprando para sí, en el backoffice. */
+  precio_embajador?: number | null
 }

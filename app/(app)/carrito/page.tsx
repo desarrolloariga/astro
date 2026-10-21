@@ -7,6 +7,9 @@ import { formatearPrecio } from '@/lib/formato'
 import { Countdown } from '@/components/publico/countdown'
 import type { ItemCarrito } from '@/lib/publico/carrito'
 import { quitarDeMiCarrito } from './acciones'
+import { obtenerUsuarioActual } from '@/lib/usuario'
+import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
+import { SelectorModoCompra } from '@/components/app/selector-modo-compra'
 
 export const metadata = { title: 'Carrito — ASTRO' }
 
@@ -21,7 +24,14 @@ export default async function CarritoPage({
   const supabase = await createClient()
   const { data } = await supabase.rpc('fn_ver_mi_carrito')
   const items = (data ?? []) as ItemCarrito[]
-  const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
+  const usuario = await obtenerUsuarioActual()
+  const esEmbajador = usuario.rol === 'embajador'
+  const modo = await obtenerModoCompra()
+  // Embajador comprando para sí: se cobra su precio de embajador.
+  const preciosEmbajador =
+    esEmbajador && modo === 'mi' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
+  const precioDe = (i: ItemCarrito) => preciosEmbajador.get(i.producto_id) ?? i.precio_venta ?? 0
+  const total = items.reduce((acc, i) => acc + precioDe(i) * i.cantidad, 0)
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -36,6 +46,7 @@ export default async function CarritoPage({
         <ShoppingCart className="h-5 w-5 text-primary" />
         Carrito
       </h1>
+      <SelectorModoCompra modo={modo} volver="/carrito" esEmbajador={esEmbajador} />
 
       {ok && (
         <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">
@@ -85,8 +96,15 @@ export default async function CarritoPage({
                     <Countdown segundosIniciales={item.segundos_restantes} />
                   </p>
                 </div>
-                <span className="shrink-0 text-sm font-bold text-foreground">
-                  {item.precio_venta != null ? formatearPrecio(item.precio_venta * item.cantidad) : '—'}
+                <span className="flex shrink-0 flex-col items-end">
+                  {preciosEmbajador.has(item.producto_id) && item.precio_venta != null && (
+                    <span className="text-xs text-muted-foreground line-through">
+                      {formatearPrecio(item.precio_venta * item.cantidad)}
+                    </span>
+                  )}
+                  <span className="text-sm font-bold text-foreground">
+                    {item.precio_venta != null ? formatearPrecio(precioDe(item) * item.cantidad) : '—'}
+                  </span>
                 </span>
                 <form action={quitarDeMiCarrito}>
                   <input type="hidden" name="producto_id" value={item.producto_id} />

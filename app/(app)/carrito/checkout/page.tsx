@@ -8,6 +8,7 @@ import { formatearPrecio } from '@/lib/formato'
 import { FormularioEnvioPago } from '@/components/app/formulario-envio-pago'
 import type { ItemCarrito } from '@/lib/publico/carrito'
 import { confirmarMiCarrito } from '../acciones'
+import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
 
 export const metadata = { title: 'Realizar compra — ASTRO' }
 
@@ -26,6 +27,15 @@ export default async function CheckoutBackofficePage({
   if (items.length === 0) redirect('/carrito')
 
   const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
+  const modo = await obtenerModoCompra()
+  // Solo el embajador recibe filas: su total "para mí" con precio embajador.
+  const preciosEmbajador =
+    usuario.rol === 'embajador' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
+  const totalParaMi = items.reduce(
+    (acc, i) => acc + (preciosEmbajador.get(i.producto_id) ?? i.precio_venta ?? 0) * i.cantidad,
+    0,
+  )
+  const totalModo = modo === 'mi' ? totalParaMi : total
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -39,7 +49,7 @@ export default async function CheckoutBackofficePage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Realizar compra</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {items.length} artículo{items.length !== 1 ? 's' : ''} · total {formatearPrecio(total)}
+          {items.length} artículo{items.length !== 1 ? 's' : ''} · total {formatearPrecio(totalModo)}
         </p>
       </div>
 
@@ -53,6 +63,8 @@ export default async function CheckoutBackofficePage({
       <FormularioEnvioPago
         action={confirmarMiCarrito}
         total={total}
+        totalParaMi={totalParaMi}
+        paraClienteInicial={modo === 'cliente'}
         permitirCompraPropia
         nombreUsuario={usuario.nombre}
       />

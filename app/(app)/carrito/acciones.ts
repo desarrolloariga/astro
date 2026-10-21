@@ -1,9 +1,11 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
+import { COOKIE_MODO_COMPRA } from '@/lib/modo-compra'
 import { extraerDatosCheckout, subirComprobanteCheckout, eliminarComprobanteCheckout } from '@/lib/checkout'
 
 /** Destino tras agregar/quitar: la página desde la que se hizo (solo rutas internas del backoffice). */
@@ -75,4 +77,18 @@ export async function confirmarMiCarrito(formData: FormData) {
 
   revalidatePath('/', 'layout')
   redirect(`/pedidos?ok=${encodeURIComponent(`Pedido de la venta #${ventaId} enviado — el pago queda en revisión`)}`)
+}
+
+/** Cambia "Comprar para mí / Para un cliente" (cookie) y vuelve a la página de origen. */
+export async function cambiarModoCompra(formData: FormData) {
+  const modo = formData.get('modo') === 'cliente' ? 'cliente' : 'mi'
+  const volver = String(formData.get('volver') ?? '')
+  ;(await cookies()).set(COOKIE_MODO_COMPRA, modo, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  })
+  revalidatePath('/', 'layout')
+  redirect(volver.startsWith('/') && !volver.startsWith('//') ? volver : '/catalogo')
 }
