@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio } from '@/lib/formato'
+import { obtenerUrlBase } from '@/lib/url-publica'
 
 function aNumero(valor: FormDataEntryValue | null): number | null {
   const texto = String(valor ?? '').trim()
@@ -124,6 +125,6 @@ export async function compartirPieza(formData: FormData) {
     redirect(`/catalogo/${productoId}?error=${encodeURIComponent(error?.message ?? 'No se pudo generar el enlace')}`)
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const baseUrl = await obtenerUrlBase()
   redirect(`/catalogo/${productoId}?link=${encodeURIComponent(`${baseUrl}/c/${token}`)}`)
 }

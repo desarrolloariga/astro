@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Gem, X } from 'lucide-react'
 import { formatearPrecio } from '@/lib/formato'
 import { agregarAlCarrito, quitarDelCarrito } from '@/app/(publico)/c/[token]/acciones'
+import { agregarAMiCarrito, quitarDeMiCarrito } from '@/app/(app)/carrito/acciones'
 import type { PiezaCatalogo } from './tipos'
 
 export function TarjetaPieza({
@@ -57,20 +58,31 @@ export function TarjetaPieza({
   )
 }
 
-/** Botón agregar/quitar de la bolsa — solo aplica al catálogo público. */
+/**
+ * Botón agregar/quitar de la bolsa. Con `token` opera el carrito del
+ * catálogo público (por link); sin `token`, el carrito del usuario
+ * logueado en el backoffice.
+ */
 export function BotonBolsa({
   pieza,
   token,
   enCarrito,
+  volver,
 }: {
   pieza: { id: number; modo_inventario?: 'pieza_unica' | 'por_cantidad'; stock_disponible?: number | null }
-  token: string
+  token?: string
   enCarrito: boolean
+  /** Ruta a la que regresar tras agregar/quitar (por defecto, el catálogo). */
+  volver?: string
 }) {
+  const accionAgregar = token ? agregarAlCarrito : agregarAMiCarrito
+  const accionQuitar = token ? quitarDelCarrito : quitarDeMiCarrito
+
   if (enCarrito) {
     return (
-      <form action={quitarDelCarrito}>
-        <input type="hidden" name="token" value={token} />
+      <form action={accionQuitar}>
+        {token && <input type="hidden" name="token" value={token} />}
+        {volver && <input type="hidden" name="volver" value={volver} />}
         <input type="hidden" name="producto_id" value={pieza.id} />
         <button
           type="submit"
@@ -86,8 +98,9 @@ export function BotonBolsa({
   const esPorCantidad = pieza.modo_inventario === 'por_cantidad'
 
   return (
-    <form action={agregarAlCarrito} className="flex items-center gap-1.5">
-      <input type="hidden" name="token" value={token} />
+    <form action={accionAgregar} className="flex items-center gap-1.5">
+      {token && <input type="hidden" name="token" value={token} />}
+      {volver && <input type="hidden" name="volver" value={volver} />}
       <input type="hidden" name="producto_id" value={pieza.id} />
       {esPorCantidad && (
         <input

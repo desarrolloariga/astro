@@ -1,13 +1,15 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ArrowLeft, Gem, AlertCircle, BookmarkPlus, ShoppingBag, Share2 } from 'lucide-react'
+import { ArrowLeft, Gem, AlertCircle, BookmarkPlus, ShoppingBag, Share2, ShoppingCart, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio } from '@/lib/formato'
+import { obtenerUrlBase } from '@/lib/url-publica'
 import { EstadoPieza } from '@/components/app/estado-pieza'
 import { CopyButton } from '@/components/app/copy-button'
 import { CodigoQr } from '@/components/app/codigo-qr'
 import { separarPieza, venderPieza, compartirPieza } from '../acciones'
+import { agregarAMiCarrito, quitarDeMiCarrito } from '@/app/(app)/carrito/acciones'
 
 export const metadata = { title: 'Pieza — ASTRO' }
 
@@ -37,15 +39,15 @@ export default async function FichaPiezaPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ error?: string; link?: string }>
+  searchParams: Promise<{ error?: string; link?: string; ok?: string }>
 }) {
   if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
 
   const { id } = await params
-  const { error, link } = await searchParams
+  const { error, link, ok } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: pieza }, puedeSeparar, puedeVenderDirecto, puedeDescuentoEmbajador] = await Promise.all([
+  const [{ data: pieza }, puedeSeparar, puedeVenderDirecto, puedeDescuentoEmbajador, { data: carritoData }] = await Promise.all([
     supabase
       .from('vw_catalogo')
       .select(
@@ -56,7 +58,11 @@ export default async function FichaPiezaPage({
     tienePermiso('separados', 'crear'),
     tienePermiso('ventas', 'crear'),
     tienePermiso('ventas', 'descuento_embajador'),
+    supabase.rpc('fn_ver_mi_carrito'),
   ])
+  const enCarrito = ((carritoData ?? []) as { producto_id: number; cantidad: number }[]).find(
+    (c) => c.producto_id === Number(id),
+  )
 
   const disponible = pieza?.estado && ['disponible_cedi', 'disponible_tienda'].includes(pieza.estado)
   const puedeVender = (puedeSeparar || puedeVenderDirecto) && disponible
@@ -171,7 +177,7 @@ export default async function FichaPiezaPage({
               </summary>
               <div className="flex flex-col items-center gap-2 px-4 pb-4">
                 <CodigoQr
-                  url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/catalogo/${pieza.id}`}
+                  url={`${await obtenerUrlBase()}/catalogo/${pieza.id}`}
                   alt="Código QR de la pieza"
                 />
                 <p className="text-center text-xs text-muted-foreground">
@@ -179,6 +185,61 @@ export default async function FichaPiezaPage({
                 </p>
               </div>
             </details>
+
+            {disponible && (
+              <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                {enCarrito ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      En tu carrito{enCarrito.cantidad > 1 ? ` (×${enCarrito.cantidad})` : ''}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <form action={quitarDeMiCarrito}>
+                        <input type="hidden" name="producto_id" value={pieza.id} />
+                        <input type="hidden" name="volver" value={`/catalogo/${pieza.id}`} />
+                        <button type="submit" className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-secondary">
+                          Quitar
+                        </button>
+                      </form>
+                      <Link href="/carrito" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+                        Ir al carrito
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <form action={agregarAMiCarrito} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="producto_id" value={pieza.id} />
+                    <input type="hidden" name="volver" value={`/catalogo/${pieza.id}`} />
+                    {pieza.modo_inventario === 'por_cantidad' && (
+                      <input
+                        name="cantidad"
+                        type="number"
+                        min="1"
+                        max={pieza.stock_disponible ?? undefined}
+                        step="1"
+                        defaultValue={1}
+                        className="w-20 rounded-lg border border-input bg-background px-2 py-2 text-center text-sm text-foreground focus:border-primary focus:outline-none"
+                      />
+                    )}
+                    <button
+                      type="submit"
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      Agregar al carrito
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {ok && (
+              <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{ok}</span>
+              </div>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">

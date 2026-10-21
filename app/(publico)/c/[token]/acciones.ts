@@ -4,9 +4,17 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { extraerDatosCheckout, subirComprobanteCheckout, eliminarComprobanteCheckout } from '@/lib/checkout'
 
 function nombreCookie(token: string) {
   return `ariga_carrito_${token}`
+}
+
+/** Destino tras agregar/quitar: la página desde la que se hizo, si es del mismo link. */
+function destino(token: string, formData: FormData, clave: 'ok' | 'error', mensaje: string) {
+  const volver = String(formData.get('volver') ?? '')
+  const base = volver.startsWith(`/c/${token}`) ? volver : `/c/${token}`
+  return `${base}${base.includes('?') ? '&' : '?'}${clave}=${encodeURIComponent(mensaje)}`
 }
 
 export async function agregarAlCarrito(formData: FormData) {
@@ -29,7 +37,7 @@ export async function agregarAlCarrito(formData: FormData) {
   })
 
   if (error || !nuevoToken) {
-    redirect(`/c/${token}?error=${encodeURIComponent(error?.message ?? 'No se pudo agregar la pieza')}`)
+    redirect(destino(token, formData, 'error', error?.message ?? 'No se pudo agregar la pieza'))
   }
 
   cookieStore.set(nombreCookie(token), nuevoToken, {
@@ -39,8 +47,8 @@ export async function agregarAlCarrito(formData: FormData) {
     path: '/',
   })
 
-  revalidatePath(`/c/${token}`)
-  redirect(`/c/${token}?ok=${encodeURIComponent('Pieza agregada a tu carrito')}`)
+  revalidatePath(`/c/${token}`, 'layout')
+  redirect(destino(token, formData, 'ok', 'Pieza agregada a tu carrito'))
 }
 
 export async function quitarDelCarrito(formData: FormData) {
@@ -58,11 +66,11 @@ export async function quitarDelCarrito(formData: FormData) {
     p_producto_id: productoId,
   })
 
-  revalidatePath(`/c/${token}`)
+  revalidatePath(`/c/${token}`, 'layout')
   if (error) {
-    redirect(`/c/${token}?error=${encodeURIComponent(error.message)}`)
+    redirect(destino(token, formData, 'error', error.message))
   }
-  redirect(`/c/${token}?ok=${encodeURIComponent('Pieza retirada de tu carrito')}`)
+  redirect(destino(token, formData, 'ok', 'Pieza retirada de tu carrito'))
 }
 
 export async function confirmarCompra(formData: FormData) {
@@ -73,31 +81,30 @@ export async function confirmarCompra(formData: FormData) {
   const carritoToken = cookieStore.get(nombreCookie(token))?.value
   if (!carritoToken) redirect(`/c/${token}`)
 
-  const nombre = String(formData.get('nombre') ?? '').trim()
-  const telefono = String(formData.get('telefono') ?? '').trim()
-  const correo = String(formData.get('correo') ?? '').trim()
-  const direccion = String(formData.get('direccion') ?? '').trim()
-  const metodoPago = String(formData.get('metodo_pago') ?? '').trim()
-  const referencia = String(formData.get('referencia') ?? '').trim()
-
-  if (!nombre || !metodoPago) {
+  const datos = extraerDatosCheckout(formData)
+  if (!datos.cliente.nombre || !datos.pago.metodo) {
     redirect(
       `/c/${token}/checkout?error=${encodeURIComponent('Tu nombre y el método de pago son obligatorios')}`,
     )
   }
 
+  let rutaComprobante: string
+  try {
+    rutaComprobante = await subirComprobanteCheckout(datos.archivo, carritoToken)
+  } catch (e) {
+    redirect(`/c/${token}/checkout?error=${encodeURIComponent((e as Error).message)}`)
+  }
+
   const supabase = await createClient()
   const { data: ventaId, error } = await supabase.rpc('fn_confirmar_carrito', {
     p_carrito_token: carritoToken,
-    p_nombre: nombre,
-    p_telefono: telefono || null,
-    p_correo: correo || null,
-    p_direccion: direccion || null,
-    p_metodo_pago: metodoPago,
-    p_referencia: referencia || null,
+    p_cliente: datos.cliente,
+    p_envio: { ...datos.envio, para_cliente: true },
+    p_pago: { ...datos.pago, url_archivo: rutaComprobante },
   })
 
   if (error || !ventaId) {
+    await eliminarComprobanteCheckout(rutaComprobante)
     redirect(
       `/c/${token}/checkout?error=${encodeURIComponent(error?.message ?? 'No se pudo completar la compra')}`,
     )

@@ -25,7 +25,7 @@ export default async function CatalogoPublicoPage({
   const supabase = await createClient()
 
   const { data: infoData } = await supabase.rpc('fn_link_info', { p_token: token })
-  const info = infoData?.[0] as { vendedor_nombre: string; tipo: string; vigente: boolean } | undefined
+  const info = infoData?.[0] as { vendedor_nombre: string; tipo: string; vigente: boolean; nombre: string | null } | undefined
 
   if (!info?.vigente) {
     return (
@@ -69,7 +69,7 @@ export default async function CatalogoPublicoPage({
       <div className="sticky top-0 z-30 border-b border-[var(--cat-borde)] bg-[var(--cat-bg)]/95 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-[1440px] items-center justify-between px-4 md:px-10">
           <p className="truncate text-[10px] font-medium uppercase tracking-[.14em] text-[var(--cat-primario)]">
-            Catálogo de {info.vendedor_nombre}
+            {info.nombre && info.tipo !== 'catalogo' ? `${info.nombre} · ` : ''}Catálogo de {info.vendedor_nombre}
           </p>
           <PanelBolsa token={token} items={carrito} abrirAlInicio={Boolean(ok)} />
         </div>

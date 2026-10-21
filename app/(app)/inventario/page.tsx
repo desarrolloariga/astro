@@ -338,7 +338,7 @@ export default async function InventarioPage({
 
           {totales.sinMovimiento > 0 && (
             <Link
-              href="/logistica"
+              href="/inventario/reposicion"
               className="flex items-center justify-between gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm text-accent-foreground transition-opacity hover:opacity-90"
             >
               <span>

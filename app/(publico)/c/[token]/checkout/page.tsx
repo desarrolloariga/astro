@@ -5,6 +5,7 @@ import { ArrowLeft, AlertCircle, Gem, ImageOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatearPrecio } from '@/lib/formato'
 import { Countdown } from '@/components/publico/countdown'
+import { FormularioEnvioPago } from '@/components/app/formulario-envio-pago'
 import { confirmarCompra } from '../acciones'
 
 export const metadata = { title: 'Finalizar compra — ASTRO' }
@@ -53,7 +54,7 @@ export default async function CheckoutPage({
   const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
       <Link
         href={`/c/${token}`}
         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -106,63 +107,7 @@ export default async function CheckoutPage({
         </div>
       </div>
 
-      <form action={confirmarCompra} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-        <input type="hidden" name="token" value={token} />
-        <h2 className="text-sm font-bold text-foreground">Tus datos</h2>
-
-        <input
-          name="nombre"
-          required
-          placeholder="Nombre completo"
-          className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-        />
-        <input
-          name="telefono"
-          placeholder="Teléfono"
-          className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-        />
-        <input
-          name="correo"
-          type="email"
-          placeholder="Correo (opcional)"
-          className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-        />
-        <input
-          name="direccion"
-          placeholder="Dirección de entrega (opcional)"
-          className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-        />
-
-        <h2 className="mt-2 text-sm font-bold text-foreground">Forma de pago</h2>
-        <p className="text-xs text-muted-foreground">
-          Por ahora aceptamos transferencia o depósito. Tras confirmar tu pedido, sube tu
-          comprobante o compártelo con quien te atendió.
-        </p>
-        <select
-          name="metodo_pago"
-          required
-          defaultValue=""
-          className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-        >
-          <option value="" disabled>
-            Elige un método
-          </option>
-          <option value="transferencia">Transferencia</option>
-          <option value="deposito">Depósito</option>
-        </select>
-        <input
-          name="referencia"
-          placeholder="Referencia de pago (opcional)"
-          className="rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-        />
-
-        <button
-          type="submit"
-          className="mt-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-        >
-          Confirmar pedido
-        </button>
-      </form>
+      <FormularioEnvioPago action={confirmarCompra} camposOcultos={{ token }} total={total} />
     </main>
   )
 }

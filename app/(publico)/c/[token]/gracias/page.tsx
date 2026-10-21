@@ -20,7 +20,7 @@ export default async function GraciasPage({
       </span>
       <h1 className="text-xl font-bold tracking-tight text-foreground">¡Pedido confirmado!</h1>
       <p className="text-sm text-muted-foreground">
-        {mensajePedido(venta)} Te contactaremos para confirmar tu pago y coordinar la entrega.
+        {mensajePedido(venta)} Recibimos tu comprobante de pago: lo revisaremos y, una vez aprobado, preparamos tu envío.
       </p>
       <Link
         href={`/c/${token}`}

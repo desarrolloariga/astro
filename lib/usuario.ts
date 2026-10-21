@@ -10,6 +10,7 @@ export type Rol =
   | 'tienda'
   | 'produccion'
   | 'contabilidad'
+  | 'logistica'
 
 export type UsuarioActual = {
   id: number

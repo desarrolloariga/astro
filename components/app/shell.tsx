@@ -3,21 +3,42 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Gem, Menu, X, LogOut, Search, ChevronDown } from 'lucide-react'
+import { Gem, Menu, X, LogOut, Search, ChevronDown, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { cerrarSesion } from '@/app/(auth)/acciones'
 import { seccionesParaRol, nombresRol, agruparPorSubgrupo } from '@/lib/navegacion'
 import type { Rol } from '@/lib/usuario'
 
+/** Ícono de carrito con contador — enlaza a /carrito. */
+function BotonCarrito({ unidades }: { unidades: number }) {
+  return (
+    <Link
+      href="/carrito"
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-secondary"
+      aria-label={`Carrito (${unidades})`}
+    >
+      <ShoppingCart className="h-5 w-5" />
+      {unidades > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+          {unidades}
+        </span>
+      )}
+    </Link>
+  )
+}
+
 export function AppShell({
   usuario,
   permisosExtra = [],
   permisosRevocados = [],
+  unidadesCarrito = null,
   children,
 }: {
   usuario: { nombre: string; rol: Rol }
   permisosExtra?: string[]
   permisosRevocados?: string[]
+  /** null = el usuario no compra desde el catálogo (sin ícono de carrito). */
+  unidadesCarrito?: number | null
   children: React.ReactNode
 }) {
   const [abierto, setAbierto] = useState(false)
@@ -227,7 +248,17 @@ export function AppShell({
                 Ecosistema Comercial
               </span>
             </div>
+            {unidadesCarrito != null && (
+              <div className="ml-auto">
+                <BotonCarrito unidades={unidadesCarrito} />
+              </div>
+            )}
           </div>
+          {unidadesCarrito != null && (
+            <div className="hidden h-12 items-center justify-end border-b border-border bg-card/90 px-6 backdrop-blur md:flex">
+              <BotonCarrito unidades={unidadesCarrito} />
+            </div>
+          )}
           <div className="h-1.5 bg-brand-deeper" />
         </header>
 

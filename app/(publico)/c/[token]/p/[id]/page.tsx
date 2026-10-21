@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { obtenerCarrito } from '@/lib/publico/carrito'
 import { formatearPrecio } from '@/lib/formato'
 import { BotonBolsa } from '@/components/catalogo/tarjeta-pieza'
+import { PanelBolsa } from '@/components/catalogo/panel-bolsa'
 import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import '@/app/catalogo-tema.css'
 
@@ -48,6 +49,14 @@ export default async function PiezaPublicaPage({
 
   return (
     <div className="catalogo-tema">
+      <div className="sticky top-0 z-30 border-b border-[var(--cat-borde)] bg-[var(--cat-bg)]/95 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-[1000px] items-center justify-between px-4 md:px-10">
+          <p className="truncate text-[10px] font-medium uppercase tracking-[.14em] text-[var(--cat-primario)]">
+            Catálogo de {info.vendedor_nombre}
+          </p>
+          <PanelBolsa token={token} items={carrito} />
+        </div>
+      </div>
       <main className="mx-auto flex w-full max-w-[1000px] flex-col gap-6 px-4 py-8 md:px-10">
         <Link
           href={`/c/${token}`}
@@ -115,7 +124,7 @@ export default async function PiezaPublicaPage({
             )}
 
             <div className="max-w-xs">
-              <BotonBolsa pieza={pieza} token={token} enCarrito={enCarrito} />
+              <BotonBolsa pieza={pieza} token={token} enCarrito={enCarrito} volver={`/c/${token}/p/${pieza.id}`} />
             </div>
           </div>
         </div>

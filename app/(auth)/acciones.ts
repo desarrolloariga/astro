@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { obtenerUrlBase } from '@/lib/url-publica'
 import { createClient } from '@/lib/supabase/server'
 
 export async function iniciarSesion(formData: FormData) {
@@ -40,7 +41,7 @@ export async function enviarRecuperacion(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.auth.resetPasswordForEmail(correo, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/restablecer`,
+    redirectTo: `${await obtenerUrlBase()}/restablecer`,
   })
 
   // Siempre se confirma el envío (no se revela si el correo existe o no)

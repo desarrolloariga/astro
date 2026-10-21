@@ -1,4 +1,7 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { Link2 } from 'lucide-react'
+import { obtenerUsuarioActual } from '@/lib/usuario'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { parsearFiltros, calcularOpcionesFacetas, TAMANO_PAGINA } from '@/lib/catalogo'
@@ -18,6 +21,8 @@ export default async function CatalogoPage({
 }) {
   if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
 
+  const usuario = await obtenerUsuarioActual()
+  const puedeGenerarLink = ['tienda', 'asesor', 'embajador', 'admin'].includes(usuario.rol)
   const sp = await searchParams
   const filtros = parsearFiltros(sp)
   const supabase = await createClient()
@@ -25,7 +30,7 @@ export default async function CatalogoPage({
   let consulta = supabase
     .from('vw_catalogo')
     .select(
-      'id, codigo, nombre, categoria, material, peso_gramos, kilataje, precio_venta, estado, tienda, imagen_principal',
+      'id, codigo, nombre, categoria, material, peso_gramos, kilataje, precio_venta, estado, tienda, imagen_principal, modo_inventario, stock_disponible',
       { count: 'exact' },
     )
 
@@ -52,10 +57,14 @@ export default async function CatalogoPage({
   const desde = (filtros.pagina - 1) * TAMANO_PAGINA
   consulta = consulta.range(desde, desde + TAMANO_PAGINA - 1)
 
-  const [{ data: piezas, count }, { data: facetaData, count: totalSinFiltrar }] = await Promise.all([
+  const [{ data: piezas, count }, { data: facetaData, count: totalSinFiltrar }, { data: carritoData }] = await Promise.all([
     consulta,
     supabase.from('vw_catalogo').select('categoria, material, kilataje, precio_venta', { count: 'exact' }),
+    supabase.rpc('fn_ver_mi_carrito'),
   ])
+  const idsEnCarrito = new Set(((carritoData ?? []) as { producto_id: number }[]).map((c) => c.producto_id))
+  const ok = typeof sp.ok === 'string' ? sp.ok : undefined
+  const error = typeof sp.error === 'string' ? sp.error : undefined
 
   const lista = (piezas ?? []) as PiezaCatalogo[]
   const facetas = calcularOpcionesFacetas(facetaData ?? [])
@@ -77,17 +86,45 @@ export default async function CatalogoPage({
   return (
     <div className="catalogo-tema">
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-[22px] px-4 pb-20 pt-[26px] md:px-10">
-        <div>
-          <h1 className="text-2xl text-[var(--cat-tinta)]">Catálogo</h1>
-          <p className="mt-1 text-[13px] text-[var(--cat-texto)]">
-            Piezas disponibles en tiempo real en toda la red.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl text-[var(--cat-tinta)]">Catálogo</h1>
+            <p className="mt-1 text-[13px] text-[var(--cat-texto)]">
+              Piezas disponibles en tiempo real en toda la red.
+            </p>
+          </div>
+          {puedeGenerarLink && (
+            <Link
+              href="/catalogo/generar-link"
+              className="inline-flex items-center gap-2 rounded-[4px] bg-[var(--cat-primario)] px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              <Link2 className="h-4 w-4" />
+              Generar link
+            </Link>
+          )}
         </div>
+
+        {ok && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-[4px] bg-[var(--cat-surface)] px-4 py-2.5 text-[13px] text-[var(--cat-tinta)]">
+            <span>{ok}</span>
+            <a href="/carrito" className="font-medium text-[var(--cat-primario)] hover:underline">
+              Ver carrito →
+            </a>
+          </div>
+        )}
+        {error && (
+          <div className="rounded-[4px] bg-destructive/10 px-4 py-2.5 text-[13px] text-destructive">{error}</div>
+        )}
 
         <FiltroDrawer panel={panelFiltros} />
         <div className="hidden lg:block">{panelFiltros}</div>
 
-        <RejillaPiezas piezas={lista} rutaDetalle={(id) => `/catalogo/${id}`} rutaLimpiar={rutaBase} />
+        <RejillaPiezas
+          piezas={lista}
+          rutaDetalle={(id) => `/catalogo/${id}`}
+          rutaLimpiar={rutaBase}
+          accionesPublicas={{ idsEnCarrito, volver: '/catalogo' }}
+        />
 
         <Paginacion filtros={filtrosPaginados} totalPaginas={totalPaginas} rutaBase={rutaBase} />
       </main>

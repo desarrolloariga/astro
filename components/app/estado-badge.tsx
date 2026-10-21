@@ -36,10 +36,12 @@ export const estadosPago: ConfigEstado = {
 }
 
 export const estadosPedido: ConfigEstado = {
-  en_espera: { etiqueta: 'En espera de pago', clases: 'bg-accent text-accent-foreground' },
-  listo_para_despacho: { etiqueta: 'Listo para despacho', clases: 'bg-brand-deep-muted/40 text-brand-deep' },
-  despachado: { etiqueta: 'Despachado', clases: 'bg-secondary text-secondary-foreground' },
-  entregado: { etiqueta: 'Entregado', clases: 'bg-primary/10 text-primary' },
+  en_espera: { etiqueta: 'Pago en revisión', clases: 'bg-accent text-accent-foreground' },
+  pago_rechazado: { etiqueta: 'Pago rechazado', clases: 'bg-destructive/10 text-destructive' },
+  listo_para_despacho: { etiqueta: 'Pago aprobado', clases: 'bg-brand-deep-muted/40 text-brand-deep' },
+  en_preparacion: { etiqueta: 'En preparación', clases: 'bg-amber-500/15 text-amber-700' },
+  despachado: { etiqueta: 'Enviado', clases: 'bg-secondary text-secondary-foreground' },
+  entregado: { etiqueta: 'Recibido', clases: 'bg-primary/10 text-primary' },
 }
 
 export const estadosComprobante: ConfigEstado = {

@@ -12,7 +12,8 @@ export function RejillaPiezas({
   piezas: PiezaCatalogo[]
   rutaDetalle: (id: number) => string
   rutaLimpiar: string
-  accionesPublicas?: { idsEnCarrito: Set<number>; token: string }
+  /** Botón de bolsa en cada tarjeta. Sin token → carrito backoffice del usuario logueado. */
+  accionesPublicas?: { idsEnCarrito: Set<number>; token?: string; volver?: string }
 }) {
   if (piezas.length === 0) {
     return (
@@ -45,6 +46,7 @@ export function RejillaPiezas({
                 pieza={pieza}
                 token={accionesPublicas.token}
                 enCarrito={accionesPublicas.idsEnCarrito.has(pieza.id)}
+                volver={accionesPublicas.volver}
               />
             ) : undefined
           }

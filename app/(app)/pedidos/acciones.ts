@@ -3,9 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-
-const BUCKET = 'astro-pedidos'
+import { subirComprobanteCheckout, eliminarComprobanteCheckout } from '@/lib/checkout'
 
 function aNumero(valor: FormDataEntryValue | null): number | null {
   const texto = String(valor ?? '').trim()
@@ -14,37 +12,48 @@ function aNumero(valor: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-export async function avanzarPedido(formData: FormData) {
+/** El vendedor/comprador confirma que el pedido enviado por logística llegó — cierra el proceso. */
+export async function confirmarRecepcion(formData: FormData) {
   const pedidoId = aNumero(formData.get('pedido_id'))
-  const nuevoEstado = String(formData.get('nuevo_estado') ?? '').trim()
-  if (!pedidoId || !nuevoEstado) redirect('/pedidos')
+  if (!pedidoId) redirect('/pedidos')
 
   const supabase = await createClient()
-  const { error } = await supabase.rpc('fn_avanzar_pedido', {
-    p_pedido_id: pedidoId,
-    p_nuevo_estado: nuevoEstado,
-  })
-
-  if (error) {
-    redirect(`/pedidos?error=${encodeURIComponent(error.message)}`)
-  }
-
-  const archivo = formData.get('archivo')
-  if (archivo instanceof File && archivo.size > 0) {
-    const tipo = nuevoEstado === 'despachado' ? 'guia' : 'evidencia_entrega'
-    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const ruta = `pedido-${pedidoId}/${tipo}-${Date.now()}.${extension}`
-
-    const admin = createAdminClient()
-    const { error: errorSubida } = await admin.storage
-      .from(BUCKET)
-      .upload(ruta, archivo, { contentType: archivo.type || 'application/octet-stream' })
-
-    if (!errorSubida) {
-      await supabase.from('pedido_documentos').insert({ pedido_id: pedidoId, tipo, url: ruta })
-    }
-  }
+  const { error } = await supabase.rpc('fn_confirmar_recepcion', { p_pedido_id: pedidoId })
 
   revalidatePath('/pedidos')
-  redirect(`/pedidos?ok=${encodeURIComponent('Pedido actualizado')}`)
+  revalidatePath(`/pedidos/${pedidoId}`)
+  if (error) redirect(`/pedidos/${pedidoId}?error=${encodeURIComponent(error.message)}`)
+  redirect(`/pedidos/${pedidoId}?ok=${encodeURIComponent('Recepción confirmada — pedido cerrado')}`)
+}
+
+/** Tras un pago rechazado: sube un comprobante nuevo y el pedido vuelve a revisión. */
+export async function reenviarComprobante(formData: FormData) {
+  const pedidoId = aNumero(formData.get('pedido_id'))
+  if (!pedidoId) redirect('/pedidos')
+
+  const archivo = formData.get('comprobante')
+  let ruta: string
+  try {
+    ruta = await subirComprobanteCheckout(archivo instanceof File && archivo.size > 0 ? archivo : null, `pedido-${pedidoId}`)
+  } catch (e) {
+    redirect(`/pedidos/${pedidoId}?error=${encodeURIComponent((e as Error).message)}`)
+  }
+
+  const supabase = await createClient()
+  const fechaPago = String(formData.get('fecha_pago') ?? '').trim()
+  const { error } = await supabase.rpc('fn_reenviar_comprobante', {
+    p_pedido_id: pedidoId,
+    p_url_archivo: ruta,
+    p_numero_referencia: String(formData.get('referencia_pago') ?? '').trim() || null,
+    p_banco_origen: String(formData.get('banco_origen') ?? '').trim() || null,
+    p_fecha_pago: fechaPago || null,
+    p_monto_declarado: aNumero(formData.get('monto_declarado')),
+  })
+
+  revalidatePath(`/pedidos/${pedidoId}`)
+  if (error) {
+    await eliminarComprobanteCheckout(ruta)
+    redirect(`/pedidos/${pedidoId}?error=${encodeURIComponent(error.message)}`)
+  }
+  redirect(`/pedidos/${pedidoId}?ok=${encodeURIComponent('Comprobante reenviado — vuelve a revisión')}`)
 }

@@ -107,10 +107,18 @@ export const secciones: SeccionNav[] = [
       },
       {
         etiqueta: 'Pedidos',
-        descripcion: 'Despacho y confirmación de entrega',
+        descripcion: 'Seguimiento del pedido: pago, envío y recepción',
         href: '/pedidos',
         icono: Truck,
-        roles: ['admin', 'coordinador', 'supervisor', 'asesor', 'embajador', 'tienda', 'produccion'],
+        roles: ['admin', 'coordinador', 'supervisor', 'asesor', 'embajador', 'tienda', 'produccion', 'logistica'],
+      },
+      {
+        etiqueta: 'Torre de control',
+        descripcion: 'Logística: preparar, verificar y enviar pedidos aprobados',
+        href: '/logistica',
+        icono: ClipboardCheck,
+        roles: ['admin', 'coordinador', 'logistica'],
+        permiso: { modulo: 'pedidos', accion: 'despachar' },
       },
       {
         etiqueta: 'Enlaces',
@@ -271,9 +279,9 @@ export const secciones: SeccionNav[] = [
         subgrupo: 'Inventario',
       },
       {
-        etiqueta: 'Logística',
+        etiqueta: 'Reposición y rotación',
         descripcion: 'Solicitudes de reposición, alertas y rotación',
-        href: '/logistica',
+        href: '/inventario/reposicion',
         icono: PackageSearch,
         roles: ['admin', 'coordinador', 'asesor', 'produccion'],
         permiso: { modulo: 'logistica', accion: 'gestionar' },
@@ -488,6 +496,7 @@ export const nombresRol: Record<Rol, string> = {
   tienda: 'Tienda',
   produccion: 'Producción',
   contabilidad: 'Contabilidad',
+  logistica: 'Logística',
 }
 
 export function itemVisible(
