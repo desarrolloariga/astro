@@ -22,12 +22,15 @@ type Politica = {
   todas_categorias: boolean
   activo: boolean
   politica_mayorista_categorias: { categoria_id: number; visible: boolean; descuento_pct: number | null }[]
+  politica_mayorista_materiales: { material_id: number; precio_gramo: number }[]
 }
 type Categoria = { id: number; nombre: string }
+type Material = { id: number; nombre: string }
 type Mayorista = { id: number; nombre: string; correo: string; activo: boolean; politica_mayorista_id: number | null }
 
-function FormPolitica({ p, categorias }: { p?: Politica; categorias: Categoria[] }) {
+function FormPolitica({ p, categorias, materiales }: { p?: Politica; categorias: Categoria[]; materiales: Material[] }) {
   const porCategoria = new Map((p?.politica_mayorista_categorias ?? []).map((c) => [c.categoria_id, c]))
+  const porMaterial = new Map((p?.politica_mayorista_materiales ?? []).map((m) => [m.material_id, Number(m.precio_gramo)]))
   const ejemplo = 1000 * (1 - Number(p?.descuento_pct ?? 0) / 100)
   return (
     <form action={guardarPolitica} className="flex flex-col gap-4">
@@ -91,6 +94,36 @@ function FormPolitica({ p, categorias }: { p?: Politica; categorias: Categoria[]
         </div>
       </div>
 
+      <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+        <p className="text-sm font-semibold text-foreground">Precio por gramo (oro y plata)</p>
+        <p className="text-xs text-muted-foreground">
+          Si escribes un precio por gramo para un material, las piezas de ese material se venden al mayorista a{' '}
+          <span className="font-semibold text-foreground">peso en gramos × precio por gramo</span>, en lugar del % de descuento. Vacío = usa el %.
+        </p>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+          {materiales.map((m) => (
+            <label key={m.id} className="grid grid-cols-[1fr_130px] items-center gap-2 border-b border-border/60 py-1.5 text-sm">
+              <input type="hidden" name="material_id" value={m.id} />
+              <span className="truncate text-foreground">{m.nombre}</span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                Q
+                <input
+                  name={`gramo_${m.id}`}
+                  type="number"
+                  step="0.01"
+                  min={0.01}
+                  defaultValue={porMaterial.get(m.id) ?? ''}
+                  placeholder="por gramo"
+                  aria-label={`Precio por gramo de ${m.nombre}`}
+                  className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
+                />
+                /g
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between gap-3">
         <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <input name="activo" type="checkbox" defaultChecked={p?.activo ?? true} className="h-4 w-4" /> Activa
@@ -113,14 +146,17 @@ export default async function PoliticasMayoristasPage({
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
   const supabase = await createClient()
-  const [permitido, { ok, error }, { data: politicasData }, { data: categoriasData }, { data: rolData }] = await Promise.all([
+  const [permitido, { ok, error }, { data: politicasData }, { data: categoriasData }, { data: materialesData }, { data: rolData }] = await Promise.all([
     tienePermiso('mayoristas', 'configurar'),
     searchParams,
     supabase
       .from('politicas_mayoristas')
-      .select('id, nombre, descripcion, descuento_pct, minimo_compra, todas_categorias, activo, politica_mayorista_categorias ( categoria_id, visible, descuento_pct )')
+      .select(
+        'id, nombre, descripcion, descuento_pct, minimo_compra, todas_categorias, activo, politica_mayorista_categorias ( categoria_id, visible, descuento_pct ), politica_mayorista_materiales ( material_id, precio_gramo )',
+      )
       .order('nombre'),
     supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden').order('nombre'),
+    supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
     supabase.from('roles').select('id').eq('nombre', 'mayorista').maybeSingle(),
   ])
   if (!permitido) redirect('/inicio')
@@ -131,6 +167,7 @@ export default async function PoliticasMayoristasPage({
 
   const politicas = (politicasData ?? []) as Politica[]
   const categorias = (categoriasData ?? []) as Categoria[]
+  const materiales = (materialesData ?? []) as Material[]
   const mayoristas = (mayoristasData ?? []) as Mayorista[]
   const faltaMigracion = !rolData
 
@@ -141,7 +178,8 @@ export default async function PoliticasMayoristasPage({
           <BadgePercent className="h-6 w-6 text-primary" /> Políticas mayoristas
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          El mayorista solo compra para sí. Su precio es el precio público menos el descuento de su política, ve solo las categorías
+          El mayorista solo compra para sí. Su precio es el precio público menos el descuento de su política (o peso × precio por
+          gramo en oro y plata), ve solo las categorías
           permitidas y debe cumplir la compra mínima. Sus compras no generan comisiones, puntos ni Billetera.
         </p>
       </div>
@@ -212,6 +250,7 @@ export default async function PoliticasMayoristasPage({
               <span className="text-xs text-muted-foreground">
                 {formatearNumero(Number(p.descuento_pct))}% de descuento · compra mínima {formatearPrecio(Number(p.minimo_compra))} ·{' '}
                 {p.todas_categorias ? 'todas las categorías' : `${p.politica_mayorista_categorias.filter((c) => c.visible).length} categorías`} ·{' '}
+                {p.politica_mayorista_materiales.length > 0 && `${p.politica_mayorista_materiales.length} material(es) por gramo · `}
                 {mayoristas.filter((m) => m.politica_mayorista_id === p.id).length} mayorista(s)
               </span>
             </span>
@@ -223,7 +262,7 @@ export default async function PoliticasMayoristasPage({
             </span>
           </summary>
           <div className="border-t border-border p-5">
-            <FormPolitica p={p} categorias={categorias} />
+            <FormPolitica p={p} categorias={categorias} materiales={materiales} />
           </div>
         </details>
       ))}
@@ -231,7 +270,7 @@ export default async function PoliticasMayoristasPage({
       <details className="rounded-xl border border-dashed border-border bg-card" open={politicas.length === 0}>
         <summary className="cursor-pointer list-none p-5 text-sm font-semibold text-primary">+ Nueva política</summary>
         <div className="border-t border-border p-5">
-          <FormPolitica categorias={categorias} />
+          <FormPolitica categorias={categorias} materiales={materiales} />
         </div>
       </details>
     </main>

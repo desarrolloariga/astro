@@ -73,6 +73,19 @@ export async function guardarPolitica(formData: FormData) {
     if (errorCat) volver('error', errorCat.message)
   }
 
+  // Precio por gramo por material (vacío = no aplica; la pieza usa el % de descuento).
+  const materiales = formData.getAll('material_id').map(Number).filter(Boolean)
+  const gramos = materiales
+    .map((materialId) => ({ politica_id: politicaId, material_id: materialId, precio_gramo: num(formData, `gramo_${materialId}`) }))
+    .filter((g): g is { politica_id: number; material_id: number; precio_gramo: number } => g.precio_gramo != null)
+  if (gramos.some((g) => g.precio_gramo <= 0)) volver('error', 'El precio por gramo debe ser mayor a 0', `politica-${politicaId}`)
+  const { error: errorBorrarGr } = await supabase.from('politica_mayorista_materiales').delete().eq('politica_id', politicaId)
+  if (errorBorrarGr) volver('error', errorBorrarGr.message)
+  if (gramos.length) {
+    const { error: errorGr } = await supabase.from('politica_mayorista_materiales').insert(gramos)
+    if (errorGr) volver('error', errorGr.message)
+  }
+
   refrescar()
   volver('ok', id ? 'Política actualizada' : 'Política creada', `politica-${politicaId}`)
 }
