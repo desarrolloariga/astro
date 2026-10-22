@@ -44,6 +44,7 @@ export async function PremiosMiRed({ usuarioId }: { usuarioId: number }) {
         </h2>
         <p className="text-xs text-muted-foreground">
           Tienes <span className="text-base font-bold text-foreground">{formatearNumero(disponibles)}</span> puntos para canjear
+          <span className="block">Solo se canjean por premios; no aplican a productos ni a dinero.</span>
         </p>
       </div>
 

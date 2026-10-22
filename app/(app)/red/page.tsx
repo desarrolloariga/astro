@@ -7,7 +7,7 @@ import { obtenerUsuarioActual } from '@/lib/usuario'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora, formatearNumero, formatearPrecio } from '@/lib/formato'
 import { crearEmbajador } from './acciones'
-import { SeccionPuntosEmbajador, EsqueletoTarjeta, type PuntosBolsa } from './secciones'
+import { SeccionPuntos, EsqueletoTarjeta, type PuntosBolsa } from './secciones'
 import { PremiosMiRed } from '@/components/app/premios-mi-red'
 import { ChipBilletera, TarjetaBilletera } from '@/components/app/billetera-astro'
 
@@ -170,7 +170,7 @@ export default async function MiRedPage({
         </div>
 
         <Suspense fallback={<EsqueletoTarjeta alto="h-36" />}>
-          <SeccionPuntosEmbajador usuarioId={usuario.id} />
+          <SeccionPuntos usuarioId={usuario.id} conRanking />
         </Suspense>
 
         <Suspense fallback={<EsqueletoTarjeta alto="h-48" />}>
@@ -255,6 +255,10 @@ export default async function MiRedPage({
           <span>{error}</span>
         </div>
       )}
+
+      <Suspense fallback={<EsqueletoTarjeta alto="h-36" />}>
+        <SeccionPuntos usuarioId={usuario.id} />
+      </Suspense>
 
       <Suspense fallback={<EsqueletoTarjeta alto="h-48" />}>
         <PremiosMiRed usuarioId={usuario.id} />

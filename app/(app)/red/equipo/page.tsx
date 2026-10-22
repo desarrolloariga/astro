@@ -66,13 +66,7 @@ export default async function MiEquipoPage({
     // Aparte y sin límite: "mi comisión" debe sumar el ledger completo,
     // no solo la ventana reciente que se muestra en pantalla.
     supabase.from('vw_comisiones_red').select('monto').eq('usuario_id', usuario.id),
-    supabase
-      .from('vw_ranking')
-      .select('puntos_totales, posicion')
-      .eq('usuario_id', usuario.id)
-      .order('periodo_id', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    supabase.rpc('fn_mi_posicion_ranking').maybeSingle(),
     supabase
       .from('ventas')
       .select('id, total, estado, fecha_creacion, clientes ( nombre ), usuarios ( nombre )')
