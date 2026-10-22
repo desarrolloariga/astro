@@ -29,6 +29,10 @@ export function extraerDatosCheckout(formData: FormData) {
       referencia: texto(formData, 'referencia_entrega'),
       latitud: texto(formData, 'latitud'),
       longitud: texto(formData, 'longitud'),
+      metodo_entrega: texto(formData, 'metodo_entrega'),
+      tipo_entrega: texto(formData, 'tipo_entrega'),
+      fecha_entrega: texto(formData, 'fecha_entrega'),
+      franja_entrega: texto(formData, 'franja_entrega'),
     },
     pago: {
       metodo: texto(formData, 'metodo_pago'),

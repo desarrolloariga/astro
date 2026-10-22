@@ -3,10 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { obtenerUsuarioActual } from '@/lib/usuario'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearPrecio } from '@/lib/formato'
-import { obtenerUrlBase } from '@/lib/url-publica'
 
 function aNumero(valor: FormDataEntryValue | null): number | null {
   const texto = String(valor ?? '').trim()
@@ -104,27 +102,4 @@ export async function venderPieza(formData: FormData) {
   }
 
   redirect(`/ventas?ok=${encodeURIComponent('Venta registrada. Sube el comprobante de pago.')}`)
-}
-
-export async function compartirPieza(formData: FormData) {
-  const usuario = await obtenerUsuarioActual()
-  const productoId = aNumero(formData.get('producto_id'))
-  if (!productoId) redirect('/catalogo')
-
-  if (!['tienda', 'asesor', 'embajador', 'admin'].includes(usuario.rol)) {
-    redirect(`/catalogo/${productoId}?error=Tu%20rol%20no%20puede%20generar%20enlaces`)
-  }
-
-  const supabase = await createClient()
-  const { data: token, error } = await supabase.rpc('fn_crear_link_venta', {
-    p_tipo: 'pieza',
-    p_producto_ids: [productoId],
-  })
-
-  if (error || !token) {
-    redirect(`/catalogo/${productoId}?error=${encodeURIComponent(error?.message ?? 'No se pudo generar el enlace')}`)
-  }
-
-  const baseUrl = await obtenerUrlBase()
-  redirect(`/catalogo/${productoId}?link=${encodeURIComponent(`${baseUrl}/c/${token}`)}`)
 }

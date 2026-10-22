@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatearPrecio } from '@/lib/formato'
 import { Countdown } from '@/components/publico/countdown'
 import { FormularioEnvioPago } from '@/components/app/formulario-envio-pago'
+import { cargarEntregaCheckout } from '@/lib/entrega-servidor'
 import { confirmarCompra } from '../acciones'
 import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
 
@@ -54,6 +55,7 @@ export default async function CheckoutPage({
 
   const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
   const politicaEnvio = await obtenerPoliticaEnvio(supabase)
+  const entrega = await cargarEntregaCheckout(supabase, items.map((i) => i.producto_id))
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -109,7 +111,7 @@ export default async function CheckoutPage({
         </div>
       </div>
 
-      <FormularioEnvioPago action={confirmarCompra} camposOcultos={{ token }} total={total} politicaEnvio={politicaEnvio} />
+      <FormularioEnvioPago action={confirmarCompra} camposOcultos={{ token }} total={total} politicaEnvio={politicaEnvio} entrega={entrega} />
     </main>
   )
 }

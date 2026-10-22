@@ -88,18 +88,21 @@ export function GeneradorLink({
   piezas,
   diasPorDefecto,
   accion,
+  inicial,
 }: {
   piezas: PiezaGenerador[]
   diasPorDefecto: number
   accion: (formData: FormData) => Promise<void>
+  /** Preselección al llegar desde el catálogo ("Compartir esta categoría", "Compartir con un cliente"). */
+  inicial?: { modo: Modo; categorias: number[]; piezas: number[] }
 }) {
-  const [modo, setModo] = useState<Modo>('catalogo')
-  const [categorias, setCategorias] = useState<Set<number>>(new Set())
+  const [modo, setModo] = useState<Modo>(inicial?.modo ?? 'catalogo')
+  const [categorias, setCategorias] = useState<Set<number>>(new Set(inicial?.categorias ?? []))
   const [materiales, setMateriales] = useState<Set<number>>(new Set())
   const [kilatajes, setKilatajes] = useState<Set<string>>(new Set())
   const [precioMin, setPrecioMin] = useState('')
   const [precioMax, setPrecioMax] = useState('')
-  const [seleccion, setSeleccion] = useState<Set<number>>(new Set())
+  const [seleccion, setSeleccion] = useState<Set<number>>(new Set(inicial?.piezas ?? []))
   const [busqueda, setBusqueda] = useState('')
 
   const opcionesCategoria = useMemo(() => opciones(piezas, (p) => p.categoria_id, (p) => p.categoria), [piezas])

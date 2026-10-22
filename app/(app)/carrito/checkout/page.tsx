@@ -10,6 +10,7 @@ import type { ItemCarrito } from '@/lib/publico/carrito'
 import { confirmarMiCarrito } from '../acciones'
 import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
 import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
+import { cargarEntregaCheckout } from '@/lib/entrega-servidor'
 
 export const metadata = { title: 'Realizar compra — ASTRO' }
 
@@ -41,6 +42,7 @@ export default async function CheckoutBackofficePage({
   const saldoBolsa = Number((bolsaData as { disponible: number }[] | null)?.[0]?.disponible ?? 0)
   const { data: parametroTope } = await supabase.from('parametros').select('valor').eq('clave', 'pct_max_billetera').maybeSingle()
   const politicaEnvio = await obtenerPoliticaEnvio(supabase)
+  const entrega = await cargarEntregaCheckout(supabase, items.map((i) => i.producto_id))
   const pctMaxBilletera = Math.min(100, Math.max(0, Number(parametroTope?.valor ?? 95) || 95))
 
   return (
@@ -74,6 +76,7 @@ export default async function CheckoutBackofficePage({
         saldoBolsa={saldoBolsa}
         pctMaxBilletera={pctMaxBilletera}
         politicaEnvio={politicaEnvio}
+        entrega={entrega}
         permitirCompraPropia
         nombreUsuario={usuario.nombre}
       />

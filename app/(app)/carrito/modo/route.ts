@@ -23,3 +23,18 @@ export function GET(request: NextRequest) {
   respuesta.headers.set('Cache-Control', 'no-store')
   return respuesta
 }
+
+/** Mismo cambio desde el catálogo web (fetch): solo guarda la cookie, sin redirigir. */
+export async function POST(request: NextRequest) {
+  const cuerpo = new URLSearchParams(await request.text())
+  const modo = cuerpo.get('modo') === 'cliente' ? 'cliente' : 'mi'
+  const respuesta = new NextResponse(null, { status: 204 })
+  respuesta.cookies.set(COOKIE_MODO_COMPRA, modo, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  })
+  respuesta.headers.set('Cache-Control', 'no-store')
+  return respuesta
+}

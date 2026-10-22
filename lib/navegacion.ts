@@ -27,6 +27,7 @@ import {
   Store,
   SlidersHorizontal,
   ScrollText,
+  LayoutTemplate,
   ShieldCheck,
   Calculator,
   Handshake,
@@ -458,6 +459,14 @@ export const secciones: SeccionNav[] = [
         href: '/admin/fidelizacion',
         icono: Heart,
         roles: ['admin', 'coordinador'],
+      },
+      {
+        etiqueta: 'Configuración del catálogo',
+        descripcion: 'Banners, novedades, anuncios y bloques del catálogo',
+        href: '/admin/catalogo',
+        icono: LayoutTemplate,
+        roles: ['admin', 'coordinador'],
+        permiso: { modulo: 'catalogo', accion: 'configurar' },
       },
       {
         etiqueta: 'Premiaciones',

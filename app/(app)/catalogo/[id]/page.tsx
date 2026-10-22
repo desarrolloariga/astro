@@ -1,40 +1,38 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { ArrowLeft, Gem, AlertCircle, BookmarkPlus, ShoppingBag, Share2, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import type { Metadata } from 'next'
+import { ArrowLeft, Gem } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
-import { formatearPrecio } from '@/lib/formato'
 import { obtenerUrlBase } from '@/lib/url-publica'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
-import { SelectorModoCompra } from '@/components/app/selector-modo-compra'
-import { EstadoPieza } from '@/components/app/estado-pieza'
-import { CopyButton } from '@/components/app/copy-button'
-import { CodigoQr } from '@/components/app/codigo-qr'
-import { separarPieza, venderPieza, compartirPieza } from '../acciones'
-import { agregarAMiCarrito, quitarDeMiCarrito } from '@/app/(app)/carrito/acciones'
+import { adaptarLineaWeb } from '@/lib/catalogo-web/datos'
+import { cargarFicha } from '@/lib/producto-detalle/datos'
+import { COOKIE_ENTREGA, parsearEleccion } from '@/lib/entrega'
+import type { ItemCarrito } from '@/lib/publico/carrito'
+import { ProductoDetalle } from '@/components/producto-detalle/producto-detalle'
+import { JsonLdProducto } from '@/components/producto-detalle/json-ld'
+import { separarPieza, venderPieza } from '../acciones'
+import { agregarMiCarritoWeb, generarLinkPiezaWeb } from '../acciones-web'
 
-export const metadata = { title: 'Pieza — ASTRO' }
+const ROLES_LINK = ['tienda', 'asesor', 'embajador', 'admin']
 
-type Imagen = { url: string; orden: number }
-
-type PiezaCatalogo = {
-  id: number
-  codigo: string
-  nombre: string
-  descripcion: string | null
-  categoria: string | null
-  material: string | null
-  peso_gramos: number | null
-  kilataje: string | null
-  piedras: string | null
-  precio_venta: number | null
-  estado: string
-  tienda: string | null
-  imagen_principal: string | null
-  imagenes: Imagen[] | null
-  modo_inventario: 'pieza_unica' | 'por_cantidad'
-  stock_disponible: number | null
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('vw_catalogo')
+    .select('nombre, descripcion, imagen_principal')
+    .eq('id', Number(id) || 0)
+    .maybeSingle<{ nombre: string; descripcion: string | null; imagen_principal: string | null }>()
+  if (!data) return { title: 'Pieza — ASTRO' }
+  return {
+    title: `${data.nombre} — ASTRO`,
+    description: data.descripcion ?? undefined,
+    openGraph: { title: data.nombre, description: data.descripcion ?? undefined, images: data.imagen_principal ? [data.imagen_principal] : undefined },
+  }
 }
 
 export default async function FichaPiezaPage({
@@ -42,378 +40,74 @@ export default async function FichaPiezaPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ error?: string; link?: string; ok?: string }>
+  searchParams: Promise<{ error?: string; ok?: string }>
 }) {
   if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
 
-  const { id } = await params
-  const { error, link, ok } = await searchParams
-  const supabase = await createClient()
-
-  const [{ data: pieza }, puedeSeparar, puedeVenderDirecto, puedeDescuentoEmbajador, { data: carritoData }] = await Promise.all([
-    supabase
-      .from('vw_catalogo')
-      .select(
-        'id, codigo, nombre, descripcion, categoria, material, peso_gramos, kilataje, piedras, precio_venta, estado, tienda, imagen_principal, imagenes, modo_inventario, stock_disponible',
-      )
-      .eq('id', id)
-      .maybeSingle<PiezaCatalogo>(),
+  const [{ id }, { error, ok }, supabase, usuario, modo, galletas] = await Promise.all([
+    params,
+    searchParams,
+    createClient(),
+    obtenerUsuarioActual(),
+    obtenerModoCompra(),
+    cookies(),
+  ])
+  const productoId = Number(id) || 0
+  const [datos, { data: carrito }, puedeSeparar, puedeVender, puedeDescuento] = await Promise.all([
+    cargarFicha(supabase, 'backoffice', productoId),
+    supabase.rpc('fn_ver_mi_carrito'),
     tienePermiso('separados', 'crear'),
     tienePermiso('ventas', 'crear'),
     tienePermiso('ventas', 'descuento_embajador'),
-    supabase.rpc('fn_ver_mi_carrito'),
   ])
-  const enCarrito = ((carritoData ?? []) as { producto_id: number; cantidad: number }[]).find(
-    (c) => c.producto_id === Number(id),
-  )
 
-  const disponible = pieza?.estado && ['disponible_cedi', 'disponible_tienda'].includes(pieza.estado)
-  const puedeVender = (puedeSeparar || puedeVenderDirecto) && disponible
-
-  const imagenes = (pieza?.imagenes ?? []).sort((a, b) => a.orden - b.orden)
-
-  const usuario = await obtenerUsuarioActual()
-  const esEmbajador = usuario.rol === 'embajador'
-  const modo = await obtenerModoCompra()
-  const precioEmbajador =
-    pieza && esEmbajador && modo === 'mi' ? ((await obtenerPreciosEmbajador(supabase, [pieza.id])).get(pieza.id) ?? null) : null
-
-  return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 md:px-6">
-      <Link
-        href="/catalogo"
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Volver al catálogo
-      </Link>
-
-      {!pieza ? (
+  if (!datos) {
+    return (
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 md:px-6">
+        <Link href="/catalogo" className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" />
+          Volver al catálogo
+        </Link>
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center">
           <Gem className="h-10 w-10 text-muted-foreground" strokeWidth={1.2} />
           <p className="text-sm font-semibold text-foreground">Esta pieza ya no está disponible</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Puede haberse vendido, separado o estar en tránsito.
-          </p>
+          <p className="max-w-sm text-sm text-muted-foreground">Puede haberse vendido, separado o estar en tránsito.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="flex flex-col gap-3">
-            <div className="aspect-square overflow-hidden rounded-xl border border-border bg-secondary">
-              {pieza.imagen_principal ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={pieza.imagen_principal}
-                  alt={pieza.nombre}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                  <Gem className="h-14 w-14" strokeWidth={1.2} />
-                </div>
-              )}
-            </div>
-            {imagenes.length > 1 && (
-              <div className="grid grid-cols-5 gap-2">
-                {imagenes.map((img) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={img.url}
-                    src={img.url}
-                    alt=""
-                    className="aspect-square rounded-lg border border-border object-cover"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+      </main>
+    )
+  }
 
-          <div className="flex flex-col gap-4">
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <EstadoPieza estado={pieza.estado} />
-                {pieza.tienda && (
-                  <span className="text-xs font-medium text-muted-foreground">{pieza.tienda}</span>
-                )}
-              </div>
-              <h1 className="text-xl font-bold tracking-tight text-foreground">{pieza.nombre}</h1>
-              <p className="text-xs text-muted-foreground">{pieza.codigo}</p>
-            </div>
+  const items = (carrito ?? []) as ItemCarrito[]
+  const preciosCarrito =
+    usuario.rol === 'embajador' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
 
-            {precioEmbajador != null && pieza.precio_venta != null ? (
-              <div className="flex flex-col gap-1">
-                <p className="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold">
-                  <span className="text-lg font-medium text-muted-foreground line-through">{formatearPrecio(pieza.precio_venta)}</span>
-                  <span className="text-muted-foreground">–</span>
-                  <span className="text-primary">{formatearPrecio(precioEmbajador)}</span>
-                </p>
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Tu precio de embajador</p>
-              </div>
-            ) : (
-              <p className="text-2xl font-bold text-foreground">
-                {pieza.precio_venta != null ? formatearPrecio(pieza.precio_venta) : '—'}
-              </p>
-            )}
-            <SelectorModoCompra modo={modo} volver={`/catalogo/${pieza.id}`} esEmbajador={esEmbajador} />
-            {pieza.modo_inventario === 'por_cantidad' && (
-              <p className="text-sm text-muted-foreground">
-                {pieza.stock_disponible ?? 0} unidades disponibles
-              </p>
-            )}
-
-            {pieza.descripcion && (
-              <p className="text-sm leading-relaxed text-muted-foreground">{pieza.descripcion}</p>
-            )}
-
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-4 text-sm">
-              {pieza.categoria && (
-                <>
-                  <dt className="text-muted-foreground">Categoría</dt>
-                  <dd className="text-right font-medium text-foreground">{pieza.categoria}</dd>
-                </>
-              )}
-              {pieza.material && (
-                <>
-                  <dt className="text-muted-foreground">Material</dt>
-                  <dd className="text-right font-medium text-foreground">{pieza.material}</dd>
-                </>
-              )}
-              {pieza.kilataje && (
-                <>
-                  <dt className="text-muted-foreground">Kilataje</dt>
-                  <dd className="text-right font-medium text-foreground">{pieza.kilataje}</dd>
-                </>
-              )}
-              {pieza.piedras && (
-                <>
-                  <dt className="text-muted-foreground">Piedras</dt>
-                  <dd className="text-right font-medium text-foreground">{pieza.piedras}</dd>
-                </>
-              )}
-            </dl>
-
-            <details className="rounded-xl border border-border bg-card">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-foreground">
-                Código QR de la pieza
-              </summary>
-              <div className="flex flex-col items-center gap-2 px-4 pb-4">
-                <CodigoQr
-                  url={`${await obtenerUrlBase()}/catalogo/${pieza.id}`}
-                  alt="Código QR de la pieza"
-                />
-                <p className="text-center text-xs text-muted-foreground">
-                  Imprime y pega en la pieza física: al escanearlo se abre esta ficha.
-                </p>
-              </div>
-            </details>
-
-            {disponible && (
-              <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
-                {enCarrito ? (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      En tu carrito{enCarrito.cantidad > 1 ? ` (×${enCarrito.cantidad})` : ''}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <form action={quitarDeMiCarrito}>
-                        <input type="hidden" name="producto_id" value={pieza.id} />
-                        <input type="hidden" name="volver" value={`/catalogo/${pieza.id}`} />
-                        <button type="submit" className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-secondary">
-                          Quitar
-                        </button>
-                      </form>
-                      <Link href="/carrito" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
-                        Ir al carrito
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
-                  <form action={agregarAMiCarrito} className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="producto_id" value={pieza.id} />
-                    <input type="hidden" name="volver" value={`/catalogo/${pieza.id}`} />
-                    {pieza.modo_inventario === 'por_cantidad' && (
-                      <input
-                        name="cantidad"
-                        type="number"
-                        min="1"
-                        max={pieza.stock_disponible ?? undefined}
-                        step="1"
-                        defaultValue={1}
-                        className="w-20 rounded-lg border border-input bg-background px-2 py-2 text-center text-sm text-foreground focus:border-primary focus:outline-none"
-                      />
-                    )}
-                    <button
-                      type="submit"
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      Agregar al carrito
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
-
-            {ok && (
-              <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{ok}</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {link && (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-xs text-primary">
-                <span className="flex-1 truncate font-mono">{link}</span>
-                <CopyButton texto={link} />
-              </div>
-            )}
-
-            {puedeVender && (
-              <form action={compartirPieza}>
-                <input type="hidden" name="producto_id" value={pieza.id} />
-                <button
-                  type="submit"
-                  className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Generar enlace para compartir esta pieza
-                </button>
-              </form>
-            )}
-
-            {puedeVender && (
-              <div className="flex flex-col gap-4">
-                {puedeSeparar && pieza.modo_inventario === 'pieza_unica' && (
-                <details className="group rounded-xl border border-border bg-card open:pb-4">
-                  <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-foreground">
-                    <BookmarkPlus className="h-4 w-4 text-primary" />
-                    Separar para un cliente
-                  </summary>
-                  <form action={separarPieza} className="flex flex-col gap-3 px-4">
-                    <input type="hidden" name="producto_id" value={pieza.id} />
-                    <input
-                      name="cliente_nombre"
-                      required
-                      placeholder="Nombre del cliente"
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    />
-                    <input
-                      name="cliente_telefono"
-                      placeholder="Teléfono (opcional)"
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-                    >
-                      Confirmar separado
-                    </button>
-                  </form>
-                </details>
-                )}
-
-                {puedeVenderDirecto && (
-                <details className="group rounded-xl border border-border bg-card open:pb-4">
-                  <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-foreground">
-                    <ShoppingBag className="h-4 w-4 text-primary" />
-                    Vender directamente
-                  </summary>
-                  <form action={venderPieza} className="flex flex-col gap-3 px-4">
-                    <input type="hidden" name="producto_id" value={pieza.id} />
-                    {pieza.modo_inventario === 'por_cantidad' && (
-                      <label className="flex flex-col gap-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Cantidad (disponibles: {pieza.stock_disponible ?? 0})
-                        </span>
-                        <input
-                          name="cantidad"
-                          type="number"
-                          min="1"
-                          max={pieza.stock_disponible ?? undefined}
-                          step="1"
-                          required
-                          defaultValue={1}
-                          className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                        />
-                      </label>
-                    )}
-                    <input
-                      name="cliente_nombre"
-                      required
-                      placeholder="Nombre del cliente"
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    />
-                    <input
-                      name="cliente_telefono"
-                      placeholder="Teléfono (opcional)"
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    />
-                    <select
-                      name="metodo_pago"
-                      required
-                      defaultValue=""
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    >
-                      <option value="" disabled>
-                        Método de pago
-                      </option>
-                      <option value="transferencia">Transferencia</option>
-                      <option value="deposito">Depósito</option>
-                      <option value="tarjeta">Tarjeta</option>
-                      <option value="pasarela">Pasarela</option>
-                    </select>
-                    <input
-                      name="monto"
-                      type="number"
-                      step="0.01"
-                      required
-                      defaultValue={pieza.modo_inventario === 'pieza_unica' ? pieza.precio_venta ?? undefined : undefined}
-                      placeholder="Monto recibido"
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    />
-                    <input
-                      name="referencia"
-                      placeholder="Referencia de pago (opcional)"
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                    />
-                    {puedeDescuentoEmbajador && (
-                      <label className="flex flex-col gap-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Tu descuento personal (%) — sale de tu comisión, opcional
-                        </span>
-                        <input
-                          name="descuento_embajador_pct"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          placeholder="0"
-                          className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/25"
-                        />
-                      </label>
-                    )}
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-                    >
-                      Registrar venta
-                    </button>
-                  </form>
-                </details>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </main>
+  return (
+    <>
+      <JsonLdProducto producto={datos.producto} url={`${await obtenerUrlBase()}/catalogo/${productoId}`} />
+      <ProductoDetalle
+        contexto="backoffice"
+        datos={datos}
+        conPrecioEmbajador={usuario.rol === 'embajador' && datos.producto.emb != null}
+        modoInicial={modo}
+        lineasIniciales={items.map(adaptarLineaWeb)}
+        preciosEmbCarrito={Object.fromEntries(preciosCarrito)}
+        acciones={{ agregar: agregarMiCarritoWeb }}
+        entregaInicial={parsearEleccion(galletas.get(COOKIE_ENTREGA)?.value)}
+        rutaCatalogo="/catalogo"
+        rutaFicha="/catalogo"
+        rutaCarrito="/carrito"
+        obtenerLink={generarLinkPiezaWeb.bind(null, productoId)}
+        urlPieza={`${await obtenerUrlBase()}/catalogo/${productoId}`}
+        puedeLink={ROLES_LINK.includes(usuario.rol)}
+        vender={{
+          puedeVender,
+          puedeSeparar,
+          puedeDescuento,
+          venderAccion: venderPieza,
+          separarAccion: separarPieza,
+        }}
+        aviso={error ? { text: error, error: true } : ok ? { text: ok } : null}
+      />
+    </>
   )
 }

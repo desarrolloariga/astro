@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { textoDia } from '@/lib/entrega'
 import { notFound } from 'next/navigation'
 import {
   AlertCircle,
@@ -50,6 +51,10 @@ type Pedido = {
   latitud: number | null
   longitud: number | null
   comprador_id: number | null
+  metodo_entrega: 'domicilio' | 'recoger' | null
+  tipo_entrega: 'inmediata' | 'programada' | null
+  fecha_entrega: string | null
+  franja_entrega: string | null
   ventas: {
     id: number
     total: number
@@ -97,6 +102,7 @@ export default async function DetallePedidoPage({
       .select(
         `id, estado, fecha_creacion, direccion_entrega, para_cliente, nombre_destinatario, telefono_destinatario,
          departamento, ciudad, referencia_entrega, latitud, longitud, comprador_id,
+         metodo_entrega, tipo_entrega, fecha_entrega, franja_entrega,
          ventas ( id, total, vendedor_id, canal, clientes ( nombre, telefono, correo ), vendedor:vendedor_id ( nombre ),
            venta_detalles ( id, cantidad, precio, productos ( codigo, nombre ) ),
            pagos ( id, metodo, monto, estado, comprobantes ( id, url_archivo, estado, comentario, numero_referencia, fecha_creacion ) ) ),
@@ -264,6 +270,13 @@ export default async function DetallePedidoPage({
             Envío
           </h2>
           <dl className="mb-3 grid grid-cols-[110px_1fr] gap-y-1 text-sm">
+            <dt className="text-muted-foreground">Entrega</dt>
+            <dd className="font-semibold text-foreground">
+              {pedido.metodo_entrega === 'recoger' ? 'Recoge en CEDI' : 'A domicilio'}
+              {pedido.tipo_entrega === 'inmediata' && ' · inmediata'}
+              {pedido.tipo_entrega === 'programada' &&
+                ` · programada${pedido.fecha_entrega ? ` el ${textoDia(pedido.fecha_entrega)}` : ''}${pedido.franja_entrega ? `, ${pedido.franja_entrega}` : ''}`}
+            </dd>
             <dt className="text-muted-foreground">Cliente</dt>
             <dd className="text-foreground">{pedido.ventas?.clientes?.nombre ?? '—'}{!pedido.para_cliente && ' (compra propia)'}</dd>
             <dt className="text-muted-foreground">Recibe</dt>

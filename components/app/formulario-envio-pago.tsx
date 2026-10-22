@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Truck, User, CreditCard, Users, Sparkles } from 'lucide-react'
+import { Truck, User, CreditCard, Users, Sparkles, Clock } from 'lucide-react'
 import { Campo, SeccionFormulario, clasesInput } from '@/components/app/formulario'
 import { formatearPrecio } from '@/lib/formato'
 import { MapaUbicacion } from '@/components/app/mapa-ubicacion'
 import { NOMBRE_BILLETERA, fondoBilletera } from '@/components/app/billetera-astro'
 import { calcularEnvio, faltaParaEnvioGratis, type PoliticaEnvio, type TipoCompraEnvio } from '@/lib/envio'
+import { normalizarEleccion, type ConfigEntrega, type EleccionEntrega } from '@/lib/entrega'
+import { SelectorEntrega } from '@/components/app/selector-entrega'
 
 export const DEPARTAMENTOS = [
   'Guatemala', 'Alta Verapaz', 'Baja Verapaz', 'Chimaltenango', 'Chiquimula', 'El Progreso', 'Escuintla',
@@ -46,6 +48,7 @@ export function FormularioEnvioPago({
   saldoBolsa = 0,
   pctMaxBilletera = 95,
   politicaEnvio = null,
+  entrega,
 }: {
   action: (formData: FormData) => void | Promise<void>
   camposOcultos?: Record<string, string>
@@ -63,13 +66,20 @@ export function FormularioEnvioPago({
   pctMaxBilletera?: number
   /** Política de envío vigente (fn_politica_envio_vigente). */
   politicaEnvio?: PoliticaEnvio | null
+  /** Forma y momento de entrega (precargado con lo elegido en la ficha del producto). */
+  entrega?: { config: ConfigEntrega; inicial: Partial<EleccionEntrega> | null; permiteInmediata: boolean }
 }) {
+  const [eleccion, setEleccion] = useState<EleccionEntrega | null>(() =>
+    entrega ? normalizarEleccion(entrega.inicial, entrega.config, entrega.permiteInmediata, []) : null,
+  )
+  const recoger = eleccion?.metodo === 'recoger'
   const [paraCliente, setParaCliente] = useState(permitirCompraPropia ? Boolean(paraClienteInicial) : true)
   const totalProductos = !paraCliente && totalParaMi != null ? totalParaMi : total
   // Envío según la política vigente (la base calcula lo mismo al confirmar).
   const tipoCompra: TipoCompraEnvio = !permitirCompraPropia ? 'publico' : paraCliente ? 'backoffice_cliente' : 'propio'
-  const envio = calcularEnvio(politicaEnvio, totalProductos, tipoCompra)
-  const faltaGratis = faltaParaEnvioGratis(politicaEnvio, totalProductos, tipoCompra)
+  // Recoger en CEDI no cobra envío (la base aplica lo mismo).
+  const envio = recoger ? 0 : calcularEnvio(politicaEnvio, totalProductos, tipoCompra)
+  const faltaGratis = recoger ? null : faltaParaEnvioGratis(politicaEnvio, totalProductos, tipoCompra)
   const totalVigente = Math.round((totalProductos + envio) * 100) / 100
   const ofreceBolsa = Boolean(permitirCompraPropia) && !paraCliente && saldoBolsa > 0
   const [usarBolsa, setUsarBolsa] = useState(true)
@@ -197,6 +207,24 @@ export function FormularioEnvioPago({
         </SeccionFormulario>
       )}
 
+      {entrega && eleccion && (
+        <SeccionFormulario icon={Clock} titulo="Entrega">
+          <SelectorEntrega config={entrega.config} permiteInmediata={entrega.permiteInmediata} valor={eleccion} onChange={setEleccion} />
+        </SeccionFormulario>
+      )}
+
+      {recoger ? (
+        <SeccionFormulario icon={Truck} titulo="Quién recoge">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Campo label="Nombre" helpText="Si lo dejas vacío, se usa el nombre del cliente.">
+              <input name="nombre_destinatario" className={clasesInput} />
+            </Campo>
+            <Campo label="Teléfono" helpText="Si lo dejas vacío, se usa el del cliente.">
+              <input name="telefono_destinatario" inputMode="tel" required={!paraCliente} className={clasesInput} />
+            </Campo>
+          </div>
+        </SeccionFormulario>
+      ) : (
       <SeccionFormulario icon={Truck} titulo="Envío">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Quién recibe" helpText="Si lo dejas vacío, se usa el nombre del cliente.">
@@ -228,6 +256,7 @@ export function FormularioEnvioPago({
           </div>
         </div>
       </SeccionFormulario>
+      )}
 
       <section className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 text-sm">
         <div className="flex justify-between text-muted-foreground">
@@ -235,7 +264,7 @@ export function FormularioEnvioPago({
           <span className="text-foreground">{formatearPrecio(totalProductos)}</span>
         </div>
         <div className="flex justify-between text-muted-foreground">
-          <span>Envío</span>
+          <span>{recoger ? 'Recoger en CEDI' : 'Envío'}</span>
           <span className={envio === 0 ? 'font-semibold text-emerald-700' : 'text-foreground'}>
             {envio === 0 ? 'Gratis' : formatearPrecio(envio)}
           </span>

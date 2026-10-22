@@ -14,11 +14,11 @@ const LOTE = 1000
 export default async function GenerarLinkPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; modo?: string; categoria?: string; piezas?: string }>
 }) {
   const usuario = await obtenerUsuarioActual()
   if (!ROLES_LINK.includes(usuario.rol)) redirect('/catalogo')
-  const { error } = await searchParams
+  const { error, modo, categoria, piezas: piezasParam } = await searchParams
   const supabase = await createClient()
 
   // Solo lo que hoy se ve en un enlace (disponible; sin "en tránsito").
@@ -37,6 +37,17 @@ export default async function GenerarLinkPage({
 
   const { data: parametro } = await supabase.from('parametros').select('valor').eq('clave', 'dias_vigencia_link').maybeSingle()
   const diasPorDefecto = Number(parametro?.valor ?? 7) || 7
+
+  // Preselección desde el catálogo: una categoría (por nombre) o piezas puntuales.
+  const disponibles = new Set(piezas.map((p) => p.id))
+  const idCategoria = categoria ? piezas.find((p) => p.categoria === categoria)?.categoria_id ?? null : null
+  const idsPiezas = (piezasParam ?? '').split(',').map(Number).filter((id) => disponibles.has(id))
+  const inicial =
+    modo === 'filtrado' && idCategoria != null
+      ? { modo: 'filtrado' as const, categorias: [idCategoria], piezas: [] }
+      : modo === 'subconjunto' && idsPiezas.length > 0
+        ? { modo: 'subconjunto' as const, categorias: [], piezas: idsPiezas }
+        : undefined
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -63,7 +74,7 @@ export default async function GenerarLinkPage({
         </div>
       )}
 
-      <GeneradorLink piezas={piezas} diasPorDefecto={diasPorDefecto} accion={crearLinkPersonalizado} />
+      <GeneradorLink piezas={piezas} diasPorDefecto={diasPorDefecto} accion={crearLinkPersonalizado} inicial={inicial} />
     </main>
   )
 }
