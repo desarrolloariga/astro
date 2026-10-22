@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { ImagenProducto } from '@/components/app/imagen-producto'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BannerWeb, CtaTipo, NombreIcono, PromoLateral } from '@/lib/catalogo-web/tipos'
 import type { AppCatalogo } from './app-tipo'
@@ -190,7 +191,7 @@ function CategoryGrid({ app }: { app: AppCatalogo }) {
           >
             {c.imagen ? (
               <span className="cw-tile-icon" style={{ position: 'absolute', inset: '0 0 64px 0' }}>
-                <Image src={c.imagen} alt="" fill sizes="240px" style={{ objectFit: 'cover' }} />
+                <ImagenProducto src={c.imagen} alt="" sizes="240px" />
               </span>
             ) : (
               <span style={{ position: 'absolute', top: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', color: T.iconBlue }}>

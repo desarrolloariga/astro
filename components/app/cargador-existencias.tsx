@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition, type ChangeEvent } from 'react'
-import * as XLSX from 'xlsx'
 import { Download, Upload, CheckCircle2, AlertCircle } from 'lucide-react'
 import { cargarExistenciasMasivo } from '@/app/(app)/existencias/acciones'
 
@@ -103,6 +102,8 @@ export function CargadorExistencias({ productosExistentes }: { productosExistent
     if (!archivo) return
     setNombreArchivo(archivo.name)
     const buffer = await archivo.arrayBuffer()
+    // La librería de Excel (~330 KB) se descarga solo cuando hace falta.
+    const XLSX = await import('xlsx')
     const libro = XLSX.read(buffer, { type: 'array' })
     const hoja = libro.Sheets[libro.SheetNames[0]]
     const datos = XLSX.utils.sheet_to_json<FilaCsv>(hoja, { defval: '', raw: false })

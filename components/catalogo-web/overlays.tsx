@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { ImagenProducto } from '@/components/app/imagen-producto'
 import Link from 'next/link'
 import { useCallback, useState } from 'react'
 import type { AppCatalogo } from './app-tipo'
@@ -141,7 +142,7 @@ export function QuickViewModal({ app, productId }: { app: AppCatalogo; productId
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 360px', padding: 20, display: 'flex', flexDirection: 'column', gap: 12, boxSizing: 'border-box' }}>
           <div style={{ position: 'relative', aspectRatio: '1 / 1', borderRadius: 20, overflow: 'hidden', background: T.primarySoft }}>
-            <Foto src={views[img]} alt={p.nombre} icon={icono} iconSize={170} sizes="(max-width: 900px) 100vw, 460px" />
+            <Foto src={views[img]} alt={p.nombre} icon={icono} iconSize={170} sizes="(max-width: 900px) 100vw, 460px" calidad="completa" />
             <div style={{ position: 'absolute', top: 14, left: 14, display: 'flex', gap: 6 }}>
               {p.isNew && <Badge>Nuevo</Badge>}
               {off > 0 && <Badge tone="gold">-{off}%</Badge>}
@@ -158,7 +159,7 @@ export function QuickViewModal({ app, productId }: { app: AppCatalogo; productId
                   aria-pressed={k === img}
                   style={{ ...btn, position: 'relative', overflow: 'hidden', flex: 1, height: 76, borderRadius: 14, border: `2px solid ${k === img ? T.primary : 'transparent'}`, background: T.primarySoft }}
                 >
-                  <Image src={src} alt="" fill sizes="100px" style={{ objectFit: 'cover' }} />
+                  <ImagenProducto src={src} alt="" sizes="100px" />
                 </button>
               ))}
             </div>

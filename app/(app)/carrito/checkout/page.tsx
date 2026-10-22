@@ -19,30 +19,37 @@ export default async function CheckoutBackofficePage({
 }: {
   searchParams: Promise<{ error?: string }>
 }) {
-  if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
+  const supabase = await createClient()
+  // Primera ola: contexto de sesión junto con todo lo que no depende del usuario ni del carrito.
+  const [permitido, { data }, { data: parametroTope }, politicaEnvio] = await Promise.all([
+    tienePermiso('catalogo', 'ver'),
+    supabase.rpc('fn_ver_mi_carrito'),
+    supabase.from('parametros').select('valor').eq('clave', 'pct_max_billetera').maybeSingle(),
+    obtenerPoliticaEnvio(supabase),
+  ])
+  if (!permitido) redirect('/inicio')
   const { error } = await searchParams
   const usuario = await obtenerUsuarioActual()
 
-  const supabase = await createClient()
-  const { data } = await supabase.rpc('fn_ver_mi_carrito')
   const items = (data ?? []) as ItemCarrito[]
   if (items.length === 0) redirect('/carrito')
 
   const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
   const modo = await obtenerModoCompra()
+  const productoIds = items.map((i) => i.producto_id)
+  // Segunda ola: lo que necesita los ids del carrito o el rol del usuario.
   // Solo el embajador recibe filas: su total "para mí" con precio embajador.
-  const preciosEmbajador =
-    usuario.rol === 'embajador' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
+  const [preciosEmbajador, { data: bolsaData }, entrega] = await Promise.all([
+    usuario.rol === 'embajador' ? obtenerPreciosEmbajador(supabase, productoIds) : Promise.resolve(new Map<number, number>()),
+    usuario.rol === 'embajador' ? supabase.rpc('fn_mi_bolsa') : Promise.resolve({ data: null }),
+    cargarEntregaCheckout(supabase, productoIds),
+  ])
   const totalParaMi = items.reduce(
     (acc, i) => acc + (preciosEmbajador.get(i.producto_id) ?? i.precio_venta ?? 0) * i.cantidad,
     0,
   )
   const totalModo = modo === 'mi' ? totalParaMi : total
-  const { data: bolsaData } = usuario.rol === 'embajador' ? await supabase.rpc('fn_mi_bolsa') : { data: null }
   const saldoBolsa = Number((bolsaData as { disponible: number }[] | null)?.[0]?.disponible ?? 0)
-  const { data: parametroTope } = await supabase.from('parametros').select('valor').eq('clave', 'pct_max_billetera').maybeSingle()
-  const politicaEnvio = await obtenerPoliticaEnvio(supabase)
-  const entrega = await cargarEntregaCheckout(supabase, items.map((i) => i.producto_id))
   const pctMaxBilletera = Math.min(100, Math.max(0, Number(parametroTope?.valor ?? 95) || 95))
 
   return (

@@ -89,17 +89,15 @@ export default async function LinksPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string; nuevo?: string; estado?: string; vista?: string; orden?: string }>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (!['tienda', 'asesor', 'embajador', 'admin', 'coordinador', 'supervisor'].includes(usuario.rol)) redirect('/inicio')
-  const puedeGenerar = ['tienda', 'asesor', 'embajador', 'admin'].includes(usuario.rol)
-
-  const puedeFijarComision = await tienePermiso('links', 'fijar_comision')
   const { ok, error, nuevo, estado: filtroEstado, vista, orden } = await searchParams
   const verTop = vista === 'top'
   const supabase = await createClient()
   const baseUrl = await obtenerUrlBase()
 
-  const [{ data }, { data: resumenData }, { data: categoriasData }, { data: materialesData }] = await Promise.all([
+  // Enlaces, resumen y catálogos no dependen del usuario (RLS acota): viajan junto con el contexto de sesión.
+  const [usuario, puedeFijarComision, { data }, { data: resumenData }, { data: categoriasData }, { data: materialesData }] = await Promise.all([
+    obtenerUsuarioActual(),
+    tienePermiso('links', 'fijar_comision'),
     supabase
       .from('links_venta')
       .select(
@@ -112,6 +110,8 @@ export default async function LinksPage({
     supabase.from('categorias').select('id, nombre'),
     supabase.from('materiales').select('id, nombre'),
   ])
+  if (!['tienda', 'asesor', 'embajador', 'admin', 'coordinador', 'supervisor'].includes(usuario.rol)) redirect('/inicio')
+  const puedeGenerar = ['tienda', 'asesor', 'embajador', 'admin'].includes(usuario.rol)
 
   const todos = (data ?? []) as unknown as LinkVenta[]
   const resumen = new Map(((resumenData ?? []) as Resumen[]).map((r) => [r.link_id, r]))

@@ -18,11 +18,12 @@ export default async function CarritoPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
-  if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
+  const supabase = await createClient()
+  // El carrito no depende del permiso: viaja junto con el contexto de sesión.
+  const [permitido, { data }] = await Promise.all([tienePermiso('catalogo', 'ver'), supabase.rpc('fn_ver_mi_carrito')])
+  if (!permitido) redirect('/inicio')
   const { ok, error } = await searchParams
 
-  const supabase = await createClient()
-  const { data } = await supabase.rpc('fn_ver_mi_carrito')
   const items = (data ?? []) as ItemCarrito[]
   const usuario = await obtenerUsuarioActual()
   const esEmbajador = usuario.rol === 'embajador'

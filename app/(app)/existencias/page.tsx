@@ -35,21 +35,11 @@ export default async function ExistenciasPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') redirect('/inicio')
-
   const sp = await searchParams
   const ok = typeof sp.ok === 'string' ? sp.ok : undefined
   const error = typeof sp.error === 'string' ? sp.error : undefined
   const filtros = parsearFiltrosInventario(sp)
   const supabase = await createClient()
-
-  const { data: categoriasData } = await supabase
-    .from('categorias')
-    .select('id, nombre')
-    .eq('activo', true)
-    .order('orden')
-  const categorias = (categoriasData ?? []) as Categoria[]
 
   // RLS: producción ve solo lo suyo; admin lo ve todo — mismo alcance
   // que el listado de Artículos, esta es la misma vista sin costos.
@@ -75,7 +65,14 @@ export default async function ExistenciasPage({
   const { desde, hasta } = calcularRango(filtros.pagina, TAMANO_PAGINA)
   consulta = consulta.range(desde, hasta)
 
-  const { data: piezasData, count: total } = await consulta
+  // Categorías y artículos no dependen del usuario (RLS acota): viajan junto con el contexto de sesión.
+  const [usuario, { data: categoriasData }, { data: piezasData, count: total }] = await Promise.all([
+    obtenerUsuarioActual(),
+    supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
+    consulta,
+  ])
+  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') redirect('/inicio')
+  const categorias = (categoriasData ?? []) as Categoria[]
   const piezas = piezasData ?? []
 
   // Cantidad viva de las piezas ya publicadas (por_cantidad) — suma

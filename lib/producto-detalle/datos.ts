@@ -1,6 +1,6 @@
 import 'server-only'
 import type { createClient } from '@/lib/supabase/server'
-import { COLUMNAS_PIEZA, enriquecerPiezas, type PiezaFuente } from '@/lib/catalogo-web/datos'
+import { consultarPiezas, mapearPiezas } from '@/lib/catalogo-web/datos'
 import { leerGeneral } from '@/lib/catalogo-web/config'
 import type { ConfigGeneral, Contexto, ProductoWeb } from '@/lib/catalogo-web/tipos'
 import { leerConfigEntrega, type ConfigEntrega } from '@/lib/entrega'
@@ -29,65 +29,33 @@ export type DatosFicha = {
 
 const MAX_RELACIONADOS = 12
 
-/** Producto, relacionados (misma categoría con existencia), red y configuración de entrega. */
+const aFicha = (p: ProductoWeb): ProductoFicha => ({ ...p, inmediata: Boolean(p.inmediata), ubicacion: p.ubicacion ?? null })
+
+/** Producto, relacionados (misma categoría con existencia), red y configuración de entrega: una sola ola de red. */
 export async function cargarFicha(
   supabase: Supabase,
   contexto: Contexto,
   id: number,
   token?: string,
 ): Promise<DatosFicha | null> {
-  const configPromesa = supabase.from('catalogo_config').select('clave, valor').in('clave', ['entrega', 'general'])
-  const politicaPromesa = obtenerPoliticaEnvio(supabase)
-
-  let principal: (PiezaFuente & { tienda?: string | null }) | undefined
-  let otras: PiezaFuente[] = []
-  if (contexto === 'publico') {
-    const { data } = await supabase.rpc('fn_catalogo_por_token', { p_token: token ?? '' })
-    const todas = (data ?? []) as PiezaFuente[]
-    principal = todas.find((p) => p.id === id)
-    if (principal) otras = todas.filter((p) => p.id !== id && p.categoria === principal?.categoria)
-  } else {
-    const { data } = await supabase.from('vw_catalogo').select(`${COLUMNAS_PIEZA}, tienda`).eq('id', id).maybeSingle()
-    principal = (data ?? undefined) as (PiezaFuente & { tienda?: string | null }) | undefined
-    if (principal?.categoria_id != null) {
-      const { data: rel } = await supabase
-        .from('vw_catalogo')
-        .select(COLUMNAS_PIEZA)
-        .eq('categoria_id', principal.categoria_id)
-        .neq('id', id)
-        .order('id', { ascending: false })
-        .limit(MAX_RELACIONADOS * 2)
-      otras = (rel ?? []) as PiezaFuente[]
-    }
-  }
-  if (!principal) return null
-
-  const [{ data: config }, politica] = await Promise.all([configPromesa, politicaPromesa])
+  const [{ data: config }, filas, { data: redData }, politica] = await Promise.all([
+    supabase.from('catalogo_config').select('clave, valor').in('clave', ['entrega', 'general']),
+    consultarPiezas(supabase, { token, mismaCategoriaQue: id }),
+    contexto === 'backoffice' ? supabase.rpc('fn_existencias_red', { p_producto_id: id }) : Promise.resolve({ data: [] }),
+    obtenerPoliticaEnvio(supabase),
+  ])
   const bloques = new Map(((config ?? []) as { clave: string; valor: unknown }[]).map((c) => [c.clave, c.valor]))
   const general = leerGeneral(bloques.get('general'))
-
-  const piezas = [principal, ...otras]
-  const ids = piezas.map((p) => p.id)
-  const [productos, { data: inmediatas }, { data: redData }] = await Promise.all([
-    enriquecerPiezas(supabase, piezas, contexto, general.dias_nuevo),
-    supabase.rpc('fn_entrega_inmediata', { p_producto_ids: ids }),
-    contexto === 'backoffice' ? supabase.rpc('fn_existencias_red', { p_producto_id: id }) : Promise.resolve({ data: [] }),
-  ])
-  const cedi = new Map(((inmediatas ?? []) as { producto_id: number; ubicacion: string }[]).map((f) => [Number(f.producto_id), f.ubicacion]))
-  const conEntrega = (p: ProductoWeb): ProductoFicha => ({
-    ...p,
-    inmediata: p.stock > 0 && cedi.has(p.id),
-    ubicacion: cedi.get(p.id) ?? null,
-  })
-
+  const productos = mapearPiezas(filas, general.dias_nuevo)
   const producto = productos.find((p) => p.id === id)
   if (!producto) return null
+
   return {
-    producto: { ...conEntrega(producto), ubicacion: cedi.get(id) ?? principal.tienda ?? null },
+    producto: aFicha(producto),
     relacionados: productos
       .filter((p) => p.id !== id && p.stock > 0)
       .slice(0, MAX_RELACIONADOS)
-      .map(conEntrega),
+      .map(aFicha),
     red: ((redData ?? []) as { tienda: string; tipo: string; cantidad: number }[]).map((r) => ({
       tienda: r.tienda,
       tipo: r.tipo,

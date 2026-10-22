@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { ImagenProducto } from '@/components/app/imagen-producto'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon, T, btn } from './tokens'
 
@@ -155,6 +155,7 @@ export function ProductImage({
   bg,
   sizes = '480px',
   priority = false,
+  calidad = 'miniatura',
 }: {
   src: string | null | undefined
   alt: string
@@ -165,6 +166,7 @@ export function ProductImage({
   bg: string
   sizes?: string
   priority?: boolean
+  calidad?: 'miniatura' | 'completa'
 }) {
   return (
     <div
@@ -173,7 +175,7 @@ export function ProductImage({
         overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.iconBlue,
       }}
     >
-      {src ? <Image src={src} alt={alt} fill sizes={sizes} priority={priority} style={{ objectFit: 'cover' }} /> : <Icon name="gem" size={size} stroke={stroke} />}
+      {src ? <ImagenProducto src={src} alt={alt} sizes={sizes} priority={priority} calidad={calidad} /> : <Icon name="gem" size={size} stroke={stroke} />}
     </div>
   )
 }

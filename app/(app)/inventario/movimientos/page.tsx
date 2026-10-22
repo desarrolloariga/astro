@@ -83,8 +83,6 @@ export default async function MovimientosInventarioPage({
     pagina?: string
   }>
 }) {
-  if (!(await tienePermiso('inventario', 'ver'))) redirect('/inicio')
-
   const sp = await searchParams
   const buscar = (sp.buscar ?? '').trim()
   const tipo = (sp.tipo ?? '').trim()
@@ -94,41 +92,46 @@ export default async function MovimientosInventarioPage({
   const pagina = Math.max(1, Number(sp.pagina ?? '1') || 1)
   const supabase = await createClient()
 
-  const { data: tiendasData } = await supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre')
-  const tiendas = tiendasData ?? []
+  const { desde: rangoDesde, hasta: rangoHasta } = calcularRango(pagina, TAMANO_PAGINA_MOVIMIENTOS)
+  const consultarMovimientos = (productoIds: number[] | null) => {
+    let consulta = supabase
+      .from('movimientos_inventario')
+      .select(
+        `id, tipo, cantidad, referencia, fecha_creacion,
+         productos ( codigo, nombre ),
+         origen:tienda_origen_id ( nombre ),
+         destino:tienda_destino_id ( nombre ),
+         usuarios ( nombre )`,
+        { count: 'exact' },
+      )
+      .order('fecha_creacion', { ascending: false })
 
-  let productoIds: number[] | null = null
-  if (buscar) {
-    const buscarSeguro = buscar.replace(/[,()]/g, ' ')
-    const { data: productosMatch } = await supabase
-      .from('productos')
-      .select('id')
-      .or(`codigo.ilike.%${buscarSeguro}%,nombre.ilike.%${buscarSeguro}%`)
-    productoIds = (productosMatch ?? []).map((p) => p.id)
+    if (tipo && (TIPOS_MOVIMIENTO as readonly string[]).includes(tipo)) consulta = consulta.eq('tipo', tipo)
+    if (tiendaId) consulta = consulta.or(`tienda_origen_id.eq.${tiendaId},tienda_destino_id.eq.${tiendaId}`)
+    if (desde) consulta = consulta.gte('fecha_creacion', desde)
+    if (hasta) consulta = consulta.lt('fecha_creacion', `${hasta}T23:59:59.999`)
+    if (productoIds) consulta = consulta.in('producto_id', productoIds.length > 0 ? productoIds : [-1])
+
+    return consulta.range(rangoDesde, rangoHasta)
   }
 
-  let consulta = supabase
-    .from('movimientos_inventario')
-    .select(
-      `id, tipo, cantidad, referencia, fecha_creacion,
-       productos ( codigo, nombre ),
-       origen:tienda_origen_id ( nombre ),
-       destino:tienda_destino_id ( nombre ),
-       usuarios ( nombre )`,
-      { count: 'exact' },
-    )
-    .order('fecha_creacion', { ascending: false })
+  const buscarSeguro = buscar.replace(/[,()]/g, ' ')
+  // Tiendas, piezas que coinciden con la búsqueda y (si no hay búsqueda) la bitácora
+  // no dependen del permiso: viajan junto con el contexto de sesión.
+  const [permitido, { data: tiendasData }, { data: productosMatch }, movimientosSinBusqueda] = await Promise.all([
+    tienePermiso('inventario', 'ver'),
+    supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre'),
+    buscar
+      ? supabase.from('productos').select('id').or(`codigo.ilike.%${buscarSeguro}%,nombre.ilike.%${buscarSeguro}%`)
+      : Promise.resolve({ data: null }),
+    buscar ? Promise.resolve(null) : consultarMovimientos(null),
+  ])
+  if (!permitido) redirect('/inicio')
+  const tiendas = tiendasData ?? []
 
-  if (tipo && (TIPOS_MOVIMIENTO as readonly string[]).includes(tipo)) consulta = consulta.eq('tipo', tipo)
-  if (tiendaId) consulta = consulta.or(`tienda_origen_id.eq.${tiendaId},tienda_destino_id.eq.${tiendaId}`)
-  if (desde) consulta = consulta.gte('fecha_creacion', desde)
-  if (hasta) consulta = consulta.lt('fecha_creacion', `${hasta}T23:59:59.999`)
-  if (productoIds) consulta = consulta.in('producto_id', productoIds.length > 0 ? productoIds : [-1])
-
-  const { desde: rangoDesde, hasta: rangoHasta } = calcularRango(pagina, TAMANO_PAGINA_MOVIMIENTOS)
-  consulta = consulta.range(rangoDesde, rangoHasta)
-
-  const { data, count } = await consulta
+  // Con búsqueda, la bitácora se acota a las piezas encontradas: segunda ola.
+  const { data, count } =
+    movimientosSinBusqueda ?? (await consultarMovimientos((productosMatch ?? []).map((p) => p.id)))
   const lista = (data ?? []) as unknown as Movimiento[]
   const totalPaginas = calcularTotalPaginas(count ?? 0, TAMANO_PAGINA_MOVIMIENTOS)
 

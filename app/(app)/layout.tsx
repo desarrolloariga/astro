@@ -1,32 +1,22 @@
 import { AppShell } from '@/components/app/shell'
 import { obtenerUsuarioActual } from '@/lib/usuario'
-import { obtenerPermisosExtra, tienePermiso } from '@/lib/permisos'
-import { createClient } from '@/lib/supabase/server'
-
-async function contarCarrito() {
-  const supabase = await createClient()
-  const { data } = await supabase.rpc('fn_ver_mi_carrito')
-  return ((data ?? []) as { cantidad: number }[]).reduce((acc, i) => acc + i.cantidad, 0)
-}
+import { obtenerContexto } from '@/lib/contexto'
 
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // Todo en paralelo (antes eran 4 consultas en fila en cada navegación).
-  const [usuario, { concedidos, revocados }, puedeComprar, unidades] = await Promise.all([
-    obtenerUsuarioActual(),
-    obtenerPermisosExtra(),
-    tienePermiso('catalogo', 'ver'),
-    contarCarrito(),
-  ])
+  // Una sola llamada a la base por navegación: usuario, permisos y carrito
+  // llegan juntos (fn_contexto_sesion) y la página reutiliza la respuesta.
+  const usuario = await obtenerUsuarioActual()
+  const contexto = (await obtenerContexto())!
 
   return (
     <AppShell
       usuario={{ nombre: usuario.nombre, rol: usuario.rol }}
-      permisosExtra={concedidos}
-      permisosRevocados={revocados}
+      permisosExtra={contexto.concedidos}
+      permisosRevocados={contexto.revocados}
       // Contador del carrito backoffice (solo para quien compra desde el catálogo).
-      unidadesCarrito={puedeComprar ? unidades : null}
+      unidadesCarrito={contexto.permisos.has('catalogo.ver') ? contexto.carritoUnidades : null}
     >
       {children}
     </AppShell>

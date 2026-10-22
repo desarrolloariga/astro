@@ -22,16 +22,15 @@ export default async function AdminParametrosPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
-  if (!(await tienePermiso('parametros', 'editar'))) redirect('/inicio')
-
   const { ok, error } = await searchParams
   const supabase = await createClient()
 
-  const { data: parametros } = await supabase
-    .from('parametros')
-    .select('id, clave, valor, tipo_dato, descripcion, modulo')
-    .order('modulo')
-    .order('clave')
+  // Los parámetros no dependen del permiso: viajan junto con el contexto de sesión.
+  const [permitido, { data: parametros }] = await Promise.all([
+    tienePermiso('parametros', 'editar'),
+    supabase.from('parametros').select('id, clave, valor, tipo_dato, descripcion, modulo').order('modulo').order('clave'),
+  ])
+  if (!permitido) redirect('/inicio')
 
   const lista = (parametros ?? []) as Parametro[]
   const porModulo = new Map<string, Parametro[]>()

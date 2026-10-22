@@ -92,11 +92,12 @@ export default async function DetallePedidoPage({
 }) {
   const { id } = await params
   const { ok, error } = await searchParams
-  const usuario = await obtenerUsuarioActual()
-  const puedeDespachar = await tienePermiso('pedidos', 'despachar')
   const supabase = await createClient()
 
-  const [{ data }, { data: eventosData }] = await Promise.all([
+  // Pedido, eventos y checklist solo dependen del id: viajan junto con el contexto de sesión.
+  const [usuario, puedeDespachar, { data }, { data: eventosData }, { data: checklistData }] = await Promise.all([
+    obtenerUsuarioActual(),
+    tienePermiso('pedidos', 'despachar'),
     supabase
       .from('pedidos')
       .select(
@@ -115,35 +116,32 @@ export default async function DetallePedidoPage({
       .select('estado, fecha, comentario, usuarios:usuario_id ( nombre )')
       .eq('pedido_id', id)
       .order('fecha', { ascending: true }),
+    // El checklist existe a partir de que logística inicia la preparación.
+    supabase
+      .from('pedido_checklist')
+      .select('venta_detalle_id, verificado, observacion')
+      .eq('pedido_id', id),
   ])
 
   const pedido = data as unknown as Pedido | null
   if (!pedido) notFound()
   const eventos = (eventosData ?? []) as unknown as EventoPedido[]
-
-  // El checklist existe a partir de que logística inicia la preparación.
-  const { data: checklistData } = await supabase
-    .from('pedido_checklist')
-    .select('venta_detalle_id, verificado, observacion')
-    .eq('pedido_id', pedido.id)
   const checklist = new Map(((checklistData ?? []) as ItemChecklist[]).map((c) => [c.venta_detalle_id, c]))
 
   // URLs firmadas: comprobantes (ariga-comprobantes) y documentos (astro-pedidos).
   const admin = createAdminClient()
   const comprobantes = (pedido.ventas?.pagos ?? []).flatMap((p) => p.comprobantes)
   const firmadas = new Map<string, string>()
-  if (comprobantes.length > 0) {
-    const { data: urls } = await admin.storage
-      .from('ariga-comprobantes')
-      .createSignedUrls(comprobantes.map((c) => c.url_archivo), 3600)
-    urls?.forEach((u) => u.signedUrl && firmadas.set(u.path ?? '', u.signedUrl))
-  }
-  if (pedido.pedido_documentos.length > 0) {
-    const { data: urls } = await admin.storage
-      .from('astro-pedidos')
-      .createSignedUrls(pedido.pedido_documentos.map((d) => d.url), 3600)
-    urls?.forEach((u) => u.signedUrl && firmadas.set(u.path ?? '', u.signedUrl))
-  }
+  const [urlsComprobantes, urlsDocumentos] = await Promise.all([
+    comprobantes.length > 0
+      ? admin.storage.from('ariga-comprobantes').createSignedUrls(comprobantes.map((c) => c.url_archivo), 3600)
+      : Promise.resolve({ data: null }),
+    pedido.pedido_documentos.length > 0
+      ? admin.storage.from('astro-pedidos').createSignedUrls(pedido.pedido_documentos.map((d) => d.url), 3600)
+      : Promise.resolve({ data: null }),
+  ])
+  urlsComprobantes.data?.forEach((u) => u.signedUrl && firmadas.set(u.path ?? '', u.signedUrl))
+  urlsDocumentos.data?.forEach((u) => u.signedUrl && firmadas.set(u.path ?? '', u.signedUrl))
 
   const esDueno =
     pedido.ventas?.vendedor_id === usuario.id || pedido.comprador_id === usuario.id || usuario.rol === 'admin'

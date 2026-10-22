@@ -31,23 +31,11 @@ export default async function ProduccionPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') redirect('/inicio')
-
   const sp = await searchParams
   const ok = typeof sp.ok === 'string' ? sp.ok : undefined
   const aviso = typeof sp.aviso === 'string' ? sp.aviso : undefined
   const filtros = parsearFiltrosInventario(sp)
   const supabase = await createClient()
-
-  const [{ data: categoriasData }, { data: materialesData }, { data: cedisData }] = await Promise.all([
-    supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
-    supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
-    supabase.from('tiendas').select('id, nombre, es_cedi_principal').eq('tipo', 'cedi').eq('activo', true).order('nombre'),
-  ])
-  const categorias = (categoriasData ?? []) as Categoria[]
-  const materiales = (materialesData ?? []) as Material[]
-  const cedis = (cedisData ?? []) as { id: number; nombre: string; es_cedi_principal: boolean }[]
 
   // RLS: producción ve sus artículos; admin los ve todos
   let consulta = supabase
@@ -77,10 +65,26 @@ export default async function ProduccionPage({
   const { desde, hasta } = calcularRango(filtros.pagina, TAMANO_PAGINA_PRODUCCION)
   consulta = consulta.range(desde, hasta)
 
-  const [{ data: piezas, count: totalArticulos }, { count: totalBorradores }] = await Promise.all([
+  // Catálogos, listado y conteo no dependen del usuario (RLS acota): viajan junto con el contexto de sesión.
+  const [
+    usuario,
+    { data: categoriasData },
+    { data: materialesData },
+    { data: cedisData },
+    { data: piezas, count: totalArticulos },
+    { count: totalBorradores },
+  ] = await Promise.all([
+    obtenerUsuarioActual(),
+    supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
+    supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+    supabase.from('tiendas').select('id, nombre, es_cedi_principal').eq('tipo', 'cedi').eq('activo', true).order('nombre'),
     consulta,
     supabase.from('productos').select('id', { count: 'exact', head: true }).eq('activo', true).eq('estado', 'en_produccion'),
   ])
+  if (usuario.rol !== 'produccion' && usuario.rol !== 'admin') redirect('/inicio')
+  const categorias = (categoriasData ?? []) as Categoria[]
+  const materiales = (materialesData ?? []) as Material[]
+  const cedis = (cedisData ?? []) as { id: number; nombre: string; es_cedi_principal: boolean }[]
 
   const lista = piezas ?? []
   const totalPaginas = calcularTotalPaginas(totalArticulos ?? 0, TAMANO_PAGINA_PRODUCCION)

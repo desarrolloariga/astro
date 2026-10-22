@@ -62,25 +62,27 @@ export default async function VentasPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string; aviso?: string }>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (usuario.rol === 'produccion' || usuario.rol === 'contabilidad') redirect('/inicio')
-
-  const puedeAnular = await tienePermiso('ventas', 'anular')
   const { ok, error, aviso } = await searchParams
   const supabase = await createClient()
 
-  const { data } = await supabase
-    .from('ventas')
-    .select(
-      `id, estado, total, fecha_creacion,
-       clientes ( nombre ),
-       venta_detalles ( cantidad, precio, descuento, productos ( codigo, nombre ) ),
-       pagos ( id, metodo, monto, estado,
-               comprobantes ( id, estado, url_archivo, fecha_creacion, comentario, fecha_revision,
-                              usuarios:revisado_por ( nombre ) ) )`,
-    )
-    .order('fecha_creacion', { ascending: false })
-    .limit(100)
+  // Las ventas no dependen del usuario (RLS acota): viajan junto con el contexto de sesión.
+  const [usuario, puedeAnular, { data }] = await Promise.all([
+    obtenerUsuarioActual(),
+    tienePermiso('ventas', 'anular'),
+    supabase
+      .from('ventas')
+      .select(
+        `id, estado, total, fecha_creacion,
+         clientes ( nombre ),
+         venta_detalles ( cantidad, precio, descuento, productos ( codigo, nombre ) ),
+         pagos ( id, metodo, monto, estado,
+                 comprobantes ( id, estado, url_archivo, fecha_creacion, comentario, fecha_revision,
+                                usuarios:revisado_por ( nombre ) ) )`,
+      )
+      .order('fecha_creacion', { ascending: false })
+      .limit(100),
+  ])
+  if (usuario.rol === 'produccion' || usuario.rol === 'contabilidad') redirect('/inicio')
 
   const lista = (data ?? []) as unknown as Venta[]
 

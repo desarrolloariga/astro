@@ -64,42 +64,43 @@ export default async function AdminComisionesPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string; periodo_id?: string }>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (usuario.rol !== 'admin') redirect('/inicio')
-
   const sp = await searchParams
   const supabase = await createClient()
 
-  const [{ data: reglas }, { data: roles }, { data: periodos }] = await Promise.all([
+  // Reglas, roles y períodos no dependen del usuario: viajan junto con el contexto de sesión.
+  const [usuario, { data: reglas }, { data: roles }, { data: periodos }] = await Promise.all([
+    obtenerUsuarioActual(),
     supabase.from('reglas_comision').select('*, roles ( nombre )').order('fecha_creacion', { ascending: false }),
     supabase.from('roles').select('id, nombre').order('nombre'),
     supabase.from('periodos').select('id, nombre, estado').order('fecha_inicio', { ascending: false }).limit(12),
   ])
+  if (usuario.rol !== 'admin') redirect('/inicio')
 
   const listaReglas = (reglas ?? []) as unknown as ReglaComision[]
   const listaPeriodos = (periodos ?? []) as Periodo[]
   const periodoActivoId = sp.periodo_id ? Number(sp.periodo_id) : listaPeriodos[0]?.id
   const periodoActivo = listaPeriodos.find((p) => p.id === periodoActivoId)
 
-  const { data: liquidaciones } = periodoActivoId
-    ? await supabase
-        .from('liquidaciones')
-        .select('id, usuario_id, total, estado, usuarios ( nombre )')
-        .eq('periodo_id', periodoActivoId)
-        .order('total', { ascending: false })
-    : { data: [] }
+  // Liquidaciones y el ledger real detrás de cada una — línea por línea,
+  // no solo el total consolidado — dependen del período: segunda ola.
+  const [{ data: liquidaciones }, { data: comisionesPeriodo }] = await Promise.all([
+    periodoActivoId
+      ? supabase
+          .from('liquidaciones')
+          .select('id, usuario_id, total, estado, usuarios ( nombre )')
+          .eq('periodo_id', periodoActivoId)
+          .order('total', { ascending: false })
+      : Promise.resolve({ data: [] }),
+    periodoActivoId
+      ? supabase
+          .from('comisiones')
+          .select('id, usuario_id, venta_id, monto, estado, motivo, fecha_creacion')
+          .eq('periodo_id', periodoActivoId)
+          .order('fecha_creacion', { ascending: false })
+      : Promise.resolve({ data: [] }),
+  ])
 
   const listaLiquidaciones = (liquidaciones ?? []) as unknown as Liquidacion[]
-
-  // Ledger real detrás de cada liquidación — línea por línea, no solo el
-  // total consolidado.
-  const { data: comisionesPeriodo } = periodoActivoId
-    ? await supabase
-        .from('comisiones')
-        .select('id, usuario_id, venta_id, monto, estado, motivo, fecha_creacion')
-        .eq('periodo_id', periodoActivoId)
-        .order('fecha_creacion', { ascending: false })
-    : { data: [] }
 
   const comisionesPorUsuario = new Map<number, ComisionDetalle[]>()
   for (const c of (comisionesPeriodo ?? []) as ComisionDetalle[]) {

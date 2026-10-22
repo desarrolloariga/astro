@@ -57,7 +57,8 @@ async function resolverImagen(f: FormData, campo: string, carpeta: string): Prom
 }
 
 function refrescar() {
-  revalidatePath('/', 'layout')
+  revalidatePath('/catalogo', 'layout')
+  revalidatePath('/admin/catalogo')
 }
 
 export async function guardarContenido(formData: FormData) {

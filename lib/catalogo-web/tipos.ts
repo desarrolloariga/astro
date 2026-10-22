@@ -107,6 +107,10 @@ export type ProductoWeb = {
   /** Recencia (ms desde epoch) para "Más recientes". */
   fecha: number
   vendidos: number
+  /** Hay existencia en un CEDI: permite entrega inmediata. */
+  inmediata?: boolean
+  /** Dónde está la pieza (CEDI, tienda o bodega). */
+  ubicacion?: string | null
 }
 
 export type LineaWeb = {

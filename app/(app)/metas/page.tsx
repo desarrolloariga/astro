@@ -1,24 +1,14 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Target, Megaphone } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
-import { formatearPrecio, formatearFecha } from '@/lib/formato'
-import { cn } from '@/lib/utils'
+import { formatearFecha } from '@/lib/formato'
 import { crearMeta, crearCampana, alternarCampana } from './acciones'
+import { FilaMeta, EsqueletoFilaMeta, type Meta } from './secciones'
 
 export const metadata = { title: 'Metas — ASTRO' }
 
-type Periodo = { id: number; nombre: string; fecha_inicio: string; fecha_fin: string }
-type Meta = {
-  id: number
-  ambito: string
-  usuario_id: number | null
-  tienda_id: number | null
-  monto_meta: number
-  usuarios: { nombre: string } | null
-  tiendas: { nombre: string } | null
-  periodos: Periodo | null
-}
 type Campana = {
   id: number
   nombre: string
@@ -38,59 +28,34 @@ export default async function MetasPage({
   const { ok, error } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: metas }, { data: periodos }, { data: tiendas }, { data: campanas }] = await Promise.all([
-    supabase
-      .from('metas')
-      .select('id, ambito, usuario_id, tienda_id, monto_meta, usuarios ( nombre ), tiendas ( nombre ), periodos ( id, nombre, fecha_inicio, fecha_fin )')
-      .order('id', { ascending: false })
-      .limit(50),
-    supabase.from('periodos').select('id, nombre').order('fecha_inicio', { ascending: false }).limit(12),
-    supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre'),
-    supabase.from('campanas').select('id, nombre, fecha_inicio, fecha_fin, activo').order('fecha_inicio', { ascending: false }).limit(20),
-  ])
+  // Metas, catálogos del formulario y campañas en una sola tanda; el avance
+  // de cada meta (una consulta de ventas por meta) se transmite fila a fila.
+  const [{ data: metas }, { data: periodos }, { data: tiendas }, { data: campanas }, { data: vendedores }] =
+    await Promise.all([
+      supabase
+        .from('metas')
+        .select('id, ambito, usuario_id, tienda_id, monto_meta, usuarios ( nombre ), tiendas ( nombre ), periodos ( id, nombre, fecha_inicio, fecha_fin )')
+        .order('id', { ascending: false })
+        .limit(50),
+      supabase.from('periodos').select('id, nombre').order('fecha_inicio', { ascending: false }).limit(12),
+      supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre'),
+      supabase.from('campanas').select('id, nombre, fecha_inicio, fecha_fin, activo').order('fecha_inicio', { ascending: false }).limit(20),
+      // Vendedores potenciales (cualquier rol comercial), resueltos por
+      // nombre de rol para no depender de su id numérico.
+      supabase
+        .from('usuarios')
+        .select('id, nombre, roles ( nombre )')
+        .eq('activo', true)
+        .order('nombre')
+        .limit(300),
+    ])
 
   const listaCampanas = (campanas ?? []) as Campana[]
-
-  // Vendedores potenciales (cualquier rol comercial), resueltos por
-  // nombre de rol para no depender de su id numérico.
-  const { data: vendedores } = await supabase
-    .from('usuarios')
-    .select('id, nombre, roles ( nombre )')
-    .eq('activo', true)
-    .order('nombre')
-    .limit(300)
 
   const listaVendedores = ((vendedores ?? []) as unknown as { id: number; nombre: string; roles: { nombre: string } | null }[])
     .filter((u) => ['supervisor', 'asesor', 'embajador', 'tienda'].includes(u.roles?.nombre ?? ''))
 
   const listaMetas = (metas ?? []) as unknown as Meta[]
-
-  // Progreso: ventas reales de cada vendedor/tienda dentro de su período —
-  // se guarda el detalle completo, no solo la suma, para el drill-down.
-  type VentaMeta = { id: number; total: number; fecha_creacion: string; clientes: { nombre: string } | null }
-  const progreso = new Map<number, number>()
-  const ventasPorMeta = new Map<number, VentaMeta[]>()
-  await Promise.all(
-    listaMetas.map(async (m) => {
-      if (!m.periodos) return
-      let consulta = supabase
-        .from('ventas')
-        .select('id, total, fecha_creacion, clientes ( nombre )')
-        .neq('estado', 'anulada')
-        .gte('fecha_creacion', m.periodos.fecha_inicio)
-        .lt('fecha_creacion', m.periodos.fecha_fin)
-      consulta = m.ambito === 'vendedor'
-        ? consulta.eq('vendedor_id', m.usuario_id as number)
-        : consulta.eq('tienda_id', m.tienda_id as number)
-      const { data } = await consulta
-      const ventas = (data ?? []) as unknown as VentaMeta[]
-      progreso.set(m.id, ventas.reduce((acc, v) => acc + (v.total ?? 0), 0))
-      ventasPorMeta.set(
-        m.id,
-        [...ventas].sort((a, b) => b.fecha_creacion.localeCompare(a.fecha_creacion)),
-      )
-    }),
-  )
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -171,51 +136,11 @@ export default async function MetasPage({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {listaMetas.map((m) => {
-            const actual = progreso.get(m.id) ?? 0
-            const pct = m.monto_meta > 0 ? Math.min(100, Math.round((actual / m.monto_meta) * 100)) : 0
-            const cumplida = actual >= m.monto_meta
-            const ventas = ventasPorMeta.get(m.id) ?? []
-            return (
-              <div key={m.id} className="rounded-xl border border-border bg-card p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-foreground">
-                    {m.ambito === 'vendedor' ? m.usuarios?.nombre : m.tiendas?.nombre}
-                    <span className="ml-1.5 font-normal text-muted-foreground">· {m.periodos?.nombre}</span>
-                  </p>
-                  <p className="text-xs font-semibold text-foreground">
-                    {formatearPrecio(actual)} / {formatearPrecio(m.monto_meta)}
-                  </p>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className={cn('h-full rounded-full', cumplida ? 'bg-primary' : 'bg-brand-deep-muted')}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                {ventas.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="w-fit cursor-pointer list-none text-xs font-semibold text-primary">
-                      Ver {ventas.length} venta{ventas.length > 1 ? 's' : ''} que componen el avance
-                    </summary>
-                    <div className="mt-2 flex flex-col gap-1">
-                      {ventas.map((v) => (
-                        <div key={v.id} className="flex items-center justify-between gap-2 text-xs">
-                          <a href={`/ventas#venta-${v.id}`} className="text-primary hover:underline">
-                            Venta #{v.id}
-                          </a>
-                          <span className="text-muted-foreground">
-                            {v.clientes?.nombre ?? 'Cliente sin nombre'} · {formatearFecha(v.fecha_creacion)}
-                          </span>
-                          <span className="font-semibold text-foreground">{formatearPrecio(v.total)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </div>
-            )
-          })}
+          {listaMetas.map((m) => (
+            <Suspense key={m.id} fallback={<EsqueletoFilaMeta meta={m} />}>
+              <FilaMeta meta={m} />
+            </Suspense>
+          ))}
         </div>
       )}
 

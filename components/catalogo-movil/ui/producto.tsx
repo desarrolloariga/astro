@@ -1,6 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
+import { miniaturaDe } from '@/lib/imagenes'
 import { formatearPrecio } from '@/lib/formato'
 import type { Producto } from '@/lib/catalogo-movil/tipos'
 import { Icon } from '../iconos'
@@ -43,7 +44,15 @@ export function ProductThumb({
   }
   const contenido = src ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+    <img
+      src={miniaturaDe(src)}
+      alt={alt}
+      loading="lazy"
+      onError={(e) => {
+        if (e.currentTarget.src !== src) e.currentTarget.src = src
+      }}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+    />
   ) : (
     <Icon name="gem" size={iconSize} stroke={stroke} />
   )

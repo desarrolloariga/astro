@@ -17,19 +17,17 @@ export default async function EvaluacionPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ error?: string; resultado?: string; puntaje?: string; aprobado?: string; restantes?: string }>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (usuario.rol === 'produccion' || usuario.rol === 'contabilidad') redirect('/inicio')
-
   const { id } = await params
   const sp = await searchParams
   const supabase = await createClient()
 
-  const { data: curso } = await supabase.from('cursos').select('id, titulo').eq('id', id).maybeSingle()
-  const { data: evaluacion } = await supabase
-    .from('evaluaciones')
-    .select('id, puntaje_aprobacion')
-    .eq('curso_id', id)
-    .maybeSingle()
+  // Curso y evaluación solo dependen del id: viajan junto con el contexto de sesión.
+  const [usuario, { data: curso }, { data: evaluacion }] = await Promise.all([
+    obtenerUsuarioActual(),
+    supabase.from('cursos').select('id, titulo').eq('id', id).maybeSingle(),
+    supabase.from('evaluaciones').select('id, puntaje_aprobacion').eq('curso_id', id).maybeSingle(),
+  ])
+  if (usuario.rol === 'produccion' || usuario.rol === 'contabilidad') redirect('/inicio')
 
   if (!curso || !evaluacion) redirect(`/academia/${id}`)
 

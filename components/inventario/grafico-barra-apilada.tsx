@@ -1,12 +1,11 @@
-'use client'
-
-import { BarChart, Bar, XAxis, YAxis } from 'recharts'
 import { PieChart as PieIcon } from 'lucide-react'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import type { ChartConfig } from './tipos'
 
-/** Barra apilada horizontal de una sola fila + leyenda de texto — nunca dona
- * (la paleta chart-1..5 de este proyecto es un degradado de un solo hue, no
- * distingue bien ≥3 categorías por color solo; posición + leyenda sí). */
+/**
+ * Barra apilada horizontal de una sola fila + leyenda de texto, en HTML/CSS.
+ * Nunca dona: la paleta chart-1..5 es un degradado de un solo hue y no
+ * distingue bien ≥3 categorías por color solo; posición + leyenda sí.
+ */
 export function GraficoBarraApilada({
   data,
   config,
@@ -28,28 +27,33 @@ export function GraficoBarraApilada({
     )
   }
 
+  const colorDe = (clave: string, i: number) => config[clave]?.color ?? `var(--chart-${(i % 5) + 1})`
+
   return (
     <div className="flex flex-col gap-4">
-      <ChartContainer config={config} className="aspect-auto w-full" style={{ height: 56 }}>
-        <BarChart data={data} layout="vertical" margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
-          <XAxis type="number" hide />
-          <YAxis type="category" dataKey="nombre" hide />
-          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-          {claves.map((clave) => (
-            <Bar key={clave} dataKey={clave} stackId="total" fill={`var(--color-${clave})`} radius={0} />
-          ))}
-        </BarChart>
-      </ChartContainer>
+      <div role="img" aria-label={String(fila.nombre ?? 'Distribución')} className="flex h-10 w-full overflow-hidden rounded-lg bg-muted/40">
+        {claves.map((clave, i) => {
+          const valor = Number(fila[clave]) || 0
+          if (valor <= 0) return null
+          const pct = (valor / total) * 100
+          const etiqueta = config[clave]?.label
+          return (
+            <div
+              key={clave}
+              className="h-full transition-[width] duration-500"
+              style={{ width: `${pct}%`, background: colorDe(clave, i) }}
+              title={`${typeof etiqueta === 'string' ? etiqueta : clave}: ${valor} (${Math.round(pct)}%)`}
+            />
+          )
+        })}
+      </div>
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        {claves.map((clave) => {
+        {claves.map((clave, i) => {
           const valor = Number(fila[clave]) || 0
           const pct = total > 0 ? Math.round((valor / total) * 100) : 0
           return (
             <div key={clave} className="flex items-center gap-2">
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                style={{ backgroundColor: `var(--color-${clave})` }}
-              />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: colorDe(clave, i) }} />
               <span className="text-foreground">{config[clave]?.label}</span>
               <span className="text-muted-foreground">
                 {valor} · {pct}%

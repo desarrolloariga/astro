@@ -38,21 +38,24 @@ export default async function DetalleRecepcionMetalPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
-  if (!(await tienePermiso('recepcion_metal', 'ver'))) redirect('/inicio')
-  const puedeCrear = await tienePermiso('recepcion_metal', 'crear')
-  const puedeConfirmar = await tienePermiso('recepcion_metal', 'confirmar')
-
   const { id } = await params
   const { ok, error } = await searchParams
   const supabase = await createClient()
 
-  const { data } = await supabase
-    .from('recepciones_metal')
-    .select(
-      'id, estado, peso_total_gramos, cantidad_total_piezas, notas, fecha_creacion, fecha_confirmacion, proveedores ( nombre ), recepcion_metal_detalles ( id, producto_id, cantidad, peso_gramos, costo_unitario, productos ( codigo, nombre ) )',
-    )
-    .eq('id', id)
-    .maybeSingle()
+  // La recepción solo depende del id: viaja junto con el contexto de sesión.
+  const [permitido, puedeCrear, puedeConfirmar, { data }] = await Promise.all([
+    tienePermiso('recepcion_metal', 'ver'),
+    tienePermiso('recepcion_metal', 'crear'),
+    tienePermiso('recepcion_metal', 'confirmar'),
+    supabase
+      .from('recepciones_metal')
+      .select(
+        'id, estado, peso_total_gramos, cantidad_total_piezas, notas, fecha_creacion, fecha_confirmacion, proveedores ( nombre ), recepcion_metal_detalles ( id, producto_id, cantidad, peso_gramos, costo_unitario, productos ( codigo, nombre ) )',
+      )
+      .eq('id', id)
+      .maybeSingle(),
+  ])
+  if (!permitido) redirect('/inicio')
 
   if (!data) notFound()
   const recepcion = data as unknown as Recepcion

@@ -4,10 +4,9 @@ import type { Metadata } from 'next'
 import { Gem } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerCarrito } from '@/lib/publico/carrito'
-import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import { CatalogoMovil } from '@/components/catalogo-movil/catalogo-movil'
-import { adaptarLinea, adaptarProducto, calcularRangosPrecio } from '@/lib/catalogo-movil/datos'
-import { adaptarLineaWeb } from '@/lib/catalogo-web/datos'
+import { adaptarLinea } from '@/lib/catalogo-movil/datos'
+import { adaptarLineaWeb, consultarPiezas, mapearPiezas } from '@/lib/catalogo-web/datos'
 import { cargarFicha } from '@/lib/producto-detalle/datos'
 import { COOKIE_ENTREGA, parsearEleccion } from '@/lib/entrega'
 import { obtenerUrlBase } from '@/lib/url-publica'
@@ -18,8 +17,8 @@ import { agregarPublicoWeb, linkPiezaPublicaWeb } from '../../acciones-web'
 export async function generateMetadata({ params }: { params: Promise<{ token: string; id: string }> }): Promise<Metadata> {
   const { token, id } = await params
   const supabase = await createClient()
-  const { data } = await supabase.rpc('fn_catalogo_por_token', { p_token: token })
-  const pieza = ((data ?? []) as PiezaCatalogo[]).find((p) => String(p.id) === id)
+  const filas = await consultarPiezas(supabase, { token, ids: [Number(id) || 0] })
+  const pieza = filas[0]
   if (!pieza) return { title: 'Pieza — ASTRO' }
   return {
     title: `${pieza.nombre} — ASTRO`,
@@ -39,14 +38,18 @@ export default async function PiezaPublicaPage({
   params: Promise<{ token: string; id: string }>
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
-  const [{ token, id }, { ok, error }, supabase, galletas] = await Promise.all([params, searchParams, createClient(), cookies()])
+  const [{ token, id }, supabase] = await Promise.all([params, createClient()])
   const productoId = Number(id) || 0
 
-  const [{ data: infoData }, { data: piezasData }, { items: carrito }, datos] = await Promise.all([
+  // Una sola ola de red: enlace, catálogo completo (para la app móvil), ficha, carrito y cookies.
+  const [{ ok, error }, galletas, { data: infoData }, filas, { items: carrito }, datos, urlBase] = await Promise.all([
+    searchParams,
+    cookies(),
     supabase.rpc('fn_link_info', { p_token: token }),
-    supabase.rpc('fn_catalogo_por_token', { p_token: token }),
+    consultarPiezas(supabase, { token }),
     obtenerCarrito(token),
     cargarFicha(supabase, 'publico', productoId, token),
+    obtenerUrlBase(),
   ])
 
   const info = infoData?.[0] as { vendedor_nombre: string; tipo: string; vigente: boolean; nombre: string | null } | undefined
@@ -60,7 +63,6 @@ export default async function PiezaPublicaPage({
   }
   if (!datos) notFound()
 
-  const productosMovil = ((piezasData ?? []) as PiezaCatalogo[]).map(adaptarProducto)
   const rutaBase = `/c/${token}`
 
   return (
@@ -68,15 +70,14 @@ export default async function PiezaPublicaPage({
       {/* Celular: app móvil abierta en esta pieza. Computador: ficha nueva. */}
       <CatalogoMovil
         info={{ token, vendedor: info.vendedor_nombre, titulo: info.nombre && info.tipo !== 'catalogo' ? info.nombre : 'Catálogo' }}
-        productos={productosMovil}
-        rangos={calcularRangosPrecio(productosMovil)}
+        productosWeb={mapearPiezas(filas, datos.general.dias_nuevo)}
         politicaEnvio={datos.politica}
         lineas={carrito.map(adaptarLinea)}
         pantallaInicial="detail"
         productoInicial={productoId}
       />
       <div className="hidden md:block">
-        <JsonLdProducto producto={datos.producto} url={`${await obtenerUrlBase()}${rutaBase}/p/${productoId}`} />
+        <JsonLdProducto producto={datos.producto} url={`${urlBase}${rutaBase}/p/${productoId}`} />
         <ProductoDetalle
           contexto="publico"
           datos={datos}

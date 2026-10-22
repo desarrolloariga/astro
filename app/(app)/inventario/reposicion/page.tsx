@@ -25,7 +25,7 @@ import {
   calcularRangoSolicitudes,
   calcularTotalPaginasSolicitudes,
 } from '@/lib/logistica'
-import type { ChartConfig } from '@/components/ui/chart'
+import type { ChartConfig } from '@/components/inventario/tipos'
 import { crearSolicitud, resolverSolicitud } from './acciones'
 
 export const metadata = { title: 'Reposición y rotación — ASTRO' }
@@ -86,22 +86,23 @@ export default async function LogisticaPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  const puedeSolicitar = await tienePermiso('logistica', 'solicitar')
-  const puedeGestionar = await tienePermiso('logistica', 'gestionar')
-  if (!puedeSolicitar && !puedeGestionar) redirect('/inicio')
-
   const sp = await searchParams
   const ok = typeof sp.ok === 'string' ? sp.ok : undefined
   const error = typeof sp.error === 'string' ? sp.error : undefined
   const filtros = parsearFiltrosSolicitudes(sp)
   const supabase = await createClient()
 
-  const [{ data: categoriasData }, { data: materialesData }, { data: umbralData }] = await Promise.all([
-    supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
-    supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
-    supabase.from('parametros').select('valor').eq('clave', 'umbral_quiebre_stock').maybeSingle(),
-  ])
+  // Catálogos y umbral no dependen del usuario: viajan junto con el contexto de sesión.
+  const [usuario, puedeSolicitar, puedeGestionar, { data: categoriasData }, { data: materialesData }, { data: umbralData }] =
+    await Promise.all([
+      obtenerUsuarioActual(),
+      tienePermiso('logistica', 'solicitar'),
+      tienePermiso('logistica', 'gestionar'),
+      supabase.from('categorias').select('id, nombre').eq('activo', true).order('orden'),
+      supabase.from('materiales').select('id, nombre').eq('activo', true).order('nombre'),
+      supabase.from('parametros').select('valor').eq('clave', 'umbral_quiebre_stock').maybeSingle(),
+    ])
+  if (!puedeSolicitar && !puedeGestionar) redirect('/inicio')
   const categorias = (categoriasData ?? []) as Categoria[]
   const materiales = (materialesData ?? []) as Material[]
   const umbralQuiebre = Number(umbralData?.valor ?? 0)

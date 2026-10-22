@@ -1,6 +1,5 @@
 import 'server-only'
 import type { createClient } from '@/lib/supabase/server'
-import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import type { ItemCarrito } from '@/lib/publico/carrito'
 import { hoyGuatemala } from '@/lib/contabilidad'
 import {
@@ -18,121 +17,98 @@ import type { CategoriaWeb, ConfigCatalogo, Contexto, LineaWeb, NombreIcono, Pro
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
-const LOTE = 1000
 const PALETA = ['#DCE6FA', '#E4ECFB', '#F6E9C4', '#E8EEF8', '#D7E3F8', '#EFE6CF']
 
-/** Ícono de la tarjeta de categoría según su nombre (si no tiene imagen). */
-function iconoCategoria(nombre: string): NombreIcono {
-  const n = slug(nombre)
-  if (/anillo|sortija|argolla/.test(n)) return 'ring'
-  if (/perfume|fragancia/.test(n)) return 'perfume'
-  if (/locion|crema/.test(n)) return 'bottle'
-  if (/reloj/.test(n)) return 'watch'
-  if (/bolso|cartera|bolsa/.test(n)) return 'bag'
-  if (/ropa|camisa|blusa/.test(n)) return 'shirt'
-  if (/audifono|tecno/.test(n)) return 'headphones'
-  return 'gem'
+/** Fila de fn_catalogo_piezas: la pieza con precio embajador, "Nuevo", vendidos y entrega inmediata en una sola respuesta. */
+export type FilaPieza = {
+  id: number
+  codigo: string
+  nombre: string
+  descripcion: string | null
+  categoria_id: number | null
+  categoria: string | null
+  material: string | null
+  peso_gramos: number | null
+  kilataje: string | null
+  piedras: string | null
+  precio_venta: number | null
+  precio_lista: number | null
+  en_descuento: boolean | null
+  estado: string
+  tienda: string | null
+  imagen_principal: string | null
+  imagenes: { url: string; orden: number }[] | null
+  modo_inventario: 'pieza_unica' | 'por_cantidad'
+  stock_disponible: number | null
+  fecha_publicacion: string | null
+  vendidos: number | null
+  precio_embajador: number | null
+  inmediata: boolean | null
+  ubicacion: string | null
 }
 
-export type PiezaFuente = PiezaCatalogo & { categoria_id?: number | null; precio_lista?: number | null; en_descuento?: boolean | null }
+export type ParametrosPiezas = {
+  /** Enlace público; sin token = catálogo del backoffice (requiere sesión). */
+  token?: string
+  ids?: number[]
+  /** Devuelve esa pieza y las de su misma categoría (ficha de producto). */
+  mismaCategoriaQue?: number
+}
 
-export const COLUMNAS_PIEZA =
-  'id, codigo, nombre, descripcion, categoria_id, categoria, material, peso_gramos, kilataje, piedras, precio_venta, precio_lista, en_descuento, estado, imagen_principal, imagenes, modo_inventario, stock_disponible'
+/** Una sola llamada a la base para todas las piezas del catálogo. */
+export async function consultarPiezas(supabase: Supabase, params: ParametrosPiezas = {}): Promise<FilaPieza[]> {
+  const { data, error } = await supabase.rpc('fn_catalogo_piezas', {
+    p_token: params.token ?? null,
+    p_ids: params.ids ?? null,
+    p_misma_categoria_que: params.mismaCategoriaQue ?? null,
+  })
+  // Enlace vencido o sin sesión: la página ya muestra su propio mensaje.
+  if (error) return []
+  return (data ?? []) as FilaPieza[]
+}
 
-async function piezasBackoffice(supabase: Supabase): Promise<PiezaFuente[]> {
-  const piezas: PiezaFuente[] = []
-  for (let desde = 0; desde < 20 * LOTE; desde += LOTE) {
-    const { data } = await supabase
-      .from('vw_catalogo')
-      .select(
-        'id, codigo, nombre, descripcion, categoria_id, categoria, material, peso_gramos, kilataje, piedras, precio_venta, precio_lista, en_descuento, estado, imagen_principal, imagenes, modo_inventario, stock_disponible',
-      )
-      .order('id', { ascending: false })
-      .range(desde, desde + LOTE - 1)
-    const lote = (data ?? []) as PiezaFuente[]
-    piezas.push(...lote)
-    if (lote.length < LOTE) break
+export function mapearPieza(p: FilaPieza, diasNuevo: number, ahora = Date.now()): ProductoWeb {
+  const pub = Number(p.precio_venta ?? 0)
+  const lista = Number(p.precio_lista ?? 0)
+  const fecha = p.fecha_publicacion ? new Date(p.fecha_publicacion).getTime() : 0
+  const modo = p.modo_inventario ?? 'pieza_unica'
+  const proximamente = p.estado === 'en_transito'
+  const imagenes = (p.imagenes ?? [])
+    .slice()
+    .sort((a, b) => a.orden - b.orden)
+    .map((i) => i.url)
+  if (imagenes.length === 0 && p.imagen_principal) imagenes.push(p.imagen_principal)
+  const categoria = p.categoria?.trim() || 'Otros'
+  const stock = proximamente ? 0 : modo === 'por_cantidad' ? Math.max(0, Number(p.stock_disponible ?? 0)) : 1
+  return {
+    id: p.id,
+    codigo: p.codigo,
+    nombre: p.nombre,
+    descripcion: p.descripcion ?? null,
+    categoria,
+    catId: slug(categoria),
+    material: p.material?.trim() || null,
+    kilataje: p.kilataje && p.kilataje.trim() !== '0' ? p.kilataje.trim() : null,
+    piedras: p.piedras ?? null,
+    peso: p.peso_gramos ?? null,
+    pub,
+    emb: p.precio_embajador == null ? null : Number(p.precio_embajador),
+    was: Boolean(p.en_descuento) && lista > pub ? lista : null,
+    isNew: diasNuevo > 0 && fecha >= ahora - diasNuevo * 86_400_000,
+    modo,
+    stock,
+    proximamente,
+    imagenes,
+    fecha: fecha || p.id,
+    vendidos: Number(p.vendidos ?? 0),
+    inmediata: stock > 0 && Boolean(p.inmediata),
+    ubicacion: p.ubicacion ?? p.tienda ?? null,
   }
-  return piezas
 }
 
-type Meta = { producto_id: number; fecha_publicacion: string | null; precio_lista: number | null; en_descuento: boolean; vendidos: number }
-
-/** Productos del catálogo con precio embajador, oferta, "Nuevo" y unidades vendidas. */
-async function cargarProductos(
-  supabase: Supabase,
-  contexto: Contexto,
-  token: string | undefined,
-  diasNuevo: number,
-): Promise<ProductoWeb[]> {
-  const piezas: PiezaFuente[] =
-    contexto === 'publico'
-      ? (((await supabase.rpc('fn_catalogo_por_token', { p_token: token ?? '' })).data ?? []) as PiezaFuente[])
-      : await piezasBackoffice(supabase)
-  return enriquecerPiezas(supabase, piezas, contexto, diasNuevo)
-}
-
-/** Piezas de vw_catalogo / fn_catalogo_por_token → productos con precio embajador, oferta, "Nuevo" y vendidos. */
-export async function enriquecerPiezas(
-  supabase: Supabase,
-  piezas: PiezaFuente[],
-  contexto: Contexto,
-  diasNuevo: number,
-): Promise<ProductoWeb[]> {
-  const ids = piezas.map((p) => p.id)
-  const [metaRes, embRes] = await Promise.all([
-    ids.length ? supabase.rpc('fn_catalogo_meta', { p_producto_ids: ids }) : Promise.resolve({ data: [] }),
-    contexto === 'backoffice' && ids.length
-      ? supabase.rpc('fn_precios_embajador', { p_producto_ids: ids })
-      : Promise.resolve({ data: [] }),
-  ])
-  const meta = new Map<number, Meta>()
-  for (const m of (metaRes.data ?? []) as Meta[]) meta.set(Number(m.producto_id), m)
-  const emb = new Map<number, number>()
-  for (const f of (embRes.data ?? []) as { producto_id: number; precio_embajador: number | null }[]) {
-    if (f.precio_embajador != null) emb.set(Number(f.producto_id), Number(f.precio_embajador))
-  }
-
-  const limiteNuevo = Date.now() - diasNuevo * 86_400_000
-  return piezas
-    .filter((p) => p.precio_venta != null)
-    .map((p) => {
-      const m = meta.get(p.id)
-      const pub = Number(p.precio_venta)
-      const lista = Number(p.precio_lista ?? m?.precio_lista ?? 0)
-      const enDescuento = Boolean(p.en_descuento ?? m?.en_descuento)
-      const fecha = m?.fecha_publicacion ? new Date(m.fecha_publicacion).getTime() : 0
-      const modo = p.modo_inventario ?? 'pieza_unica'
-      const proximamente = p.estado === 'en_transito'
-      const imagenes = (p.imagenes ?? [])
-        .slice()
-        .sort((a, b) => a.orden - b.orden)
-        .map((i) => i.url)
-      if (imagenes.length === 0 && p.imagen_principal) imagenes.push(p.imagen_principal)
-      const categoria = p.categoria?.trim() || 'Otros'
-      return {
-        id: p.id,
-        codigo: p.codigo,
-        nombre: p.nombre,
-        descripcion: p.descripcion ?? null,
-        categoria,
-        catId: slug(categoria),
-        material: p.material?.trim() || null,
-        kilataje: p.kilataje && p.kilataje.trim() !== '0' ? p.kilataje.trim() : null,
-        piedras: p.piedras ?? null,
-        peso: p.peso_gramos ?? null,
-        pub,
-        emb: emb.get(p.id) ?? null,
-        was: enDescuento && lista > pub ? lista : null,
-        isNew: diasNuevo > 0 && fecha >= limiteNuevo,
-        modo,
-        stock: proximamente ? 0 : modo === 'por_cantidad' ? Math.max(0, Number(p.stock_disponible ?? 0)) : 1,
-        proximamente,
-        imagenes,
-        fecha: fecha || p.id,
-        vendidos: Number(m?.vendidos ?? 0),
-      } satisfies ProductoWeb
-    })
+export function mapearPiezas(filas: FilaPieza[], diasNuevo: number): ProductoWeb[] {
+  const ahora = Date.now()
+  return filas.filter((p) => p.precio_venta != null).map((p) => mapearPieza(p, diasNuevo, ahora))
 }
 
 type FilaContenido = Record<string, unknown> & {
@@ -152,7 +128,7 @@ function vigente(f: FilaContenido, contexto: Contexto, hoy: string) {
 
 const cadena = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
-/** Contenido de "Configuración del catálogo" para un contexto (solo lo activo y vigente hoy). */
+/** Contenido de "Configuración del catálogo" para un contexto (solo lo activo y vigente hoy). Cuatro consultas en paralelo. */
 export async function cargarConfigCatalogo(supabase: Supabase, contexto: Contexto): Promise<ConfigCatalogo> {
   const orden = { ascending: true }
   const [anuncios, banners, novedades, config] = await Promise.all([
@@ -204,13 +180,25 @@ export async function cargarConfigCatalogo(supabase: Supabase, contexto: Context
   }
 }
 
+/** Ícono de la tarjeta de categoría según su nombre (si no tiene imagen). */
+function iconoCategoria(nombre: string): NombreIcono {
+  const n = slug(nombre)
+  if (/anillo|sortija|argolla/.test(n)) return 'ring'
+  if (/perfume|fragancia/.test(n)) return 'perfume'
+  if (/locion|crema/.test(n)) return 'bottle'
+  if (/reloj/.test(n)) return 'watch'
+  if (/bolso|cartera|bolsa/.test(n)) return 'bag'
+  if (/ropa|camisa|blusa/.test(n)) return 'shirt'
+  if (/audifono|tecno/.test(n)) return 'headphones'
+  return 'gem'
+}
+
 type EstiloCategoria = { id: number; nombre: string; orden: number; imagen_catalogo: string | null; color_catalogo: string | null }
 
 /** Tarjetas de categoría: las que tienen piezas, con su imagen/color configurados. */
-async function cargarCategorias(supabase: Supabase, productos: ProductoWeb[]): Promise<CategoriaWeb[]> {
-  const { data } = await supabase.rpc('fn_categorias_catalogo')
+export function armarCategorias(productos: ProductoWeb[], estilosData: unknown): CategoriaWeb[] {
   const estilos = new Map<string, EstiloCategoria>()
-  for (const e of (data ?? []) as EstiloCategoria[]) estilos.set(slug(e.nombre), e)
+  for (const e of (estilosData ?? []) as EstiloCategoria[]) estilos.set(slug(e.nombre), e)
 
   const conteo = new Map<string, { nombre: string; total: number; imagen: string | null }>()
   for (const p of productos) {
@@ -230,11 +218,15 @@ async function cargarCategorias(supabase: Supabase, productos: ProductoWeb[]): P
     .map(({ orden: _o, ...c }, i) => ({ ...c, color: c.color || PALETA[i % PALETA.length], icono: iconoCategoria(c.nombre) }))
 }
 
+/** Todo lo que necesita el catálogo web, en una sola ola de red. */
 export async function cargarCatalogoWeb(supabase: Supabase, contexto: Contexto, token?: string) {
-  const config = await cargarConfigCatalogo(supabase, contexto)
-  const productos = await cargarProductos(supabase, contexto, token, config.general.dias_nuevo)
-  const categorias = await cargarCategorias(supabase, productos)
-  return { config, productos, categorias }
+  const [config, filas, { data: estilos }] = await Promise.all([
+    cargarConfigCatalogo(supabase, contexto),
+    consultarPiezas(supabase, { token }),
+    supabase.rpc('fn_categorias_catalogo'),
+  ])
+  const productos = mapearPiezas(filas, config.general.dias_nuevo)
+  return { config, productos, categorias: armarCategorias(productos, estilos) }
 }
 
 /** Línea del carrito (fn_ver_carrito / fn_ver_mi_carrito) → línea del catálogo web. */

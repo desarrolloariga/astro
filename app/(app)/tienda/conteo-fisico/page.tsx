@@ -8,7 +8,7 @@ import { KpiCard } from '@/components/app/kpi-card'
 import { AlertaCard } from '@/components/app/alerta-card'
 import { GraficoBarraApilada } from '@/components/inventario/grafico-barra-apilada'
 import { GraficoBarras } from '@/components/inventario/grafico-barras'
-import type { ChartConfig } from '@/components/ui/chart'
+import type { ChartConfig } from '@/components/inventario/tipos'
 import { iniciarConteo, marcarContado, cerrarConteo } from './acciones'
 
 export const metadata = { title: 'Conteo físico — ASTRO' }
@@ -48,11 +48,9 @@ export default async function ConteoFisicoPage({
 
   const tiendaId = usuario.rol === 'tienda' ? usuario.tienda_id : sp.tienda_id ? Number(sp.tienda_id) : null
 
-  const { data: tiendas } = usuario.rol !== 'tienda'
-    ? await supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre')
-    : { data: [] }
-
   if (usuario.rol !== 'tienda' && !tiendaId) {
+    // Las tiendas solo se usan en el selector.
+    const { data: tiendas } = await supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre')
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Conteo físico</h1>

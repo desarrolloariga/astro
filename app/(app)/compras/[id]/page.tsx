@@ -75,35 +75,34 @@ export default async function OrdenCompraPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
-  if (!(await tienePermiso('compras', 'ver'))) redirect('/inicio')
-
   const { id } = await params
   const { ok, error } = await searchParams
   const ordenId = Number(id)
-
-  const [puedeCrear, puedeAutorizar, puedeRecibir, puedeFacturar, puedePagar] = await Promise.all([
-    tienePermiso('compras', 'crear'),
-    tienePermiso('compras', 'autorizar'),
-    tienePermiso('compras', 'recibir'),
-    tienePermiso('compras', 'facturar'),
-    tienePermiso('compras', 'pagar'),
-  ])
-
   const supabase = await createClient()
-  const [{ data: orden }, { data: detalles }] = await Promise.all([
-    supabase
-      .from('ordenes_compra')
-      .select(
-        'id, estado, subtotal, impuestos, total, notas, condiciones_pago, fecha_entrega_esperada, direccion_entrega, metodo_envio, referencia_proveedor, notas_proveedor, numero_factura_proveedor, fecha_creacion, fecha_autorizacion, fecha_recepcion_total, fecha_facturacion, fecha_pago, proveedores ( nombre )',
-      )
-      .eq('id', ordenId)
-      .maybeSingle(),
-    supabase
-      .from('orden_compra_detalles')
-      .select('id, producto_id, descripcion, cantidad, costo_unitario, descuento_pct, subtotal, cantidad_recibida, productos ( codigo, nombre )')
-      .eq('orden_compra_id', ordenId)
-      .order('id'),
-  ])
+
+  // Orden y líneas solo dependen del id: viajan junto con el contexto de sesión.
+  const [permitido, puedeCrear, puedeAutorizar, puedeRecibir, puedeFacturar, puedePagar, { data: orden }, { data: detalles }] =
+    await Promise.all([
+      tienePermiso('compras', 'ver'),
+      tienePermiso('compras', 'crear'),
+      tienePermiso('compras', 'autorizar'),
+      tienePermiso('compras', 'recibir'),
+      tienePermiso('compras', 'facturar'),
+      tienePermiso('compras', 'pagar'),
+      supabase
+        .from('ordenes_compra')
+        .select(
+          'id, estado, subtotal, impuestos, total, notas, condiciones_pago, fecha_entrega_esperada, direccion_entrega, metodo_envio, referencia_proveedor, notas_proveedor, numero_factura_proveedor, fecha_creacion, fecha_autorizacion, fecha_recepcion_total, fecha_facturacion, fecha_pago, proveedores ( nombre )',
+        )
+        .eq('id', ordenId)
+        .maybeSingle(),
+      supabase
+        .from('orden_compra_detalles')
+        .select('id, producto_id, descripcion, cantidad, costo_unitario, descuento_pct, subtotal, cantidad_recibida, productos ( codigo, nombre )')
+        .eq('orden_compra_id', ordenId)
+        .order('id'),
+    ])
+  if (!permitido) redirect('/inicio')
 
   if (!orden) redirect('/compras')
   const ordenTipada = orden as unknown as Orden

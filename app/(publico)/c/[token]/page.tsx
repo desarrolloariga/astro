@@ -1,9 +1,8 @@
 import { Gem } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerCarrito } from '@/lib/publico/carrito'
-import type { PiezaCatalogo } from '@/components/catalogo/tipos'
 import { CatalogoMovil } from '@/components/catalogo-movil/catalogo-movil'
-import { adaptarLinea, adaptarProducto, calcularRangosPrecio } from '@/lib/catalogo-movil/datos'
+import { adaptarLinea } from '@/lib/catalogo-movil/datos'
 import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
 import { adaptarLineaWeb, cargarCatalogoWeb } from '@/lib/catalogo-web/datos'
 import { CatalogoWeb } from '@/components/catalogo-web/catalogo-web'
@@ -19,12 +18,19 @@ export default async function CatalogoPublicoPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { token } = await params
-  const sp = await searchParams
-  const ok = typeof sp.ok === 'string' ? sp.ok : null
-  const error = typeof sp.error === 'string' ? sp.error : null
   const supabase = await createClient()
 
-  const { data: infoData } = await supabase.rpc('fn_link_info', { p_token: token })
+  // Todo en una sola ola de red: enlace, carrito, política de envío y catálogo
+  // (piezas + configuración visual + categorías).
+  const [sp, { data: infoData }, { items: carrito }, politicaEnvio, web] = await Promise.all([
+    searchParams,
+    supabase.rpc('fn_link_info', { p_token: token }),
+    obtenerCarrito(token),
+    obtenerPoliticaEnvio(supabase),
+    cargarCatalogoWeb(supabase, 'publico', token),
+  ])
+  const ok = typeof sp.ok === 'string' ? sp.ok : null
+  const error = typeof sp.error === 'string' ? sp.error : null
   const info = infoData?.[0] as { vendedor_nombre: string; tipo: string; vigente: boolean; nombre: string | null } | undefined
 
   if (!info?.vigente) {
@@ -39,14 +45,6 @@ export default async function CatalogoPublicoPage({
     )
   }
 
-  const [{ data: piezasData }, { items: carrito }, politicaEnvio, web] = await Promise.all([
-    supabase.rpc('fn_catalogo_por_token', { p_token: token }),
-    obtenerCarrito(token),
-    obtenerPoliticaEnvio(supabase),
-    cargarCatalogoWeb(supabase, 'publico', token),
-  ])
-
-  const productosMovil = ((piezasData ?? []) as PiezaCatalogo[]).map(adaptarProducto)
   const rutaBase = `/c/${token}`
   const query = new URLSearchParams(
     Object.entries(sp).flatMap(([k, v]) =>
@@ -56,11 +54,10 @@ export default async function CatalogoPublicoPage({
 
   return (
     <>
-      {/* Celular: app móvil del catálogo. Computador: catálogo web. */}
+      {/* Celular: app móvil del catálogo. Computador: catálogo web. Las piezas viajan una sola vez. */}
       <CatalogoMovil
         info={{ token, vendedor: info.vendedor_nombre, titulo: info.nombre && info.tipo !== 'catalogo' ? info.nombre : 'Catálogo' }}
-        productos={productosMovil}
-        rangos={calcularRangosPrecio(productosMovil)}
+        productosWeb={web.productos}
         politicaEnvio={politicaEnvio}
         lineas={carrito.map(adaptarLinea)}
       />

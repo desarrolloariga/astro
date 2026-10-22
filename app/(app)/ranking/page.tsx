@@ -39,17 +39,15 @@ export default async function RankingPage({
 }: {
   searchParams: Promise<{ periodo_id?: string; rol?: string; tienda_id?: string }>
 }) {
-  const usuario = await obtenerUsuarioActual()
-  if (usuario.rol === 'produccion' || usuario.rol === 'contabilidad') redirect('/inicio')
-
   const { periodo_id, rol, tienda_id } = await searchParams
   const supabase = await createClient()
 
-  const { data: periodos } = await supabase
-    .from('periodos')
-    .select('id, nombre, tipo')
-    .order('fecha_inicio', { ascending: false })
-    .limit(12)
+  // Los períodos no dependen del usuario: viajan junto con el contexto de sesión.
+  const [usuario, { data: periodos }] = await Promise.all([
+    obtenerUsuarioActual(),
+    supabase.from('periodos').select('id, nombre, tipo').order('fecha_inicio', { ascending: false }).limit(12),
+  ])
+  if (usuario.rol === 'produccion' || usuario.rol === 'contabilidad') redirect('/inicio')
 
   const listaPeriodos = (periodos ?? []) as Periodo[]
   const periodoActivoId = periodo_id ? Number(periodo_id) : listaPeriodos[0]?.id
@@ -73,7 +71,10 @@ export default async function RankingPage({
   if (rol) consulta = consulta.eq('rol', rol)
   if (tienda_id) consulta = consulta.eq('tienda_id', Number(tienda_id))
 
-  const [{ data: filas }, { data: premiosData }, { data: tiendas }] = await Promise.all([
+  // El ledger de puntos (venta, regla, cantidad) nunca se mostraba en
+  // ningún lado pese a tener trazabilidad completa — se expone aquí,
+  // acotado al propio usuario y período para no saturar la pantalla.
+  const [{ data: filas }, { data: premiosData }, { data: tiendas }, { data: misPuntosData }] = await Promise.all([
     consulta,
     supabase
       .from('premios')
@@ -81,10 +82,17 @@ export default async function RankingPage({
       .eq('periodo_id', periodoActivoId)
       .order('posicion_desde'),
     supabase.from('tiendas').select('id, nombre').eq('activo', true).order('nombre'),
+    supabase
+      .from('puntos')
+      .select('id, cantidad, motivo, venta_id, fecha_creacion')
+      .eq('usuario_id', usuario.id)
+      .eq('periodo_id', periodoActivoId)
+      .order('fecha_creacion', { ascending: false }),
   ])
 
   const ranking = (filas ?? []) as FilaRanking[]
   const premios = (premiosData ?? []) as Premio[]
+  const misPuntos = (misPuntosData ?? []) as PuntoDetalle[]
 
   const { data: nivelesData } = ranking.length
     ? await supabase
@@ -97,17 +105,6 @@ export default async function RankingPage({
   const nivelPorUsuario = new Map(
     ((nivelesData ?? []) as unknown as Nivel[]).map((n) => [n.usuario_id, n.niveles?.nombre]),
   )
-
-  // El ledger de puntos (venta, regla, cantidad) nunca se mostraba en
-  // ningún lado pese a tener trazabilidad completa — se expone aquí,
-  // acotado al propio usuario y período para no saturar la pantalla.
-  const { data: misPuntosData } = await supabase
-    .from('puntos')
-    .select('id, cantidad, motivo, venta_id, fecha_creacion')
-    .eq('usuario_id', usuario.id)
-    .eq('periodo_id', periodoActivoId)
-    .order('fecha_creacion', { ascending: false })
-  const misPuntos = (misPuntosData ?? []) as PuntoDetalle[]
 
   function premioDe(posicion: number) {
     return premios.find((p) => posicion >= p.posicion_desde && posicion <= p.posicion_hasta)?.descripcion

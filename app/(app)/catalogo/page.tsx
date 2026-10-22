@@ -26,13 +26,19 @@ export default async function CatalogoPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
-
-  const [usuario, sp, supabase, modo] = await Promise.all([obtenerUsuarioActual(), searchParams, createClient(), obtenerModoCompra()])
-  const [{ config, productos, categorias }, { data: carrito }] = await Promise.all([
+  const supabase = await createClient()
+  // Catálogo, carrito y contexto de sesión salen en una sola ola de red
+  // (las consultas de Supabase arrancan al entrar al Promise.all); el
+  // permiso se revisa antes de usar los datos.
+  const [puede, usuario, sp, modo, { config, productos, categorias }, { data: carrito }] = await Promise.all([
+    tienePermiso('catalogo', 'ver'),
+    obtenerUsuarioActual(),
+    searchParams,
+    obtenerModoCompra(),
     cargarCatalogoWeb(supabase, 'backoffice'),
     supabase.rpc('fn_ver_mi_carrito'),
   ])
+  if (!puede) redirect('/inicio')
   const ok = typeof sp.ok === 'string' ? sp.ok : null
   const error = typeof sp.error === 'string' ? sp.error : null
 

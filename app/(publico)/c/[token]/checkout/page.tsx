@@ -38,7 +38,11 @@ export default async function CheckoutPage({
   if (!carritoToken) redirect(`/c/${token}`)
 
   const supabase = await createClient()
-  const { data } = await supabase.rpc('fn_ver_carrito', { p_carrito_token: carritoToken })
+  // Carrito y política de envío no dependen entre sí: misma ola.
+  const [{ data }, politicaEnvio] = await Promise.all([
+    supabase.rpc('fn_ver_carrito', { p_carrito_token: carritoToken }),
+    obtenerPoliticaEnvio(supabase),
+  ])
   const items = (data ?? []) as ItemCarrito[]
 
   if (items.length === 0) {
@@ -54,7 +58,6 @@ export default async function CheckoutPage({
   }
 
   const total = items.reduce((acc, i) => acc + (i.precio_venta ?? 0) * i.cantidad, 0)
-  const politicaEnvio = await obtenerPoliticaEnvio(supabase)
   const entrega = await cargarEntregaCheckout(supabase, items.map((i) => i.producto_id))
 
   return (

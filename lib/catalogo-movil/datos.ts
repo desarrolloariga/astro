@@ -1,4 +1,5 @@
 import type { PiezaCatalogo } from '@/components/catalogo/tipos'
+import type { ProductoWeb } from '@/lib/catalogo-web/tipos'
 import type { ItemCarrito } from '@/lib/publico/carrito'
 import { formatearPrecio } from '@/lib/formato'
 import type { LineaCarrito, Producto, RangoPrecio } from './tipos'
@@ -28,6 +29,26 @@ export function adaptarProducto(p: PiezaCatalogo): Producto {
     modo,
     stock,
     disponible: p.precio_venta != null && (modo === 'pieza_unica' || (stock ?? 0) > 0),
+  }
+}
+
+/** Producto del catálogo web → producto de la app móvil (misma carga para las dos vistas). */
+export function adaptarDesdeWeb(p: ProductoWeb): Producto {
+  return {
+    id: p.id,
+    codigo: p.codigo,
+    nombre: p.nombre,
+    descripcion: p.descripcion,
+    categoria: p.categoria,
+    material: p.material,
+    peso: p.peso,
+    kilataje: p.kilataje,
+    piedras: p.piedras,
+    precio: p.pub,
+    imagenes: p.imagenes,
+    modo: p.modo,
+    stock: p.modo === 'por_cantidad' ? p.stock : null,
+    disponible: p.stock > 0,
   }
 }
 

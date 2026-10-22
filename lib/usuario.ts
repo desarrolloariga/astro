@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { haySesion, obtenerContexto } from '@/lib/contexto'
 
 export type Rol =
   | 'admin'
@@ -22,38 +22,13 @@ export type UsuarioActual = {
 }
 
 /**
- * Usuario ASTRO de la sesión actual (fila de public.usuarios + rol).
- * Redirige a /login si no hay sesión o el usuario no existe en ASTRO
- * (p. ej. credenciales del otro sistema del proyecto compartido).
- *
- * Rendimiento: la sesión se valida con getClaims(), que verifica la
- * firma del JWT localmente (claves asimétricas del proyecto) en vez de
- * ir al servidor de Auth en cada navegación como getUser(). Y se
- * memoriza por request: layout y página comparten una sola consulta.
+ * Usuario ASTRO de la sesión actual. Sale del contexto de sesión (una sola
+ * llamada por request, compartida con permisos y carrito). Redirige a
+ * /login si no hay sesión o el usuario no existe en ASTRO.
  */
 export const obtenerUsuarioActual = cache(async (): Promise<UsuarioActual> => {
-  const supabase = await createClient()
-
-  const { data: sesion } = await supabase.auth.getClaims()
-  const authUid = sesion?.claims?.sub
-  if (!authUid) redirect('/login')
-
-  const { data } = await supabase
-    .from('usuarios')
-    .select('id, nombre, correo, tienda_id, roles(nombre)')
-    .eq('auth_uid', authUid)
-    .eq('activo', true)
-    .single()
-
-  if (!data) redirect('/login?error=Tu%20usuario%20no%20tiene%20acceso%20a%20ASTRO')
-
-  const roles = data.roles as unknown as { nombre: string } | null
-
-  return {
-    id: data.id,
-    nombre: data.nombre,
-    correo: data.correo,
-    rol: (roles?.nombre ?? 'embajador') as Rol,
-    tienda_id: data.tienda_id,
-  }
+  const contexto = await obtenerContexto()
+  if (contexto) return contexto.usuario
+  if (!(await haySesion())) redirect('/login')
+  redirect('/login?error=Tu%20usuario%20no%20tiene%20acceso%20a%20ASTRO')
 })

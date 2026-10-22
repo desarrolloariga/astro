@@ -59,36 +59,40 @@ export default async function PerfilUsuarioPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  if (!(await tienePermiso('usuarios', 'ver'))) redirect('/inicio')
-  const puedeEditar = await tienePermiso('usuarios', 'editar')
-  const puedeVerLaboral = await tienePermiso('usuarios', 'ver_laboral')
-  const puedeEditarLaboral = await tienePermiso('usuarios', 'editar_laboral')
-
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: pieza }, { data: todosData }, { data: historialData }, { data: laboralData }] = await Promise.all([
-    supabase
-      .from('usuarios')
-      .select('id, nombre, correo, telefono, activo, superior_id, fecha_creacion, roles ( nombre ), tiendas ( nombre )')
-      .eq('id', id)
-      .maybeSingle(),
-    supabase.from('usuarios').select('id, nombre, superior_id, activo, roles ( nombre )'),
-    supabase
-      .from('historial_jerarquia')
-      .select('id, superior_id, fecha_inicio, fecha_fin')
-      .eq('usuario_id', id)
-      .order('fecha_inicio', { ascending: false }),
-    puedeVerLaboral
-      ? supabase
-          .from('usuarios_datos_laborales')
-          .select(
-            'dpi, nit, fecha_nacimiento, direccion, contacto_emergencia_nombre, contacto_emergencia_telefono, fecha_ingreso, tipo_contrato, salario_base, banco, cuenta_bancaria',
-          )
-          .eq('usuario_id', id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-  ])
+  // Perfil, jerarquía e historial no dependen del permiso: viajan junto con el contexto de sesión.
+  const [permitido, puedeEditar, puedeVerLaboral, puedeEditarLaboral, { data: pieza }, { data: todosData }, { data: historialData }] =
+    await Promise.all([
+      tienePermiso('usuarios', 'ver'),
+      tienePermiso('usuarios', 'editar'),
+      tienePermiso('usuarios', 'ver_laboral'),
+      tienePermiso('usuarios', 'editar_laboral'),
+      supabase
+        .from('usuarios')
+        .select('id, nombre, correo, telefono, activo, superior_id, fecha_creacion, roles ( nombre ), tiendas ( nombre )')
+        .eq('id', id)
+        .maybeSingle(),
+      supabase.from('usuarios').select('id, nombre, superior_id, activo, roles ( nombre )'),
+      supabase
+        .from('historial_jerarquia')
+        .select('id, superior_id, fecha_inicio, fecha_fin')
+        .eq('usuario_id', id)
+        .order('fecha_inicio', { ascending: false }),
+    ])
+  if (!permitido) redirect('/inicio')
+
+  // Los datos laborales sí dependen del permiso.
+  const { data: laboralData } = puedeVerLaboral
+    ? await supabase
+        .from('usuarios_datos_laborales')
+        .select(
+          'dpi, nit, fecha_nacimiento, direccion, contacto_emergencia_nombre, contacto_emergencia_telefono, fecha_ingreso, tipo_contrato, salario_base, banco, cuenta_bancaria',
+        )
+        .eq('usuario_id', id)
+        .maybeSingle()
+    : { data: null }
 
   const usuario = pieza as unknown as Usuario | null
   if (!usuario) notFound()

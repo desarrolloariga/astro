@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AlertCircle, CheckCircle2, UserPlus, Users, Phone, Sparkles, Trophy, Percent, Wallet, Clock } from 'lucide-react'
@@ -6,6 +7,7 @@ import { obtenerUsuarioActual } from '@/lib/usuario'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFechaHora, formatearNumero, formatearPrecio } from '@/lib/formato'
 import { crearEmbajador } from './acciones'
+import { SeccionPuntosEmbajador, EsqueletoTarjeta, type PuntosBolsa } from './secciones'
 import { PremiosMiRed } from '@/components/app/premios-mi-red'
 import { ChipBilletera, TarjetaBilletera } from '@/components/app/billetera-astro'
 
@@ -28,15 +30,6 @@ type MiembroRed = {
 }
 
 type Contacto = { nombre: string; telefono: string | null }
-
-type PuntosBolsa = {
-  usuario_id: number
-  nombre: string
-  puntos_periodo: number
-  puntos_total: number
-  bolsa_disponible: number
-  bolsa_en_espera: number
-}
 
 type MovimientoBolsa = {
   id: number
@@ -67,24 +60,17 @@ export default async function MiRedPage({
   const supabase = await createClient()
 
   if (usuario.rol === 'embajador') {
+    // Billetera, contacto y comisiones por catálogo en una sola tanda; el
+    // ranking/puntos de la red y los premios se transmiten aparte.
     const [
       { data: contactoData },
-      { data: puntosData },
       { data: linksData },
       { data: parametroDefault },
       { data: bolsaData },
-      { data: incentivosData },
       { data: movimientosData },
     ] =
       await Promise.all([
         supabase.rpc('fn_mi_contacto_asesor'),
-        supabase
-          .from('vw_ranking')
-          .select('puntos_totales, posicion')
-          .eq('usuario_id', usuario.id)
-          .order('periodo_id', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         supabase
           .from('links_venta')
           .select('id, tipo, estado, comision_embajador_pct')
@@ -96,7 +82,6 @@ export default async function MiRedPage({
           .eq('clave', 'comision_embajador_catalogo_pct_default')
           .maybeSingle(),
         supabase.rpc('fn_mi_bolsa'),
-        supabase.rpc('fn_red_puntos_bolsa'),
         supabase
           .from('movimientos_bolsa')
           .select('id, tipo, monto, venta_id, comentario, fecha')
@@ -106,7 +91,6 @@ export default async function MiRedPage({
       ])
 
     const bolsa = (bolsaData as { disponible: number; en_espera: number; abonado: number; redimido: number }[] | null)?.[0]
-    const mios = ((incentivosData ?? []) as PuntosBolsa[]).find((r) => r.usuario_id === usuario.id)
     const movimientos = (movimientosData ?? []) as MovimientoBolsa[]
     const contacto = contactoData?.[0] as Contacto | undefined
     const links = (linksData ?? []) as { id: number; tipo: string; comision_embajador_pct: number | null }[]
@@ -185,28 +169,13 @@ export default async function MiRedPage({
           )}
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
-            <Trophy className="h-4 w-4 text-primary" />
-            Tus puntos
-          </h2>
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-2xl font-bold text-foreground">{formatearNumero(Number(mios?.puntos_periodo ?? 0))}</p>
-              <p className="text-xs text-muted-foreground">este período</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-foreground">{formatearNumero(Number(mios?.puntos_total ?? 0))}</p>
-              <p className="text-xs text-muted-foreground">acumulados</p>
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            1 quetzal vendido = 1 punto, cuando se aprueba el pago de la venta.
-            {puntosData?.posicion ? ` Posición #${puntosData.posicion} este período.` : ''}
-          </p>
-        </div>
+        <Suspense fallback={<EsqueletoTarjeta alto="h-36" />}>
+          <SeccionPuntosEmbajador usuarioId={usuario.id} />
+        </Suspense>
 
-        <PremiosMiRed usuarioId={usuario.id} />
+        <Suspense fallback={<EsqueletoTarjeta alto="h-48" />}>
+          <PremiosMiRed usuarioId={usuario.id} />
+        </Suspense>
 
         {links.length > 0 && (
           <div className="rounded-xl border border-border bg-card p-5">
@@ -287,7 +256,9 @@ export default async function MiRedPage({
         </div>
       )}
 
-      <PremiosMiRed usuarioId={usuario.id} />
+      <Suspense fallback={<EsqueletoTarjeta alto="h-48" />}>
+        <PremiosMiRed usuarioId={usuario.id} />
+      </Suspense>
 
       {puedeCrear && (
         <details className="rounded-xl border border-border bg-card">

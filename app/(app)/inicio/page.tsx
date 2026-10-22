@@ -16,15 +16,17 @@ type Anuncio = {
 }
 
 export default async function InicioPage() {
-  const usuario = await obtenerUsuarioActual()
-  const { concedidos, revocados } = await obtenerPermisosExtra()
-  const seccionesVisibles = seccionesParaRol(usuario.rol, concedidos, revocados)
-
   const supabase = await createClient()
-  const { data: anunciosData } = await supabase
-    .from('vw_publicidad_vigente')
-    .select('id, titulo, cuerpo, imagen_url, url_destino')
-    .order('id', { ascending: false })
+  // Contexto de sesión y anuncios en paralelo (una sola ola de red).
+  const [usuario, { concedidos, revocados }, { data: anunciosData }] = await Promise.all([
+    obtenerUsuarioActual(),
+    obtenerPermisosExtra(),
+    supabase
+      .from('vw_publicidad_vigente')
+      .select('id, titulo, cuerpo, imagen_url, url_destino')
+      .order('id', { ascending: false }),
+  ])
+  const seccionesVisibles = seccionesParaRol(usuario.rol, concedidos, revocados)
   const anuncios = (anunciosData ?? []) as Anuncio[]
 
   const fechaHoy = new Intl.DateTimeFormat('es-GT', {

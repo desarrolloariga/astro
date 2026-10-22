@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { ImagenProducto } from '@/components/app/imagen-producto'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { ProductoFicha, ExistenciaRed } from '@/lib/producto-detalle/datos'
@@ -47,7 +47,7 @@ export function Gallery({
                 border: `2px solid ${k === i ? T.blue : 'transparent'}`, background: T.tints[k % 4], opacity: k === i ? 1 : 0.75, color: T.iconBlue,
               }}
             >
-              {src ? <Image src={src} alt="" fill sizes="64px" style={{ objectFit: 'cover' }} /> : <Icon name="gem" size={26} stroke={1.2} />}
+              {src ? <ImagenProducto src={src} alt="" sizes="64px" /> : <Icon name="gem" size={26} stroke={1.2} />}
             </button>
           ))}
         </div>
@@ -62,6 +62,7 @@ export function Gallery({
           bg={T.tints[i % 4]}
           sizes="(max-width: 760px) 100vw, 560px"
           priority
+          calidad="completa"
         />
         {badge && (
           <span style={{ position: 'absolute', left: 20, top: 20, padding: '5px 10px', borderRadius: 999, background: '#fff', color: T.ink, fontSize: 12, fontWeight: 600 }}>

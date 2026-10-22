@@ -7,6 +7,12 @@ import { obtenerUsuarioActual } from '@/lib/usuario'
 import { generarOrdenDespacho } from '@/lib/pdf/orden-despacho'
 import { extraerDatosCheckout, subirComprobanteCheckout, eliminarComprobanteCheckout } from '@/lib/checkout'
 
+/** Solo las pantallas que muestran el carrito (antes se invalidaba el caché de toda la app en cada clic). */
+function revalidarCarrito() {
+  revalidatePath('/carrito', 'layout')
+  revalidatePath('/catalogo', 'layout')
+}
+
 /** Destino tras agregar/quitar: la página desde la que se hizo (solo rutas internas del backoffice). */
 function destino(formData: FormData, porDefecto: string, clave: 'ok' | 'error', mensaje: string) {
   const volver = String(formData.get('volver') ?? '')
@@ -26,7 +32,7 @@ export async function agregarAMiCarrito(formData: FormData) {
     p_cantidad: Number.isFinite(cantidad) && cantidad > 0 ? cantidad : 1,
   })
 
-  revalidatePath('/', 'layout')
+  revalidarCarrito()
   if (error) redirect(destino(formData, '/catalogo', 'error', error.message))
   redirect(destino(formData, '/catalogo', 'ok', 'Agregado al carrito'))
 }
@@ -38,7 +44,7 @@ export async function quitarDeMiCarrito(formData: FormData) {
   const supabase = await createClient()
   const { error } = await supabase.rpc('fn_quitar_de_mi_carrito', { p_producto_id: productoId })
 
-  revalidatePath('/', 'layout')
+  revalidarCarrito()
   if (error) redirect(destino(formData, '/carrito', 'error', error.message))
   redirect(destino(formData, '/carrito', 'ok', 'Quitado del carrito'))
 }
@@ -92,6 +98,7 @@ export async function confirmarMiCarrito(formData: FormData) {
     }
   }
 
-  revalidatePath('/', 'layout')
+  revalidarCarrito()
+  revalidatePath('/pedidos', 'layout')
   redirect(`/pedidos?ok=${encodeURIComponent(mensaje)}`)
 }

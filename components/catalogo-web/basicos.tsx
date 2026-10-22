@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { ImagenProducto } from '@/components/app/imagen-producto'
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { NombreIcono } from '@/lib/catalogo-web/tipos'
 import { Icon } from './icono'
@@ -193,6 +193,7 @@ export function Foto({
   iconSize = 88,
   sizes = '320px',
   bg = T.primarySoft,
+  calidad = 'miniatura',
 }: {
   src: string | null | undefined
   alt: string
@@ -200,6 +201,8 @@ export function Foto({
   iconSize?: number
   sizes?: string
   bg?: string
+  /** Las tarjetas usan la miniatura de 480 px; la vista rápida, la foto completa. */
+  calidad?: 'miniatura' | 'completa'
 }) {
   if (!src) {
     return (
@@ -208,7 +211,7 @@ export function Foto({
       </span>
     )
   }
-  return <Image src={src} alt={alt} fill sizes={sizes} style={{ objectFit: 'cover' }} />
+  return <ImagenProducto src={src} alt={alt} sizes={sizes} calidad={calidad} />
 }
 
 export function SectionHeader({ id, title, subtitle, action }: { id: string; title: string; subtitle?: string; action?: ReactNode }) {

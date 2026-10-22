@@ -42,24 +42,26 @@ export default async function FichaPiezaPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ error?: string; ok?: string }>
 }) {
-  if (!(await tienePermiso('catalogo', 'ver'))) redirect('/inicio')
-
-  const [{ id }, { error, ok }, supabase, usuario, modo, galletas] = await Promise.all([
-    params,
-    searchParams,
-    createClient(),
-    obtenerUsuarioActual(),
-    obtenerModoCompra(),
-    cookies(),
-  ])
+  const [{ id }, supabase] = await Promise.all([params, createClient()])
   const productoId = Number(id) || 0
-  const [datos, { data: carrito }, puedeSeparar, puedeVender, puedeDescuento] = await Promise.all([
-    cargarFicha(supabase, 'backoffice', productoId),
-    supabase.rpc('fn_ver_mi_carrito'),
-    tienePermiso('separados', 'crear'),
-    tienePermiso('ventas', 'crear'),
-    tienePermiso('ventas', 'descuento_embajador'),
-  ])
+
+  // Ficha, carrito y contexto de sesión salen en una sola ola de red; el
+  // permiso se revisa antes de usar los datos.
+  const [puede, { error, ok }, usuario, modo, galletas, urlBase, datos, { data: carrito }, puedeSeparar, puedeVender, puedeDescuento] =
+    await Promise.all([
+      tienePermiso('catalogo', 'ver'),
+      searchParams,
+      obtenerUsuarioActual(),
+      obtenerModoCompra(),
+      cookies(),
+      obtenerUrlBase(),
+      cargarFicha(supabase, 'backoffice', productoId),
+      supabase.rpc('fn_ver_mi_carrito'),
+      tienePermiso('separados', 'crear'),
+      tienePermiso('ventas', 'crear'),
+      tienePermiso('ventas', 'descuento_embajador'),
+    ])
+  if (!puede) redirect('/inicio')
 
   if (!datos) {
     return (
@@ -78,12 +80,16 @@ export default async function FichaPiezaPage({
   }
 
   const items = (carrito ?? []) as ItemCarrito[]
+  // Precio embajador de lo que ya está en el carrito (solo si no viene en la ficha).
+  const conocidos = new Map([datos.producto, ...datos.relacionados].filter((p) => p.emb != null).map((p) => [p.id, p.emb as number]))
+  const faltantes = items.map((i) => i.producto_id).filter((pid) => !conocidos.has(pid))
   const preciosCarrito =
-    usuario.rol === 'embajador' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
+    usuario.rol === 'embajador' && faltantes.length > 0 ? await obtenerPreciosEmbajador(supabase, faltantes) : new Map<number, number>()
+  for (const [pid, precio] of conocidos) preciosCarrito.set(pid, precio)
 
   return (
     <>
-      <JsonLdProducto producto={datos.producto} url={`${await obtenerUrlBase()}/catalogo/${productoId}`} />
+      <JsonLdProducto producto={datos.producto} url={`${urlBase}/catalogo/${productoId}`} />
       <ProductoDetalle
         contexto="backoffice"
         datos={datos}
@@ -97,7 +103,7 @@ export default async function FichaPiezaPage({
         rutaFicha="/catalogo"
         rutaCarrito="/carrito"
         obtenerLink={generarLinkPiezaWeb.bind(null, productoId)}
-        urlPieza={`${await obtenerUrlBase()}/catalogo/${productoId}`}
+        urlPieza={`${urlBase}/catalogo/${productoId}`}
         puedeLink={ROLES_LINK.includes(usuario.rol)}
         vender={{
           puedeVender,

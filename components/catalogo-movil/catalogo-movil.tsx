@@ -1,6 +1,9 @@
 'use client'
 
 import { Plus_Jakarta_Sans } from 'next/font/google'
+import { useMemo } from 'react'
+import type { ProductoWeb } from '@/lib/catalogo-web/tipos'
+import { adaptarDesdeWeb, calcularRangosPrecio } from '@/lib/catalogo-movil/datos'
 import type { InfoCatalogo, LineaCarrito, Pantalla, Producto, RangoPrecio } from '@/lib/catalogo-movil/tipos'
 import type { PoliticaEnvio } from '@/lib/envio'
 import { GLOBAL_CSS, T } from './tokens'
@@ -48,13 +51,17 @@ function Pantallas() {
  */
 export function CatalogoMovil(props: {
   info: InfoCatalogo
-  productos: Producto[]
-  rangos: RangoPrecio[]
+  /** Piezas ya adaptadas, o las del catálogo web (se adaptan aquí para no enviarlas dos veces). */
+  productos?: Producto[]
+  productosWeb?: ProductoWeb[]
+  rangos?: RangoPrecio[]
   lineas: LineaCarrito[]
   pantallaInicial?: Pantalla
   productoInicial?: number | null
   politicaEnvio?: PoliticaEnvio | null
 }) {
+  const productos = useMemo(() => props.productos ?? (props.productosWeb ?? []).map(adaptarDesdeWeb), [props.productos, props.productosWeb])
+  const rangos = useMemo(() => props.rangos ?? calcularRangosPrecio(productos), [props.rangos, productos])
   return (
     <div className="fixed inset-0 z-50 md:hidden" style={{ background: T.bg }}>
       <div
@@ -76,8 +83,8 @@ export function CatalogoMovil(props: {
         <style>{GLOBAL_CSS}</style>
         <CatalogoProvider
           info={props.info}
-          productos={props.productos}
-          rangos={props.rangos}
+          productos={productos}
+          rangos={rangos}
           lineasIniciales={props.lineas}
           pantallaInicial={props.pantallaInicial}
           productoInicial={props.productoInicial}

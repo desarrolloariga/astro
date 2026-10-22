@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { subirFotoProducto } from '@/lib/imagenes-producto'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -161,17 +162,12 @@ export async function crearPieza(formData: FormData) {
     const admin = createAdminClient()
     let orden = 0
     for (const foto of fotos) {
-      const extension = foto.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const ruta = `${pieza.id}/${orden}-${Date.now()}.${extension}`
-      const { error: errorSubida } = await admin.storage
-        .from(BUCKET)
-        .upload(ruta, foto, { contentType: foto.type || 'image/jpeg' })
+      const subida = await subirFotoProducto(admin, pieza.id, orden, foto)
 
-      if (!errorSubida) {
-        const { data: publica } = admin.storage.from(BUCKET).getPublicUrl(ruta)
+      if (subida.url) {
         await supabase.from('producto_imagenes').insert({
           producto_id: pieza.id,
-          url: publica.publicUrl,
+          url: subida.url,
           orden,
           es_principal: orden === 0,
         })
@@ -329,21 +325,16 @@ export async function agregarFotosPieza(formData: FormData) {
   let subidas = 0
   let ultimoError: string | null = null
   for (const foto of fotos) {
-    const extension = foto.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const ruta = `${productoId}/${orden}-${Date.now()}.${extension}`
-    const { error: errorSubida } = await admin.storage
-      .from(BUCKET)
-      .upload(ruta, foto, { contentType: foto.type || 'image/jpeg' })
+    const subida = await subirFotoProducto(admin, productoId, orden, foto)
 
-    if (errorSubida) {
-      ultimoError = errorSubida.message
+    if (!subida.url) {
+      ultimoError = subida.error ?? 'No se pudo subir la foto'
       continue
     }
 
-    const { data: publica } = admin.storage.from(BUCKET).getPublicUrl(ruta)
     const { error: errorFila } = await supabase.from('producto_imagenes').insert({
       producto_id: productoId,
-      url: publica.publicUrl,
+      url: subida.url,
       orden,
       es_principal: orden === 0,
     })

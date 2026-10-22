@@ -51,50 +51,55 @@ export default async function AdminIncentivosPage({
     sim_periodo_id?: string
   }>
 }) {
-  if (!(await tienePermiso('incentivos', 'editar'))) redirect('/inicio')
-
   const sp = await searchParams
   const supabase = await createClient()
 
-  const [{ data: reglas }, { data: topes }, { data: roles }, { data: periodos }] = await Promise.all([
-    supabase.from('reglas_puntaje').select('*').order('fecha_creacion', { ascending: false }),
-    supabase
-      .from('topes_venta')
-      .select('id, ambito, monto_tope, roles ( nombre ), usuarios ( nombre ), escalas_descuento ( id, desde_monto, porcentaje_descuento )')
-      .order('fecha_creacion', { ascending: false }),
-    supabase.from('roles').select('id, nombre').order('nombre'),
-    supabase.from('periodos').select('id, nombre').order('fecha_inicio', { ascending: false }).limit(12),
-  ])
-
-  const listaReglas = (reglas ?? []) as ReglaPuntaje[]
-  const listaTopes = (topes ?? []) as unknown as TopeVenta[]
-  const listaPeriodos = (periodos ?? []) as Periodo[]
-
-  let simulacion: Simulacion[] | null = null
-  let puntosRealesPorUsuario = new Map<number, number>()
-  if (sp.sim_tipo && sp.sim_periodo_id) {
-    let condiciones: object = {}
+  const simular = Boolean(sp.sim_tipo && sp.sim_periodo_id)
+  let condiciones: object = {}
+  if (simular) {
     try {
       condiciones = sp.sim_condiciones ? JSON.parse(sp.sim_condiciones) : {}
     } catch {
       condiciones = {}
     }
-    const [{ data }, { data: puntosReales }] = await Promise.all([
-      supabase.rpc('fn_simular_regla_puntaje', {
-        p_tipo: sp.sim_tipo,
-        p_valor: Number(sp.sim_valor ?? 0),
-        p_multiplicador: Number(sp.sim_multiplicador ?? 1),
-        p_condiciones: condiciones,
-        p_periodo_id: Number(sp.sim_periodo_id),
-      }),
+  }
+
+  // Nada depende del permiso ni de otra consulta: todo viaja junto con el contexto de sesión.
+  const [permitido, { data: reglas }, { data: topes }, { data: roles }, { data: periodos }, { data: simulacionData }, { data: puntosReales }] =
+    await Promise.all([
+      tienePermiso('incentivos', 'editar'),
+      supabase.from('reglas_puntaje').select('*').order('fecha_creacion', { ascending: false }),
+      supabase
+        .from('topes_venta')
+        .select('id, ambito, monto_tope, roles ( nombre ), usuarios ( nombre ), escalas_descuento ( id, desde_monto, porcentaje_descuento )')
+        .order('fecha_creacion', { ascending: false }),
+      supabase.from('roles').select('id, nombre').order('nombre'),
+      supabase.from('periodos').select('id, nombre').order('fecha_inicio', { ascending: false }).limit(12),
+      sp.sim_tipo && sp.sim_periodo_id
+        ? supabase.rpc('fn_simular_regla_puntaje', {
+            p_tipo: sp.sim_tipo,
+            p_valor: Number(sp.sim_valor ?? 0),
+            p_multiplicador: Number(sp.sim_multiplicador ?? 1),
+            p_condiciones: condiciones,
+            p_periodo_id: Number(sp.sim_periodo_id),
+          })
+        : Promise.resolve({ data: null }),
       // Cruce contra lo realmente otorgado en el período — el simulador
       // mostraba puntos hipotéticos sin nada real con qué compararlos.
-      supabase.from('puntos').select('usuario_id, cantidad').eq('periodo_id', Number(sp.sim_periodo_id)),
+      simular
+        ? supabase.from('puntos').select('usuario_id, cantidad').eq('periodo_id', Number(sp.sim_periodo_id))
+        : Promise.resolve({ data: null }),
     ])
-    simulacion = (data ?? []) as Simulacion[]
-    for (const p of (puntosReales ?? []) as PuntoReal[]) {
-      puntosRealesPorUsuario.set(p.usuario_id, (puntosRealesPorUsuario.get(p.usuario_id) ?? 0) + p.cantidad)
-    }
+  if (!permitido) redirect('/inicio')
+
+  const listaReglas = (reglas ?? []) as ReglaPuntaje[]
+  const listaTopes = (topes ?? []) as unknown as TopeVenta[]
+  const listaPeriodos = (periodos ?? []) as Periodo[]
+
+  const simulacion: Simulacion[] | null = simular ? ((simulacionData ?? []) as Simulacion[]) : null
+  const puntosRealesPorUsuario = new Map<number, number>()
+  for (const p of (puntosReales ?? []) as PuntoReal[]) {
+    puntosRealesPorUsuario.set(p.usuario_id, (puntosRealesPorUsuario.get(p.usuario_id) ?? 0) + p.cantidad)
   }
 
   return (

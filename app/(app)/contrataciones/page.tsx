@@ -24,20 +24,21 @@ export default async function ContratacionesPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>
 }) {
-  if (!(await tienePermiso('contrataciones', 'ver')) && !(await tienePermiso('contrataciones', 'crear'))) {
-    redirect('/inicio')
-  }
-  const puedeCrear = await tienePermiso('contrataciones', 'crear')
-  const puedeDecidir = await tienePermiso('contrataciones', 'decidir')
-
   const { ok, error } = await searchParams
   const supabase = await createClient()
-  const { data: solicitudes } = await supabase
-    .from('contrataciones')
-    .select(
-      'id, candidato_nombre, puesto, salario_propuesto, estado, fecha_creacion, usuarios_solicitante:usuarios!contrataciones_solicitado_por_fkey ( nombre )',
-    )
-    .order('fecha_creacion', { ascending: false })
+  // El listado no depende del permiso: viaja junto con el contexto de sesión.
+  const [puedeVer, puedeCrear, puedeDecidir, { data: solicitudes }] = await Promise.all([
+    tienePermiso('contrataciones', 'ver'),
+    tienePermiso('contrataciones', 'crear'),
+    tienePermiso('contrataciones', 'decidir'),
+    supabase
+      .from('contrataciones')
+      .select(
+        'id, candidato_nombre, puesto, salario_propuesto, estado, fecha_creacion, usuarios_solicitante:usuarios!contrataciones_solicitado_por_fkey ( nombre )',
+      )
+      .order('fecha_creacion', { ascending: false }),
+  ])
+  if (!puedeVer && !puedeCrear) redirect('/inicio')
 
   const lista = (solicitudes ?? []) as unknown as Contratacion[]
 
