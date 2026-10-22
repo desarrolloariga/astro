@@ -21,6 +21,8 @@ import {
   type ResultadoCarrito,
 } from '@/app/(publico)/c/[token]/acciones-movil'
 import { TOAST_MS } from './tokens'
+import type { ConfigCatalogo, Cta } from '@/lib/catalogo-web/tipos'
+import { slug } from '@/lib/catalogo-web/slug'
 import { calcularEnvio, faltaParaEnvioGratis, type PoliticaEnvio } from '@/lib/envio'
 
 type Toast = { texto: string; tipo: 'ok' | 'error' }
@@ -46,6 +48,7 @@ type Estado = {
   ventaId: number | null
   /** Piezas únicas ya compradas en esta visita: se ocultan del catálogo. */
   vendidos: number[]
+  novedadesAbiertas: boolean
 }
 
 type Accion =
@@ -70,6 +73,7 @@ type Accion =
   | { type: 'lineas'; lineas: LineaCarrito[] }
   | { type: 'ocupado'; v: boolean }
   | { type: 'exito'; ventaId: number }
+  | { type: 'novedades'; abiertas: boolean }
 
 function reducer(s: Estado, a: Accion): Estado {
   switch (a.type) {
@@ -126,6 +130,8 @@ function reducer(s: Estado, a: Accion): Estado {
       return { ...s, lineas: a.lineas, lineasEn: Date.now() }
     case 'ocupado':
       return { ...s, ocupado: a.v }
+    case 'novedades':
+      return { ...s, novedadesAbiertas: a.abiertas }
     case 'exito':
       return {
         ...s,
@@ -143,6 +149,8 @@ export type Chip = { key: string; label: string; remove: () => void }
 type Contexto = {
   estado: Estado
   info: InfoCatalogo
+  /** Banners, anuncios, novedades y bloques configurados (Configuración del catálogo). */
+  config: ConfigCatalogo | null
   productos: Producto[]
   rangos: RangoPrecio[]
   resultados: Producto[]
@@ -174,6 +182,10 @@ type Contexto = {
   removeLine: (id: number) => Promise<void>
   refreshCart: () => Promise<void>
   placeOrder: (formData: FormData) => Promise<string | null>
+  openNews: () => void
+  closeNews: () => void
+  /** Acción de un banner, promo o novedad configurada. */
+  runCta: (cta: Cta) => void
 }
 
 const Ctx = createContext<Contexto | null>(null)
@@ -209,6 +221,7 @@ export function CatalogoProvider({
   pantallaInicial = 'home',
   productoInicial = null,
   politicaEnvio = null,
+  config = null,
   children,
 }: {
   info: InfoCatalogo
@@ -218,6 +231,7 @@ export function CatalogoProvider({
   pantallaInicial?: Pantalla
   productoInicial?: number | null
   politicaEnvio?: PoliticaEnvio | null
+  config?: ConfigCatalogo | null
   children: ReactNode
 }) {
   const [estado, dispatch] = useReducer(reducer, null, () => ({
@@ -238,6 +252,7 @@ export function CatalogoProvider({
     ocupado: false,
     ventaId: null,
     vendidos: [],
+    novedadesAbiertas: false,
   }))
 
   // Favoritos y búsquedas recientes: por enlace, en el navegador.
@@ -329,6 +344,7 @@ export function CatalogoProvider({
     return {
       estado,
       info,
+      config,
       productos: visibles,
       rangos,
       resultados,
@@ -380,6 +396,24 @@ export function CatalogoProvider({
         const r = await verCarritoMovil(info.token)
         aplicarResultado(r)
       },
+      openNews: () => dispatch({ type: 'novedades', abiertas: true }),
+      closeNews: () => dispatch({ type: 'novedades', abiertas: false }),
+      runCta: (cta) => {
+        if (cta.tipo === 'categoria' && cta.valor) {
+          const objetivo = slug(cta.valor)
+          const cat = visibles.map((p) => p.categoria).find((c): c is string => Boolean(c) && slug(c as string) === objetivo)
+          dispatch({ type: 'categoria', cat: cat ?? 'all' })
+        } else if (cta.tipo === 'url' && cta.valor) {
+          if (/^https?:\/\//i.test(cta.valor)) window.open(cta.valor, '_blank', 'noopener')
+          else window.location.assign(cta.valor)
+        } else {
+          dispatch({ type: 'limpiar' })
+          dispatch({ type: 'tab', to: 'home' })
+          if (cta.tipo === 'ofertas') {
+            setTimeout(() => document.getElementById('cat-ofertas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+          }
+        }
+      },
       placeOrder: async (formData) => {
         formData.set('token', info.token)
         formData.set('metodo_pago', estado.metodoPago)
@@ -391,7 +425,7 @@ export function CatalogoProvider({
         return r.error
       },
     }
-  }, [estado, info, visibles, rangos, porId, aplicarResultado, conOcupado, politicaEnvio])
+  }, [estado, info, config, visibles, rangos, porId, aplicarResultado, conOcupado, politicaEnvio])
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }

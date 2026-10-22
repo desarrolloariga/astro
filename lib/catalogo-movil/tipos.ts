@@ -14,6 +14,9 @@ export type Producto = {
   /** Unidades disponibles (solo por_cantidad). */
   stock: number | null
   disponible: boolean
+  /** Precio anterior cuando la pieza está en oferta. */
+  precioAnterior?: number | null
+  nuevo?: boolean
 }
 
 export type LineaCarrito = {

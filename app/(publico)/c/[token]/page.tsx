@@ -58,6 +58,7 @@ export default async function CatalogoPublicoPage({
       <CatalogoMovil
         info={{ token, vendedor: info.vendedor_nombre, titulo: info.nombre && info.tipo !== 'catalogo' ? info.nombre : 'Catálogo' }}
         productosWeb={web.productos}
+        config={web.config}
         politicaEnvio={politicaEnvio}
         lineas={carrito.map(adaptarLinea)}
       />

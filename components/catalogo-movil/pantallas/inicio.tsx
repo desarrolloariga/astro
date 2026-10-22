@@ -8,6 +8,7 @@ import { T, btn, scrollY } from '../tokens'
 import { useCatalogo } from '../store'
 import { ActiveFilters, Chip, CountBadge, EmptyState, FilterButton, SearchField } from '../ui/basicos'
 import { ProductCard } from '../ui/producto'
+import { BarraAnuncios, Beneficios, CarruselBanners, OfertasRelampago, Promociones } from './promociones'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -16,10 +17,13 @@ export function HomeScreen() {
   const { query, filtros } = app.estado
   const categorias = useMemo(() => valoresUnicos(app.productos, 'categoria'), [app.productos])
   const showBanner = !query && filtros.cat === 'all' && app.chips.length === 0 && filtros.orden !== 'new'
+  const nNovedades = app.config?.novedades.length ?? 0
+  const hayBanners = (app.config?.banners.length ?? 0) > 0
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '20px 20px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <BarraAnuncios />
+      <div style={{ padding: '16px 20px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: T.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -39,6 +43,28 @@ export function HomeScreen() {
               {app.info.titulo}
             </h1>
           </div>
+          <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
+          {nNovedades > 0 && (
+            <button
+              type="button"
+              onClick={app.openNews}
+              aria-label={`Novedades, ${nNovedades} sin leer`}
+              style={{
+                ...btn,
+                position: 'relative',
+                flex: 'none',
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                border: `1px solid ${T.border}`,
+                background: T.surface,
+                color: T.text,
+              }}
+            >
+              <Icon name="star" size={22} stroke={1.8} />
+              <CountBadge value={nNovedades} />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => app.go('cart')}
@@ -58,6 +84,7 @@ export function HomeScreen() {
             <Icon name="bag" size={22} stroke={1.8} />
             {app.cartCount > 0 && <CountBadge value={app.cartCount} />}
           </button>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <SearchField value={query} onChange={app.setQuery} placeholder="Buscar productos…" />
@@ -87,7 +114,12 @@ export function HomeScreen() {
       <div className="cat-noscroll" style={{ ...scrollY, padding: '4px 20px 92px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <ActiveFilters chips={app.chips} onClearAll={app.clearAll} />
 
-        {showBanner && (
+        {showBanner && hayBanners && <CarruselBanners />}
+        {showBanner && <Beneficios />}
+        {showBanner && <Promociones />}
+        {showBanner && <OfertasRelampago />}
+
+        {showBanner && !hayBanners && (
           <div
             style={{
               position: 'relative',
@@ -154,9 +186,9 @@ export function HomeScreen() {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
           {app.resultados.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} compact />
           ))}
         </div>
 

@@ -21,6 +21,7 @@ export function ProductThumb({
   stroke = 1.3,
   onClick,
   label,
+  square = false,
 }: {
   src: string | null | undefined
   alt?: string
@@ -31,11 +32,14 @@ export function ProductThumb({
   stroke?: number
   onClick?: () => void
   label?: string
+  /** Cuadrada según el ancho disponible (rejilla de 3 columnas). */
+  square?: boolean
 }) {
   const style: CSSProperties = {
     ...btn,
     width,
-    height: height ?? width,
+    height: square ? 'auto' : (height ?? width),
+    aspectRatio: square ? '1 / 1' : undefined,
     borderRadius: radius,
     background: T.primarySoft,
     color: T.primary,
@@ -161,20 +165,45 @@ function BadgeAgotado() {
   )
 }
 
+/** Tarjeta de la rejilla. `compact` = 3 columnas: foto cuadrada, textos más pequeños, sin material. */
 export function ProductCard({ product, compact = false }: { product: Producto; compact?: boolean }) {
   const app = useCatalogo()
   const isFav = app.estado.favs.includes(product.id)
   return (
-    <div style={{ ...card, borderRadius: 20, padding: '8px 8px 12px', display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+    <div
+      style={{
+        ...card,
+        borderRadius: compact ? 16 : 20,
+        padding: compact ? '6px 6px 8px' : '8px 8px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: compact ? 6 : 10,
+        minWidth: 0,
+      }}
+    >
       <div style={{ position: 'relative' }}>
         <ProductThumb
           src={product.imagenes[0]}
           alt={product.nombre}
-          height={128}
+          height={compact ? undefined : 128}
+          square={compact}
+          iconSize={compact ? 40 : 62}
+          radius={compact ? 12 : 14}
           onClick={() => app.openDetail(product.id)}
           label={`Ver ${product.nombre}`}
         />
-        <HeartButton active={isFav} onClick={() => app.toggleFav(product.id)} style={{ position: 'absolute', top: 6, right: 6 }} />
+        <HeartButton
+          active={isFav}
+          onClick={() => app.toggleFav(product.id)}
+          size={compact ? 28 : 36}
+          iconSize={compact ? 14 : 18}
+          style={{ position: 'absolute', top: compact ? 4 : 6, right: compact ? 4 : 6 }}
+        />
+        {product.nuevo && compact && product.disponible && (
+          <span style={{ position: 'absolute', top: 6, left: 6, padding: '2px 6px', borderRadius: 6, background: T.primary, color: '#fff', fontSize: 9, fontWeight: 800 }}>
+            Nuevo
+          </span>
+        )}
         {!product.disponible && <BadgeAgotado />}
       </div>
       <button
@@ -191,12 +220,35 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
           color: T.text,
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.25 }}>{product.nombre}</span>
+        <span
+          style={{
+            fontSize: compact ? 12 : 14,
+            fontWeight: 700,
+            lineHeight: 1.25,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            minHeight: compact ? 30 : undefined,
+          }}
+        >
+          {product.nombre}
+        </span>
         {!compact && <MetaLine product={product} />}
       </button>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '0 4px' }}>
-        <span style={{ fontSize: 16, fontWeight: 800, minWidth: 0 }}>{money(product.precio)}</span>
-        <AddButton product={product} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: compact ? '0 2px' : '0 4px' }}>
+        <span
+          style={{
+            fontSize: compact ? (product.precio >= 10000 ? 11 : 12) : 16,
+            fontWeight: 800,
+            minWidth: 0,
+            whiteSpace: 'nowrap',
+            letterSpacing: compact ? '-0.01em' : undefined,
+          }}
+        >
+          {money(product.precio)}
+        </span>
+        <AddButton product={product} size={compact ? 26 : 40} radius={compact ? 9 : 12} />
       </div>
     </div>
   )

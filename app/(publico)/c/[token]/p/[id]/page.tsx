@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { obtenerCarrito } from '@/lib/publico/carrito'
 import { CatalogoMovil } from '@/components/catalogo-movil/catalogo-movil'
 import { adaptarLinea } from '@/lib/catalogo-movil/datos'
-import { adaptarLineaWeb, consultarPiezas, mapearPiezas } from '@/lib/catalogo-web/datos'
+import { adaptarLineaWeb, cargarConfigCatalogo, consultarPiezas, mapearPiezas } from '@/lib/catalogo-web/datos'
 import { cargarFicha } from '@/lib/producto-detalle/datos'
 import { COOKIE_ENTREGA, parsearEleccion } from '@/lib/entrega'
 import { obtenerUrlBase } from '@/lib/url-publica'
@@ -42,7 +42,7 @@ export default async function PiezaPublicaPage({
   const productoId = Number(id) || 0
 
   // Una sola ola de red: enlace, catálogo completo (para la app móvil), ficha, carrito y cookies.
-  const [{ ok, error }, galletas, { data: infoData }, filas, { items: carrito }, datos, urlBase] = await Promise.all([
+  const [{ ok, error }, galletas, { data: infoData }, filas, { items: carrito }, datos, urlBase, config] = await Promise.all([
     searchParams,
     cookies(),
     supabase.rpc('fn_link_info', { p_token: token }),
@@ -50,6 +50,7 @@ export default async function PiezaPublicaPage({
     obtenerCarrito(token),
     cargarFicha(supabase, 'publico', productoId, token),
     obtenerUrlBase(),
+    cargarConfigCatalogo(supabase, 'publico'),
   ])
 
   const info = infoData?.[0] as { vendedor_nombre: string; tipo: string; vigente: boolean; nombre: string | null } | undefined
@@ -71,6 +72,7 @@ export default async function PiezaPublicaPage({
       <CatalogoMovil
         info={{ token, vendedor: info.vendedor_nombre, titulo: info.nombre && info.tipo !== 'catalogo' ? info.nombre : 'Catálogo' }}
         productosWeb={mapearPiezas(filas, datos.general.dias_nuevo)}
+        config={config}
         politicaEnvio={datos.politica}
         lineas={carrito.map(adaptarLinea)}
         pantallaInicial="detail"

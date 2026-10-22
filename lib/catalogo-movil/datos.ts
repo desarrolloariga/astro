@@ -49,6 +49,8 @@ export function adaptarDesdeWeb(p: ProductoWeb): Producto {
     modo: p.modo,
     stock: p.modo === 'por_cantidad' ? p.stock : null,
     disponible: p.stock > 0,
+    precioAnterior: p.was,
+    nuevo: p.isNew,
   }
 }
 
