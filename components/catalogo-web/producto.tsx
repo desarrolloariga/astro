@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { ProductoWeb } from '@/lib/catalogo-web/tipos'
 import type { AppCatalogo } from './app-tipo'
 import { Badge, Foto } from './basicos'
@@ -44,12 +45,8 @@ export function ProductCard({ p, app, variant = 'grid' }: { p: ProductoWeb; app:
         }}
       >
         <Foto src={p.imagenes[0]} alt={p.nombre} icon={icono} iconSize={isCarousel ? 84 : 88} sizes="(max-width: 640px) 50vw, 320px" />
-        <button
-          type="button"
-          onClick={() => app.openQuick(p.id)}
-          aria-label={`Vista rápida de ${p.nombre}`}
-          style={{ ...btn, position: 'absolute', inset: 0 }}
-        />
+        {/* La imagen abre la ficha completa; "Vista rápida" queda como botón aparte. */}
+        <Link href={app.rutaFicha(p.id)} aria-label={`Ver detalle de ${p.nombre}`} style={{ position: 'absolute', inset: 0 }} />
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6, pointerEvents: 'none', flexWrap: 'wrap' }}>
           {p.isNew && !isCarousel && <Badge>Nuevo</Badge>}
           {off > 0 && <Badge tone="gold">-{off}%</Badge>}
@@ -81,13 +78,12 @@ export function ProductCard({ p, app, variant = 'grid' }: { p: ProductoWeb; app:
           {p.categoria}
           {p.kilataje ? ` · ${p.material ?? ''} ${p.kilataje}`.replace('  ', ' ') : p.material ? ` · ${p.material}` : ''}
         </span>
-        <button
-          type="button"
-          onClick={() => app.openQuick(p.id)}
-          style={{ ...btn, justifyContent: 'flex-start', textAlign: 'left', fontSize: 15, fontWeight: 700, lineHeight: 1.3, color: T.text }}
+        <Link
+          href={app.rutaFicha(p.id)}
+          style={{ textAlign: 'left', fontSize: 15, fontWeight: 700, lineHeight: 1.3, color: T.text, textDecoration: 'none' }}
         >
           {p.nombre}
-        </button>
+        </Link>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 20, fontWeight: 800 }}>{quetzal(app.unitPrice(p))}</span>
           {(app.mode !== 'mi' || p.emb == null) && p.was != null && (
