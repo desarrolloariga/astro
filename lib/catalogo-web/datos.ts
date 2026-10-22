@@ -118,9 +118,9 @@ type FilaContenido = Record<string, unknown> & {
   fecha_fin: string | null
 }
 
-function vigente(f: FilaContenido, contexto: Contexto, hoy: string) {
+function vigente(f: FilaContenido, audiencia: string, hoy: string) {
   return (
-    (f.audiencia === 'todos' || f.audiencia === contexto) &&
+    (f.audiencia === 'todos' || f.audiencia === audiencia) &&
     (!f.fecha_inicio || f.fecha_inicio <= hoy) &&
     (!f.fecha_fin || f.fecha_fin >= hoy)
   )
@@ -129,7 +129,12 @@ function vigente(f: FilaContenido, contexto: Contexto, hoy: string) {
 const cadena = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
 /** Contenido de "Configuración del catálogo" para un contexto (solo lo activo y vigente hoy). Cuatro consultas en paralelo. */
-export async function cargarConfigCatalogo(supabase: Supabase, contexto: Contexto): Promise<ConfigCatalogo> {
+export async function cargarConfigCatalogo(
+  supabase: Supabase,
+  contexto: Contexto,
+  /** A quién se le muestra: por defecto el contexto; 'mayorista' para cuentas mayoristas. */
+  audiencia: string = contexto,
+): Promise<ConfigCatalogo> {
   const orden = { ascending: true }
   const [anuncios, banners, novedades, config] = await Promise.all([
     supabase.from('catalogo_anuncios').select('*').eq('activo', true).order('orden', orden).order('id', orden),
@@ -138,13 +143,14 @@ export async function cargarConfigCatalogo(supabase: Supabase, contexto: Context
     supabase.from('catalogo_config').select('clave, valor'),
   ])
   const hoy = hoyGuatemala()
-  const filtrar = (filas: unknown) => ((filas ?? []) as FilaContenido[]).filter((f) => vigente(f, contexto, hoy))
+  const filtrar = (filas: unknown) => ((filas ?? []) as FilaContenido[]).filter((f) => vigente(f, audiencia, hoy))
   const bloques = new Map<string, unknown>(((config.data ?? []) as { clave: string; valor: unknown }[]).map((c) => [c.clave, c.valor]))
   const paraContexto = <T extends { audiencia: string }>(lista: T[]) =>
-    lista.filter((x) => x.audiencia === 'todos' || x.audiencia === contexto)
+    lista.filter((x) => x.audiencia === 'todos' || x.audiencia === audiencia)
 
   // En el enlace público no existe "Generar link": esos llamados a la acción se ocultan.
-  const ctaVisible = (tipo: string) => contexto === 'backoffice' || tipo !== 'generar_link'
+  // "Generar link" solo existe para el equipo y los embajadores (no en el enlace público ni para mayoristas).
+  const ctaVisible = (tipo: string) => audiencia === 'backoffice' || tipo !== 'generar_link'
 
   return {
     general: leerGeneral(bloques.get('general')),
@@ -219,9 +225,9 @@ export function armarCategorias(productos: ProductoWeb[], estilosData: unknown):
 }
 
 /** Todo lo que necesita el catálogo web, en una sola ola de red. */
-export async function cargarCatalogoWeb(supabase: Supabase, contexto: Contexto, token?: string) {
+export async function cargarCatalogoWeb(supabase: Supabase, contexto: Contexto, token?: string, audiencia: string = contexto) {
   const [config, filas, { data: estilos }] = await Promise.all([
-    cargarConfigCatalogo(supabase, contexto),
+    cargarConfigCatalogo(supabase, contexto, audiencia),
     consultarPiezas(supabase, { token }),
     supabase.rpc('fn_categorias_catalogo'),
   ])

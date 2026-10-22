@@ -27,10 +27,11 @@ export default async function CarritoPage({
   const items = (data ?? []) as ItemCarrito[]
   const usuario = await obtenerUsuarioActual()
   const esEmbajador = usuario.rol === 'embajador'
-  const modo = await obtenerModoCompra()
+  const esMayorista = usuario.rol === 'mayorista'
+  const modo = esMayorista ? 'mi' : await obtenerModoCompra()
   // Embajador comprando para sí: se cobra su precio de embajador.
   const preciosEmbajador =
-    esEmbajador && modo === 'mi' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
+    (esEmbajador || esMayorista) && modo === 'mi' ? await obtenerPreciosEmbajador(supabase, items.map((i) => i.producto_id)) : new Map<number, number>()
   const precioDe = (i: ItemCarrito) => preciosEmbajador.get(i.producto_id) ?? i.precio_venta ?? 0
   const total = items.reduce((acc, i) => acc + precioDe(i) * i.cantidad, 0)
 
@@ -47,7 +48,7 @@ export default async function CarritoPage({
         <ShoppingCart className="h-5 w-5 text-primary" />
         Carrito
       </h1>
-      <SelectorModoCompra modo={modo} volver="/carrito" esEmbajador={esEmbajador} />
+      {!esMayorista && <SelectorModoCompra modo={modo} volver="/carrito" esEmbajador={esEmbajador} />}
 
       {ok && (
         <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">

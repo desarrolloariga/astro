@@ -10,6 +10,7 @@ export type VentaDesglose = {
   descuento_embajador: number | null
   total: number
   precio_embajador: boolean | null
+  precio_mayorista?: boolean | null
   envio_cobrado?: number | null
   venta_detalles: { cantidad: number; precio: number; productos: { codigo: string; nombre: string } | null }[]
   pagos: { id: number; metodo: string; monto: number; estado: string }[]
@@ -17,7 +18,7 @@ export type VentaDesglose = {
 
 /** Columnas a pedir a Supabase para armar el desglose (anidado bajo ventas). */
 export const SELECT_DESGLOSE =
-  'id, subtotal, descuento_desempeno, descuento_embajador, total, precio_embajador, envio_cobrado, venta_detalles ( cantidad, precio, productos ( codigo, nombre ) ), pagos ( id, metodo, monto, estado )'
+  'id, subtotal, descuento_desempeno, descuento_embajador, total, precio_embajador, precio_mayorista, envio_cobrado, venta_detalles ( cantidad, precio, productos ( codigo, nombre ) ), pagos ( id, metodo, monto, estado )'
 
 const nombresMetodo: Record<string, string> = {
   bolsa: 'Billetera ASTRO',
@@ -89,7 +90,11 @@ export function DesgloseVenta({
           <div className="rounded-lg bg-secondary/60 px-3 py-2">
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total de la venta</p>
             <p className="text-base font-bold text-foreground">{formatearPrecio(Number(venta.total))}</p>
-            {venta.precio_embajador && <p className="text-[11px] text-primary">a precio embajador</p>}
+            {venta.precio_mayorista ? (
+              <p className="text-[11px] text-primary">a precio mayorista</p>
+            ) : (
+              venta.precio_embajador && <p className="text-[11px] text-primary">a precio embajador</p>
+            )}
           </div>
           <div
             className={cn(

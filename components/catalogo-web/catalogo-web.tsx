@@ -34,6 +34,8 @@ type Props = {
   contexto: Contexto
   vendedor?: string | null
   conPrecioEmbajador: boolean
+  /** Cuenta mayorista (precio de su política, sin modo "para un cliente"). */
+  mayorista?: { politica: string; minimo: number } | null
   puedeLink: boolean
   config: ConfigCatalogo
   productos: ProductoWeb[]
@@ -248,6 +250,7 @@ export function CatalogoWeb(props: Props) {
     contexto,
     vendedor: props.vendedor ?? null,
     conPrecioEmbajador: conEmb,
+    mayorista: props.mayorista ?? null,
     puedeLink: props.puedeLink && contexto === 'backoffice',
     config,
     productos,
@@ -260,6 +263,7 @@ export function CatalogoWeb(props: Props) {
     view: estado.view,
     mode,
     setMode: (m) => {
+      if (props.mayorista) return
       setModeState(m)
       // La cookie define qué opción viene marcada en el checkout y el precio que se cobra.
       void fetch('/carrito/modo', { method: 'POST', body: new URLSearchParams({ modo: m }) })

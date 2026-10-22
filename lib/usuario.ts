@@ -12,6 +12,7 @@ export type Rol =
   | 'produccion'
   | 'contabilidad'
   | 'logistica'
+  | 'mayorista'
 
 export type UsuarioActual = {
   id: number

@@ -44,6 +44,7 @@ export const AUDIENCIAS: { valor: Audiencia; etiqueta: string }[] = [
   { valor: 'todos', etiqueta: 'Todos' },
   { valor: 'backoffice', etiqueta: 'Embajadores y equipo' },
   { valor: 'publico', etiqueta: 'Clientes (link público)' },
+  { valor: 'mayorista', etiqueta: 'Mayoristas' },
 ]
 
 export const ICONOS_CONFIG: { valor: NombreIcono; etiqueta: string }[] = [

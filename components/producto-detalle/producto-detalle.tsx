@@ -31,6 +31,8 @@ type Props = {
   contexto: Contexto
   datos: DatosFicha
   conPrecioEmbajador: boolean
+  /** Cuenta mayorista: sin "para un cliente", sin compartir ni red. */
+  mayorista?: boolean
   modoInicial: ModoWeb
   lineasIniciales: LineaWeb[]
   /** Precio embajador de lo que ya está en el carrito (para el total del encabezado). */
@@ -322,7 +324,7 @@ export function ProductoDetalle(props: Props) {
 
               {/* Precio */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {contexto === 'backoffice' && (
+                {contexto === 'backoffice' && !props.mayorista && (
                   <UnderlineTabs
                     label="Modo de compra"
                     value={mode}
@@ -342,7 +344,9 @@ export function ProductoDetalle(props: Props) {
                       ? 'Precio'
                       : tieneEmb
                         ? me
-                          ? 'Tu precio de embajador'
+                          ? props.mayorista
+                            ? 'Tu precio mayorista'
+                            : 'Tu precio de embajador'
                           : 'Precio público para tu cliente'
                         : me
                           ? 'Precio'
@@ -433,18 +437,22 @@ export function ProductoDetalle(props: Props) {
                   {tieneEmb && !me && <SummaryRow label="Tu ganancia" value={quetzal(gain)} color={T.green} />}
                 </div>
                 <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', paddingTop: 4 }}>
-                  <button type="button" onClick={() => setOverlay('share')} style={linkBtn}>
-                    <Icon name="share" size={16} /> Compartir pieza
-                  </button>
-                  <button type="button" onClick={() => setOverlay('share')} style={linkBtn}>
-                    <Icon name="qr" size={16} /> Código QR
-                  </button>
+                  {!props.mayorista && (
+                    <>
+                      <button type="button" onClick={() => setOverlay('share')} style={linkBtn}>
+                        <Icon name="share" size={16} /> Compartir pieza
+                      </button>
+                      <button type="button" onClick={() => setOverlay('share')} style={linkBtn}>
+                        <Icon name="qr" size={16} /> Código QR
+                      </button>
+                    </>
+                  )}
                   {puedeSeparar && (
                     <button type="button" onClick={() => setOverlay('separar')} style={linkBtn}>
                       <Icon name="bookmark" size={16} /> Separar para un cliente
                     </button>
                   )}
-                  {contexto === 'backoffice' && (
+                  {contexto === 'backoffice' && !props.mayorista && (
                     <button type="button" onClick={() => setNetOpen(!netOpen)} aria-expanded={netOpen} style={linkBtn}>
                       Disponibilidad en la red
                       <Icon name="chevronDown" size={14} stroke={2} style={{ transform: `rotate(${netOpen ? 180 : 0}deg)`, transition: 'transform .2s' }} />

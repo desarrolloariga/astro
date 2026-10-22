@@ -244,6 +244,13 @@ export function QuickViewModal({ app, productId }: { app: AppCatalogo; productId
 
 function mensajeCarrito(app: AppCatalogo) {
   if (app.contexto === 'publico') return 'Tus piezas quedan reservadas por unos minutos mientras completas la compra.'
+  if (app.mayorista) {
+    const minimo = app.mayorista.minimo
+    const falta = Math.max(0, minimo - app.cartTotal)
+    return falta > 0
+      ? `Precios mayoristas aplicados. Te faltan ${quetzal(falta)} para la compra mínima de ${quetzal(minimo)}.`
+      : `Precios mayoristas aplicados (${app.mayorista.politica}).`
+  }
   if (app.mode === 'mi') return app.conPrecioEmbajador ? 'Precios de embajador aplicados a tu compra.' : 'Compra para ti: el pedido queda a tu nombre.'
   return app.conPrecioEmbajador
     ? `Pedido para cliente: ganarías ${quetzal(app.cartGain)} con este pedido.`
@@ -299,7 +306,7 @@ export function CartDrawer({ app }: { app: AppCatalogo }) {
                     <span style={{ fontSize: 12, fontWeight: 700, color: conGanancia ? T.success : T.muted }}>
                       {conGanancia && ganancia != null
                         ? `${quetzal(unit)} c/u · ganas ${quetzal(ganancia * l.cantidad)}`
-                        : `${quetzal(unit)} c/u${me && l.p?.emb != null ? ' · precio embajador' : ''}`}
+                        : `${quetzal(unit)} c/u${me && l.p?.emb != null ? (app.mayorista ? ' · precio mayorista' : ' · precio embajador') : ''}`}
                     </span>
                     <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 16, fontWeight: 800 }}>{quetzal(unit * l.cantidad)}</span>

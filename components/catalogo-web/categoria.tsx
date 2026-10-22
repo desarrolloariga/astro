@@ -122,7 +122,7 @@ function FiltersSidebar({ app }: { app: AppCatalogo }) {
         <Switch checked={filters.onlyStock} onChange={(v) => set({ onlyStock: v })} label="Solo disponibles" />
       </div>
 
-      {app.contexto === 'backoffice' && app.conPrecioEmbajador && app.mode === 'mi' && (
+      {app.contexto === 'backoffice' && app.conPrecioEmbajador && !app.mayorista && app.mode === 'mi' && (
         <div style={{ borderRadius: 16, background: T.goldSoft, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: T.navyDeep }}>¿Buscas algo para un cliente?</span>
           <span style={{ fontSize: 13, color: '#4A3A10', lineHeight: 1.45 }}>

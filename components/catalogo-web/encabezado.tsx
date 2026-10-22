@@ -179,6 +179,9 @@ function ModeToggle({ mode, setMode }: { mode: ModoWeb; setMode: (m: ModoWeb) =>
 }
 
 function textoModo(app: AppCatalogo) {
+  if (app.mayorista) {
+    return `Tus precios ya incluyen tu descuento mayorista${app.mayorista.minimo > 0 ? ` · compra mínima ${quetzal(app.mayorista.minimo)}` : ''}.`
+  }
   if (app.conPrecioEmbajador) {
     return app.mode === 'mi'
       ? 'Ves tu precio de embajador: aplica a lo que compras para ti.'
@@ -266,7 +269,18 @@ export function Header({ app }: { app: AppCatalogo }) {
         <div style={{ ...container, paddingBlock: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 16px' }}>
           {app.contexto === 'backoffice' ? (
             <>
-              <ModeToggle mode={app.mode} setMode={app.setMode} />
+              {app.mayorista ? (
+                <span
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 999,
+                    background: T.navy, color: '#fff', fontSize: 13, fontWeight: 800,
+                  }}
+                >
+                  <Icon name="tag" size={16} /> Precio mayorista · {app.mayorista.politica}
+                </span>
+              ) : (
+                <ModeToggle mode={app.mode} setMode={app.setMode} />
+              )}
               <span style={{ fontSize: 13, fontWeight: 600, color: T.textSoft }}>{textoModo(app)}</span>
             </>
           ) : (

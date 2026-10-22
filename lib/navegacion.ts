@@ -28,6 +28,7 @@ import {
   SlidersHorizontal,
   ScrollText,
   LayoutTemplate,
+  BadgePercent,
   ShieldCheck,
   Calculator,
   Handshake,
@@ -85,7 +86,7 @@ export const secciones: SeccionNav[] = [
         descripcion: 'Piezas disponibles en tiempo real en toda la red',
         href: '/catalogo',
         icono: Sparkles,
-        roles: ['admin', 'coordinador', 'supervisor', 'asesor', 'embajador', 'tienda'],
+        roles: ['admin', 'coordinador', 'supervisor', 'asesor', 'embajador', 'tienda', 'mayorista'],
         permiso: { modulo: 'catalogo', accion: 'ver' },
       },
     ],
@@ -115,7 +116,7 @@ export const secciones: SeccionNav[] = [
         descripcion: 'Seguimiento del pedido: pago, envío y recepción',
         href: '/pedidos',
         icono: Truck,
-        roles: ['admin', 'coordinador', 'supervisor', 'asesor', 'embajador', 'tienda', 'produccion', 'logistica'],
+        roles: ['admin', 'coordinador', 'supervisor', 'asesor', 'embajador', 'tienda', 'produccion', 'logistica', 'mayorista'],
       },
       {
         etiqueta: 'Torre de control',
@@ -461,6 +462,14 @@ export const secciones: SeccionNav[] = [
         roles: ['admin', 'coordinador'],
       },
       {
+        etiqueta: 'Políticas mayoristas',
+        descripcion: 'Descuentos, categorías y compra mínima de cada mayorista',
+        href: '/admin/mayoristas',
+        icono: BadgePercent,
+        roles: ['admin', 'coordinador'],
+        permiso: { modulo: 'mayoristas', accion: 'configurar' },
+      },
+      {
         etiqueta: 'Configuración del catálogo',
         descripcion: 'Banners, novedades, anuncios y bloques del catálogo',
         href: '/admin/catalogo',
@@ -550,6 +559,7 @@ export const nombresRol: Record<Rol, string> = {
   produccion: 'Producción',
   contabilidad: 'Contabilidad',
   logistica: 'Logística',
+  mayorista: 'Mayorista',
 }
 
 export function itemVisible(

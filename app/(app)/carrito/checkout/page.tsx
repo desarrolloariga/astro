@@ -9,6 +9,7 @@ import { FormularioEnvioPago } from '@/components/app/formulario-envio-pago'
 import type { ItemCarrito } from '@/lib/publico/carrito'
 import { confirmarMiCarrito } from '../acciones'
 import { obtenerModoCompra, obtenerPreciosEmbajador } from '@/lib/modo-compra'
+import { obtenerPoliticaMayorista } from '@/lib/mayorista'
 import { obtenerPoliticaEnvio } from '@/lib/envio-servidor'
 import { cargarEntregaCheckout } from '@/lib/entrega-servidor'
 
@@ -40,7 +41,9 @@ export default async function CheckoutBackofficePage({
   // Segunda ola: lo que necesita los ids del carrito o el rol del usuario.
   // Solo el embajador recibe filas: su total "para mí" con precio embajador.
   const [preciosEmbajador, { data: bolsaData }, entrega] = await Promise.all([
-    usuario.rol === 'embajador' ? obtenerPreciosEmbajador(supabase, productoIds) : Promise.resolve(new Map<number, number>()),
+    usuario.rol === 'embajador' || usuario.rol === 'mayorista'
+      ? obtenerPreciosEmbajador(supabase, productoIds)
+      : Promise.resolve(new Map<number, number>()),
     usuario.rol === 'embajador' ? supabase.rpc('fn_mi_bolsa') : Promise.resolve({ data: null }),
     cargarEntregaCheckout(supabase, productoIds),
   ])
@@ -48,7 +51,10 @@ export default async function CheckoutBackofficePage({
     (acc, i) => acc + (preciosEmbajador.get(i.producto_id) ?? i.precio_venta ?? 0) * i.cantidad,
     0,
   )
-  const totalModo = modo === 'mi' ? totalParaMi : total
+  const esMayorista = usuario.rol === 'mayorista'
+  const politica = esMayorista ? await obtenerPoliticaMayorista(supabase) : null
+  const totalModo = modo === 'mi' || esMayorista ? totalParaMi : total
+  const faltaMinimo = politica ? Math.max(0, politica.minimo_compra - totalParaMi) : 0
   const saldoBolsa = Number((bolsaData as { disponible: number }[] | null)?.[0]?.disponible ?? 0)
   const pctMaxBilletera = Math.min(100, Math.max(0, Number(parametroTope?.valor ?? 95) || 95))
 
@@ -79,7 +85,15 @@ export default async function CheckoutBackofficePage({
         action={confirmarMiCarrito}
         total={total}
         totalParaMi={totalParaMi}
-        paraClienteInicial={modo === 'cliente'}
+        paraClienteInicial={!esMayorista && modo === 'cliente'}
+        soloParaMi={esMayorista}
+        aviso={
+          esMayorista && !politica
+            ? 'Tu cuenta mayorista aún no tiene una política de precios asignada. Escríbele a administración.'
+            : faltaMinimo > 0
+              ? `La compra mínima mayorista es de ${formatearPrecio(politica?.minimo_compra ?? 0)}: te faltan ${formatearPrecio(faltaMinimo)}.`
+              : null
+        }
         saldoBolsa={saldoBolsa}
         pctMaxBilletera={pctMaxBilletera}
         politicaEnvio={politicaEnvio}

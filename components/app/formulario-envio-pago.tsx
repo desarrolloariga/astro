@@ -49,6 +49,8 @@ export function FormularioEnvioPago({
   pctMaxBilletera = 95,
   politicaEnvio = null,
   entrega,
+  soloParaMi = false,
+  aviso,
 }: {
   action: (formData: FormData) => void | Promise<void>
   camposOcultos?: Record<string, string>
@@ -68,12 +70,16 @@ export function FormularioEnvioPago({
   politicaEnvio?: PoliticaEnvio | null
   /** Forma y momento de entrega (precargado con lo elegido en la ficha del producto). */
   entrega?: { config: ConfigEntrega; inicial: Partial<EleccionEntrega> | null; permiteInmediata: boolean }
+  /** Cuenta mayorista: siempre compra para sí (sin la opción "para un cliente"). */
+  soloParaMi?: boolean
+  /** Mensaje destacado arriba del formulario (p. ej. compra mínima mayorista). */
+  aviso?: string | null
 }) {
   const [eleccion, setEleccion] = useState<EleccionEntrega | null>(() =>
     entrega ? normalizarEleccion(entrega.inicial, entrega.config, entrega.permiteInmediata, []) : null,
   )
   const recoger = eleccion?.metodo === 'recoger'
-  const [paraCliente, setParaCliente] = useState(permitirCompraPropia ? Boolean(paraClienteInicial) : true)
+  const [paraCliente, setParaCliente] = useState(soloParaMi ? false : permitirCompraPropia ? Boolean(paraClienteInicial) : true)
   const totalProductos = !paraCliente && totalParaMi != null ? totalParaMi : total
   // Envío según la política vigente (la base calcula lo mismo al confirmar).
   const tipoCompra: TipoCompraEnvio = !permitirCompraPropia ? 'publico' : paraCliente ? 'backoffice_cliente' : 'propio'
@@ -155,7 +161,9 @@ export function FormularioEnvioPago({
       <input type="hidden" name="para_cliente" value={paraCliente ? 'si' : 'no'} />
       <input type="hidden" name="usar_bolsa" value={conBolsa ? 'si' : 'no'} />
 
-      {permitirCompraPropia && (
+      {aviso && <p className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-sm font-medium text-amber-800">{aviso}</p>}
+
+      {permitirCompraPropia && !soloParaMi && (
         <SeccionFormulario icon={Users} titulo="¿Para quién es la compra?">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {[

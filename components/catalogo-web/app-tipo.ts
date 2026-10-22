@@ -18,6 +18,8 @@ export type AppCatalogo = {
   vendedor: string | null
   /** El usuario tiene precio de embajador (y por lo tanto ganancia por pieza). */
   conPrecioEmbajador: boolean
+  /** Cuenta mayorista: siempre compra para sí con el precio de su política. */
+  mayorista: { politica: string; minimo: number } | null
   puedeLink: boolean
   config: ConfigCatalogo
   productos: ProductoWeb[]

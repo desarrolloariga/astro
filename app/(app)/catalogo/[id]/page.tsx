@@ -84,7 +84,7 @@ export default async function FichaPiezaPage({
   const conocidos = new Map([datos.producto, ...datos.relacionados].filter((p) => p.emb != null).map((p) => [p.id, p.emb as number]))
   const faltantes = items.map((i) => i.producto_id).filter((pid) => !conocidos.has(pid))
   const preciosCarrito =
-    usuario.rol === 'embajador' && faltantes.length > 0 ? await obtenerPreciosEmbajador(supabase, faltantes) : new Map<number, number>()
+    (usuario.rol === 'embajador' || usuario.rol === 'mayorista') && faltantes.length > 0 ? await obtenerPreciosEmbajador(supabase, faltantes) : new Map<number, number>()
   for (const [pid, precio] of conocidos) preciosCarrito.set(pid, precio)
 
   return (
@@ -93,8 +93,9 @@ export default async function FichaPiezaPage({
       <ProductoDetalle
         contexto="backoffice"
         datos={datos}
-        conPrecioEmbajador={usuario.rol === 'embajador' && datos.producto.emb != null}
-        modoInicial={modo}
+        conPrecioEmbajador={(usuario.rol === 'embajador' || usuario.rol === 'mayorista') && datos.producto.emb != null}
+        mayorista={usuario.rol === 'mayorista'}
+        modoInicial={usuario.rol === 'mayorista' ? 'mi' : modo}
         lineasIniciales={items.map(adaptarLineaWeb)}
         preciosEmbCarrito={Object.fromEntries(preciosCarrito)}
         acciones={{ agregar: agregarMiCarritoWeb }}

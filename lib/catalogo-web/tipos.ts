@@ -1,7 +1,7 @@
 /** Tipos del catálogo web (backoffice y enlace público en computador). */
 
 export type Contexto = 'backoffice' | 'publico'
-export type Audiencia = 'todos' | 'backoffice' | 'publico'
+export type Audiencia = 'todos' | 'backoffice' | 'publico' | 'mayorista'
 export type CtaTipo = 'todo' | 'categoria' | 'ofertas' | 'generar_link' | 'url'
 
 export type NombreIcono =
