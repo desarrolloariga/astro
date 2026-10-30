@@ -72,4 +72,6 @@ export const nombresOrigen: Record<string, string> = {
   comision_bancaria: 'Comisión bancaria',
   ajuste: 'Ajuste',
   otro: 'Otro',
+  nota_debito: 'Nota de débito',
+  nota_credito: 'Nota de crédito',
 }

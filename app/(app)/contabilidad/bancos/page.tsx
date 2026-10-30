@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, ArrowLeftRight, CheckCircle2, Clock, Landmark, Plus, Scale, TrendingUp, Wallet } from 'lucide-react'
+import { AlertCircle, ArrowLeftRight, CheckCircle2, Clock, DollarSign, FileSpreadsheet, FileText, Landmark, Plus, Scale, TrendingUp, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFecha, formatearPrecio } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { hoyGuatemala, nombresOrigen, rangoMes } from '@/lib/contabilidad'
 import { BotonConfirmar } from '@/components/app/boton-confirmar'
-import { anularMovimiento, guardarCuenta, movimientoManual, registrarPendiente, transferencia } from './acciones'
+import { cargarCatalogosCaptura } from '@/lib/contabilidad-servidor'
+import { anularMovimiento, guardarCuenta, guardarTipoCambio, movimientoManual, notaBancaria, registrarPendiente, transferencia } from './acciones'
 
 export const metadata = { title: 'Bancos — ASTRO' }
 
@@ -24,6 +25,7 @@ type Cuenta = {
   saldo_inicial: number
   fecha_saldo_inicial: string
   activa: boolean
+  moneda: 'GTQ' | 'USD'
 }
 
 type Movimiento = {
@@ -35,6 +37,7 @@ type Movimiento = {
   monto: number
   descripcion: string
   referencia: string | null
+  tipo_cambio: number
   conciliado: boolean
   anulado: boolean
   motivo_anulacion: string | null
@@ -57,6 +60,7 @@ function SelectorCuenta({ cuentas, name = 'cuenta_id' }: { cuentas: Cuenta[]; na
       {cuentas.map((c) => (
         <option key={c.id} value={c.id}>
           {c.nombre}
+          {c.moneda === 'USD' ? ' (USD)' : ''}
         </option>
       ))}
     </select>
@@ -79,20 +83,25 @@ export default async function BancosPage({
   const supabase = await createClient()
   let consultaMov = supabase
     .from('movimientos_banco')
-    .select('id, cuenta_id, fecha, tipo, origen, monto, descripcion, referencia, conciliado, anulado, motivo_anulacion')
+    .select('id, cuenta_id, fecha, tipo, origen, monto, descripcion, referencia, tipo_cambio, conciliado, anulado, motivo_anulacion')
     .gte('fecha', desde)
     .lte('fecha', hasta)
     .order('fecha', { ascending: false })
     .order('id', { ascending: false })
   if (cuentaFiltro) consultaMov = consultaMov.eq('cuenta_id', cuentaFiltro)
 
-  const [{ data: cuentasData }, { data: saldosData }, { data: pendData }, { data: movData }] = await Promise.all([
-    supabase.from('cuentas_bancarias').select('id, nombre, banco, numero, tipo, saldo_inicial, fecha_saldo_inicial, activa').order('nombre'),
+  const [{ data: cuentasData }, { data: saldosData }, { data: pendData }, { data: movData }, { data: tcData }, catalogos] = await Promise.all([
+    supabase.from('cuentas_bancarias').select('id, nombre, banco, numero, tipo, saldo_inicial, fecha_saldo_inicial, activa, moneda').order('nombre'),
     supabase.rpc('fn_flujo_caja', { p_desde: hoy, p_hasta: hoy }),
     supabase.rpc('fn_bancos_pendientes'),
     consultaMov,
+    supabase.from('tipos_cambio').select('fecha, tasa').order('fecha', { ascending: false }).limit(1).maybeSingle(),
+    cargarCatalogosCaptura(supabase),
   ])
   const cuentas = (cuentasData ?? []) as Cuenta[]
+  const tipoCambio = tcData as { fecha: string; tasa: number } | null
+  const monedaCuenta = new Map(cuentas.map((c) => [c.id, c.moneda]))
+  const hayUsd = cuentas.some((c) => c.moneda === 'USD')
   const activas = cuentas.filter((c) => c.activa)
   const saldos = new Map(
     (((saldosData as { cuentas?: { id: number; saldo_final: number }[] } | null)?.cuentas) ?? []).map((c) => [c.id, Number(c.saldo_final)]),
@@ -101,7 +110,7 @@ export default async function BancosPage({
   const movimientos = (movData ?? []) as Movimiento[]
   const nombreCuenta = new Map(cuentas.map((c) => [c.id, c.nombre]))
   const totalPendientes = pend.cobros.length + pend.gastos.length + pend.compras.length + pend.liquidaciones.length
-  const saldoTotal = activas.reduce((a, c) => a + (saldos.get(c.id) ?? 0), 0)
+  const saldoTotal = activas.filter((c) => c.moneda !== 'USD').reduce((a, c) => a + (saldos.get(c.id) ?? 0), 0)
 
   const [a, m] = mesActual.split('-').map(Number)
   const mesPrevio = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 7)
@@ -122,6 +131,9 @@ export default async function BancosPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/contabilidad/bancos/estado-cuenta" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-secondary">
+            <FileSpreadsheet className="h-4 w-4 text-primary" /> Estados de cuenta
+          </Link>
           <Link href="/contabilidad/bancos/conciliacion" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-secondary">
             <Scale className="h-4 w-4 text-primary" /> Conciliación
           </Link>
@@ -149,7 +161,7 @@ export default async function BancosPage({
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Cuentas</h2>
           <span className="text-sm text-muted-foreground">
-            Saldo total en libros hoy: <span className="font-bold text-foreground">{formatearPrecio(saldoTotal)}</span>
+            Saldo en quetzales hoy: <span className="font-bold text-foreground">{formatearPrecio(saldoTotal)}</span>
           </span>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -159,8 +171,8 @@ export default async function BancosPage({
                 {c.tipo === 'caja' ? <Wallet className="h-4 w-4 text-primary" /> : <Landmark className="h-4 w-4 text-primary" />}
                 {c.nombre}
               </p>
-              <p className="text-xs text-muted-foreground">{[c.banco, c.numero, c.tipo].filter(Boolean).join(' · ')}</p>
-              <p className="mt-1 text-lg font-bold text-foreground">{formatearPrecio(saldos.get(c.id) ?? Number(c.saldo_inicial))}</p>
+              <p className="text-xs text-muted-foreground">{[c.banco, c.numero, c.tipo, c.moneda].filter(Boolean).join(' · ')}</p>
+              <p className="mt-1 text-lg font-bold text-foreground">{formatearPrecio(saldos.get(c.id) ?? Number(c.saldo_inicial), c.moneda)}</p>
               <details>
                 <summary className="cursor-pointer list-none text-xs font-semibold text-primary">Editar</summary>
                 <FormularioCuenta cuenta={c} volver={rutaActual} />
@@ -249,6 +261,45 @@ export default async function BancosPage({
       {/* Movimientos manuales */}
       {activas.length > 0 && (
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <details className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary">
+              <FileText className="h-4 w-4" /> Nota de débito o de crédito bancaria
+            </summary>
+            <form action={notaBancaria} className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+              <input type="hidden" name="volver" value={rutaActual} />
+              <SelectorCuenta cuentas={activas} />
+              <select name="tipo_nota" defaultValue="debito" className={clasesMini}>
+                <option value="debito">Nota de débito (el banco cobra)</option>
+                <option value="credito">Nota de crédito (el banco abona)</option>
+              </select>
+              <input type="date" name="fecha" defaultValue={hoy} required className={clasesMini} />
+              <input name="monto" type="number" step="0.01" min="0.01" required placeholder="Monto (moneda de la cuenta)" className={clasesMini} />
+              <select name="cuenta_contrapartida_id" required defaultValue="" className={cn(clasesMini, 'col-span-2')}>
+                <option value="" disabled>
+                  Cuenta contable de contrapartida…
+                </option>
+                {catalogos.cuentas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.codigo} {c.nombre}
+                  </option>
+                ))}
+              </select>
+              <select name="centro_costo_id" defaultValue="" className={clasesMini}>
+                <option value="">Centro de costo (gastos)</option>
+                {catalogos.centros.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.codigo} · {c.nombre}
+                  </option>
+                ))}
+              </select>
+              <input name="referencia" placeholder="No. de nota" className={clasesMini} />
+              <input name="descripcion" required placeholder="Concepto (intereses, cargo por chequera, cheque rechazado…)" className={cn(clasesMini, 'col-span-2 md:col-span-3')} />
+              {hayUsd && <input name="tipo_cambio" type="number" step="0.000001" placeholder="Tipo de cambio (USD)" className={clasesMini} />}
+              <button type="submit" className="col-span-2 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground md:col-span-4">
+                Registrar nota
+              </button>
+            </form>
+          </details>
           <details className="rounded-xl border border-border bg-card p-4">
             <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary">
               <Plus className="h-4 w-4" /> Movimiento manual (comisión bancaria, ajuste, otro)
@@ -283,13 +334,39 @@ export default async function BancosPage({
               <SelectorCuenta cuentas={activas} name="cuenta_origen" />
               <SelectorCuenta cuentas={activas} name="cuenta_destino" />
               <input type="date" name="fecha" defaultValue={hoy} required className={clasesMini} />
-              <input name="monto" type="number" step="0.01" min="0.01" required placeholder="Monto" className={clasesMini} />
-              <input name="descripcion" placeholder="Descripción (opcional)" className={cn(clasesMini, 'col-span-2')} />
+              <input name="monto" type="number" step="0.01" min="0.01" required placeholder="Monto que sale" className={clasesMini} />
+              {hayUsd && (
+                <input name="monto_destino" type="number" step="0.01" min="0.01" placeholder="Monto que entra (si cambia de moneda)" className={cn(clasesMini, 'col-span-2')} />
+              )}
+              <input name="referencia" placeholder="Referencia" className={clasesMini} />
+              <input name="descripcion" placeholder="Descripción (opcional)" className={clasesMini} />
               <button type="submit" className="col-span-2 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground">
                 Registrar transferencia
               </button>
             </form>
           </details>
+        </section>
+      )}
+
+      {/* Tipo de cambio */}
+      {hayUsd && (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <span className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-primary" />
+            Tipo de cambio vigente:{' '}
+            <span className="font-semibold">
+              {tipoCambio ? `Q${Number(tipoCambio.tasa).toFixed(5)} por USD (desde ${tipoCambio.fecha.split('-').reverse().join('/')})` : 'sin registrar'}
+            </span>
+          </span>
+          <form action={guardarTipoCambio} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="volver" value={rutaActual} />
+            <input type="date" name="fecha" defaultValue={hoy} required className={clasesMini} />
+            <input name="tasa" type="number" step="0.000001" min="0.000001" required placeholder="Q por USD" className={clasesMini} />
+            <input name="fuente" placeholder="Fuente (Banguat)" className={clasesMini} />
+            <button type="submit" className="rounded-md border border-border px-2 py-1 text-xs font-semibold">
+              Guardar tasa
+            </button>
+          </form>
         </section>
       )}
 
@@ -346,8 +423,10 @@ export default async function BancosPage({
                       </p>
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{nombreCuenta.get(mv.cuenta_id)}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-emerald-700">{mv.tipo === 'ingreso' ? formatearPrecio(Number(mv.monto)) : ''}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-foreground">{mv.tipo === 'egreso' ? formatearPrecio(Number(mv.monto)) : ''}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-emerald-700">{mv.tipo === 'ingreso' ? formatearPrecio(Number(mv.monto), monedaCuenta.get(mv.cuenta_id) ?? 'GTQ') : ''}
+                      {mv.tipo === 'ingreso' && Number(mv.tipo_cambio) !== 1 && <span className="block text-[10px] font-normal text-muted-foreground">TC {Number(mv.tipo_cambio)}</span>}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-foreground">{mv.tipo === 'egreso' ? formatearPrecio(Number(mv.monto), monedaCuenta.get(mv.cuenta_id) ?? 'GTQ') : ''}
+                      {mv.tipo === 'egreso' && Number(mv.tipo_cambio) !== 1 && <span className="block text-[10px] font-normal text-muted-foreground">TC {Number(mv.tipo_cambio)}</span>}</td>
                     <td className="px-3 py-2 text-right">
                       {!mv.anulado && !mv.conciliado && (
                         <details>
@@ -384,14 +463,20 @@ function FormularioCuenta({ cuenta, volver }: { cuenta?: Cuenta; volver: string 
         <input name="banco" defaultValue={cuenta?.banco ?? ''} placeholder="Banco" className={clasesCampo} />
         <input name="numero" defaultValue={cuenta?.numero ?? ''} placeholder="No. de cuenta" className={clasesCampo} />
       </div>
-      <select name="tipo" defaultValue={cuenta?.tipo ?? 'monetaria'} className={clasesCampo}>
-        <option value="monetaria">Monetaria</option>
-        <option value="ahorro">Ahorro</option>
-        <option value="caja">Caja (efectivo)</option>
-      </select>
+      <div className="grid grid-cols-2 gap-2">
+        <select name="tipo" defaultValue={cuenta?.tipo ?? 'monetaria'} className={clasesCampo}>
+          <option value="monetaria">Monetaria</option>
+          <option value="ahorro">Ahorro</option>
+          <option value="caja">Caja (efectivo)</option>
+        </select>
+        <select name="moneda" defaultValue={cuenta?.moneda ?? 'GTQ'} className={clasesCampo}>
+          <option value="GTQ">Quetzales (GTQ)</option>
+          <option value="USD">Dólares (USD)</option>
+        </select>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">
-          Saldo inicial (Q)
+          Saldo inicial (en su moneda)
           <input name="saldo_inicial" type="number" step="0.01" defaultValue={cuenta?.saldo_inicial ?? 0} className={clasesCampo} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">

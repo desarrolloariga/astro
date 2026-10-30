@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, CheckCircle2, FileText, Plus, Receipt } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileText, Receipt } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { tienePermiso } from '@/lib/permisos'
@@ -8,19 +8,14 @@ import { formatearPrecio, formatearFecha } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { BotonConfirmar } from '@/components/app/boton-confirmar'
 import {
-  CATEGORIAS_GASTO,
   CLASIFICACIONES_GASTO,
-  METODOS_GASTO,
   etiquetaCategoria,
   hoyGuatemala,
   rangoMes,
 } from '@/lib/contabilidad'
-import { anularGasto, registrarGasto } from './acciones'
+import { anularGasto } from './acciones'
 
 export const metadata = { title: 'Gastos — ASTRO' }
-
-const clasesCampo =
-  'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none'
 
 type Gasto = {
   id: number
@@ -56,7 +51,7 @@ export default async function GastosPage({
   const rutaActual = `/contabilidad/gastos?mes=${mesActual}`
 
   const supabase = await createClient()
-  const [{ data }, { data: proveedores }, { data: cuentasData }] = await Promise.all([
+  const [{ data }] = await Promise.all([
     supabase
       .from('gastos')
       .select(
@@ -66,10 +61,7 @@ export default async function GastosPage({
       .lte('fecha', hasta)
       .order('fecha', { ascending: false })
       .order('id', { ascending: false }),
-    supabase.from('proveedores').select('id, nombre').order('nombre'),
-    supabase.from('cuentas_bancarias').select('id, nombre').eq('activa', true).order('nombre'),
   ])
-  const cuentas = (cuentasData ?? []) as { id: number; nombre: string }[]
   const gastos = (data ?? []) as unknown as Gasto[]
   const vigentes = gastos.filter((g) => !g.anulado)
   const total = (c: string) => vigentes.filter((g) => g.clasificacion === c).reduce((a, g) => a + Number(g.monto), 0)
@@ -118,104 +110,15 @@ export default async function GastosPage({
         </div>
       )}
 
-      {puedeRegistrar && (
-        <details className="rounded-xl border border-dashed border-primary/40 bg-card" open={gastos.length === 0}>
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-primary">
-            <Plus className="h-4 w-4" />
-            Registrar gasto
-          </summary>
-          <form action={registrarGasto} encType="multipart/form-data" className="grid grid-cols-1 gap-3 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-4">
-            <input type="hidden" name="volver" value={rutaActual} />
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-              Fecha
-              <input name="fecha" type="date" required defaultValue={hoy} className={clasesCampo} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-              Tipo
-              <select name="clasificacion" defaultValue="operativo" className={clasesCampo}>
-                {CLASIFICACIONES_GASTO.map((c) => (
-                  <option key={c.valor} value={c.valor}>
-                    {c.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-              Categoría
-              <select name="categoria" required defaultValue="" className={clasesCampo}>
-                <option value="" disabled>
-                  Elige…
-                </option>
-                {CATEGORIAS_GASTO.map((c) => (
-                  <option key={c.valor} value={c.valor}>
-                    {c.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-              Monto (Q)
-              <input name="monto" type="number" step="0.01" min="0.01" required className={clasesCampo} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground sm:col-span-2">
-              Descripción
-              <input name="descripcion" required placeholder="Ej. Alquiler de oficina octubre" className={clasesCampo} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-              Proveedor <span className="font-normal text-muted-foreground">(opcional)</span>
-              <select name="proveedor_id" defaultValue="" className={clasesCampo}>
-                <option value="">—</option>
-                {(proveedores ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-              Método de pago
-              <select name="metodo_pago" defaultValue="transferencia" className={clasesCampo}>
-                {METODOS_GASTO.map((mt) => (
-                  <option key={mt.valor} value={mt.valor}>
-                    {mt.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {cuentas.length > 0 && (
-              <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
-                Pagado desde la cuenta
-                <select name="cuenta_id" defaultValue="" className={clasesCampo}>
-                  <option value="">Registrar en bancos después</option>
-                  {cuentas.map((ct) => (
-                    <option key={ct.id} value={ct.id}>
-                      {ct.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground sm:col-span-2">
-              Referencia / No. de factura <span className="font-normal text-muted-foreground">(opcional)</span>
-              <input name="referencia" className={clasesCampo} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground sm:col-span-2">
-              Soporte (factura o recibo, imagen o PDF)
-              <input
-                name="soporte"
-                type="file"
-                accept="image/*,application/pdf"
-                className="w-full rounded-lg border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:font-semibold file:text-primary-foreground"
-              />
-            </label>
-            <div className="flex justify-end sm:col-span-2 lg:col-span-4">
-              <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
-                Registrar gasto
-              </button>
-            </div>
-          </form>
-        </details>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+        <span className="text-foreground">
+          Los gastos nuevos se registran en <span className="font-semibold">Cuentas por pagar</span> (con su factura, cuenta contable y
+          centro de costo). Esta página queda como histórico: los gastos anteriores siguen en el estado de resultados.
+        </span>
+        <Link href="/contabilidad/cxp/nueva" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
+          Registrar en Cuentas por pagar
+        </Link>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

@@ -52,7 +52,7 @@ function BarraInferior({ items, pathname, onMenu }: { items: ItemNav[]; pathname
   return (
     <nav
       aria-label="Accesos rápidos"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur md:hidden print:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="mx-auto grid max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length + 1}, minmax(0, 1fr))` }}>
@@ -180,7 +180,7 @@ export function AppShell({
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex w-[85vw] max-w-72 flex-col border-r border-sidebar-border bg-sidebar pt-[env(safe-area-inset-top)] shadow-xl transition-transform duration-300 ease-out md:w-72 md:pt-0',
-          'md:sticky md:top-0 md:z-0 md:h-svh md:shrink-0 md:translate-x-0 md:shadow-none',
+          'md:sticky md:top-0 md:z-0 md:h-svh md:shrink-0 md:translate-x-0 md:shadow-none print:hidden',
           abierto ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -311,7 +311,7 @@ export function AppShell({
 
       {/* Columna derecha: barra superior (solo móvil) + contenido */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 bg-card/90 pt-[env(safe-area-inset-top)] md:bg-transparent md:pt-0">
+        <header className="sticky top-0 z-20 bg-card/90 pt-[env(safe-area-inset-top)] md:bg-transparent md:pt-0 print:hidden">
           <div className="flex h-16 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur md:hidden">
             <button
               onClick={() => setAbierto(true)}

@@ -29,7 +29,7 @@ function refrescar() {
 
 export async function guardarCuenta(formData: FormData) {
   const supabase = await createClient()
-  const { error } = await supabase.rpc('fn_guardar_cuenta_bancaria', {
+  const { data: cuentaId, error } = await supabase.rpc('fn_guardar_cuenta_bancaria', {
     p_id: numero(formData, 'id'),
     p_nombre: texto(formData, 'nombre'),
     p_banco: texto(formData, 'banco'),
@@ -39,8 +39,11 @@ export async function guardarCuenta(formData: FormData) {
     p_fecha_saldo_inicial: texto(formData, 'fecha_saldo_inicial') || null,
     p_activa: formData.get('activa') !== 'no',
   })
-  refrescar()
   if (error) volver(formData, 'error', error.message)
+  const moneda = texto(formData, 'moneda') || 'GTQ'
+  const { error: errorMoneda } = await supabase.rpc('fn_banco_definir_moneda', { p_cuenta_id: cuentaId as number, p_moneda: moneda })
+  refrescar()
+  if (errorMoneda) volver(formData, 'error', errorMoneda.message)
   volver(formData, 'ok', 'Cuenta guardada')
 }
 
@@ -92,16 +95,48 @@ export async function movimientoManual(formData: FormData) {
 
 export async function transferencia(formData: FormData) {
   const supabase = await createClient()
-  const { error } = await supabase.rpc('fn_banco_transferencia', {
+  const { error } = await supabase.rpc('fn_banco_transferir', {
     p_cuenta_origen: numero(formData, 'cuenta_origen'),
     p_cuenta_destino: numero(formData, 'cuenta_destino'),
     p_fecha: texto(formData, 'fecha'),
     p_monto: numero(formData, 'monto'),
+    p_monto_destino: numero(formData, 'monto_destino'),
     p_descripcion: texto(formData, 'descripcion') || null,
+    p_referencia: texto(formData, 'referencia') || null,
   })
   refrescar()
   if (error) volver(formData, 'error', error.message)
   volver(formData, 'ok', 'Transferencia registrada')
+}
+
+export async function notaBancaria(formData: FormData) {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('fn_banco_nota', {
+    p_cuenta_id: numero(formData, 'cuenta_id'),
+    p_fecha: texto(formData, 'fecha'),
+    p_tipo_nota: texto(formData, 'tipo_nota'),
+    p_monto: numero(formData, 'monto'),
+    p_descripcion: texto(formData, 'descripcion'),
+    p_referencia: texto(formData, 'referencia') || null,
+    p_cuenta_contrapartida_id: numero(formData, 'cuenta_contrapartida_id'),
+    p_centro_costo_id: numero(formData, 'centro_costo_id'),
+    p_tipo_cambio: numero(formData, 'tipo_cambio'),
+  })
+  refrescar()
+  if (error) volver(formData, 'error', error.message)
+  volver(formData, 'ok', texto(formData, 'tipo_nota') === 'debito' ? 'Nota de débito registrada' : 'Nota de crédito registrada')
+}
+
+export async function guardarTipoCambio(formData: FormData) {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('fn_guardar_tipo_cambio', {
+    p_fecha: texto(formData, 'fecha'),
+    p_tasa: numero(formData, 'tasa'),
+    p_fuente: texto(formData, 'fuente') || null,
+  })
+  refrescar()
+  if (error) volver(formData, 'error', error.message)
+  volver(formData, 'ok', 'Tipo de cambio guardado')
 }
 
 export async function anularMovimiento(formData: FormData) {
