@@ -1,40 +1,43 @@
 import type { CSSProperties } from 'react'
 import type { ProductoWeb } from '@/lib/catalogo-web/tipos'
 
-/** Tokens del diseño aprobado (CatalogoWeb.jsx). Valores exactos en hex y px. */
+/**
+ * Tokens del catálogo con la marca ASTRO (Manual de Marca, nov 2026): Naranja Astro #F6A637, negro y blanco;
+ * los grises son solo de apoyo de interfaz. Botones naranjas siempre con texto negro.
+ */
 export const T = {
-  bg: '#F5F7FB',
+  bg: '#FFFFFF',
   surface: '#FFFFFF',
-  text: '#0D1B36',
-  textSoft: '#3B4964',
-  muted: '#55627D',
-  faint: '#9AA6BE',
-  navy: '#0F2A5C',
-  navyDeep: '#0A1E44',
-  primary: '#1E4FD8',
-  primarySoft: '#E5ECFB',
-  primaryTint: '#F0F4FE',
-  band: '#EEF3FC',
-  input: '#F1F4FA',
-  border: '#E3E9F4',
-  borderStrong: '#DCE4F2',
-  borderBtn: '#C9D4EA',
-  gold: '#F2D58A',
-  goldSoft: '#F6E9C4',
-  goldText: '#6B5212',
-  iconBlue: '#2A4C9A',
-  success: '#11704F',
-  successBg: '#DDF3E8',
-  live: '#1FA36B',
-  warning: '#B45309',
+  text: '#000000',
+  textSoft: '#1A1A1A',
+  muted: '#6B6B6B',
+  faint: '#9A9A9A',
+  navy: '#000000',
+  navyDeep: '#000000',
+  primary: '#F6A637',
+  primarySoft: '#FFF4E3',
+  primaryTint: '#FFF9F0',
+  band: '#F7F7F7',
+  input: '#F4F4F4',
+  border: '#EFEFEF',
+  borderStrong: '#E2E2E2',
+  borderBtn: '#D4D4D4',
+  gold: '#F6A637',
+  goldSoft: '#FFE6C2',
+  goldText: '#000000',
+  iconBlue: '#000000',
+  success: '#000000',
+  successBg: '#F2F2F2',
+  live: '#F6A637',
+  warning: '#A35F00',
   danger: '#B42318',
-  heart: '#D93A3A',
-  disabledBg: '#E3E9F4',
-  disabledFg: '#7A879F',
-  overlay: 'rgba(10,30,68,0.55)',
-  shadowPop: '0 18px 40px rgba(10,30,68,0.16)',
-  shadowModal: '0 30px 80px rgba(10,30,68,0.35)',
-  maxW: 1280,
+  heart: '#F6A637',
+  disabledBg: '#EFEFEF',
+  disabledFg: '#8A8A8A',
+  overlay: 'rgba(0,0,0,0.55)',
+  shadowPop: '0 18px 40px rgba(0,0,0,0.16)',
+  shadowModal: '0 30px 80px rgba(0,0,0,0.35)',
+  maxW: 1320,
 } as const
 
 export const HERO_INTERVAL_MS = 5000
@@ -66,10 +69,27 @@ export const btn: CSSProperties = {
 }
 export const container: CSSProperties = { maxWidth: T.maxW, margin: '0 auto', paddingInline: 24, boxSizing: 'border-box', width: '100%' }
 export const eyebrow: CSSProperties = { fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.muted }
-export const h2: CSSProperties = { margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em' }
+export const h2: CSSProperties = { margin: 0, fontSize: 30, fontWeight: 900, letterSpacing: '-0.01em' }
 
 export const quetzal = (n: number) =>
-  'Q ' + n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  'Q' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Íconos oficiales ASTRO en /astro/icons (color: negro | naranja | blanco). */
+export const astroIcon = (slug: string, color: 'negro' | 'naranja' | 'blanco' = 'negro') => `/astro/icons/${slug}-${color}.png`
+
+const ICONOS_CATEGORIA: [RegExp, string][] = [
+  [/joy|anillo|collar|arete|pulsera|cadena|oro|plata/, 'joyeria'],
+  [/reloj/, 'relojeria'],
+  [/perfum|fragan|colonia/, 'perfumeria'],
+  [/cosm|maquill|belleza|cuidado/, 'cosmeticos'],
+  [/hogar|casa|cocina/, 'hogar'],
+  [/mascot|perro|gato/, 'mascotas'],
+]
+/** Ícono oficial de una categoría por su nombre o slug; la estrella ASTRO si no hay uno propio. */
+export function iconoCategoria(nombre: string | null | undefined): string {
+  const n = norm(nombre)
+  return ICONOS_CATEGORIA.find(([re]) => re.test(n))?.[1] ?? 'estrella'
+}
 export const norm = (t: string | null | undefined) =>
   String(t || '')
     .toLowerCase()
@@ -93,11 +113,21 @@ export function stockInfo(p: ProductoWeb) {
 }
 
 export const GLOBAL_CSS = `
+.cw-astro-card{background:#fff;color:#000;border:1px solid #EFEFEF;border-radius:16px;box-shadow:0 2px 14px rgba(0,0,0,.07);padding:20px 20px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;transition:transform .2s ease,box-shadow .2s ease}
+.cw-hero-orbitas{position:absolute;left:-300px;top:50%;transform:translateY(-50%);opacity:.55;z-index:0}
+.cw-hero-copy{position:relative;z-index:1}
+@media (max-width: 900px){.cw-hero-orbitas{display:none}}
+.cw-astro-card:hover{transform:translateY(-3px);box-shadow:0 16px 32px rgba(0,0,0,.12)}
+.cw-astro-btn{border:0;border-radius:999px;font-family:inherit;font-weight:800;font-size:11px;line-height:1;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:12px 16px;background:#F6A637;color:#000;transition:background .15s,color .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.cw-astro-btn:hover:not(:disabled){background:#000;color:#F6A637}
+.cw-astro-btn:disabled{background:#EFEFEF;color:#8A8A8A}
+.cw-astro-btn--ghost{background:#000;color:#fff}
+.cw-astro-btn--ghost:hover:not(:disabled){background:#F6A637;color:#000}
 .cw button:disabled{cursor:not-allowed}
-.cw button:focus-visible,.cw input:focus-visible,.cw select:focus-visible,.cw a:focus-visible{outline:3px solid #7FA2F0;outline-offset:2px}
+.cw button:focus-visible,.cw input:focus-visible,.cw select:focus-visible,.cw a:focus-visible{outline:3px solid #F6A637;outline-offset:2px}
 .cw input[type=search]::-webkit-search-cancel-button{display:none}
 .cw-card{transition:transform .2s ease, box-shadow .2s ease}
-.cw-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(10,30,68,0.12)}
+.cw-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(0,0,0,0.12)}
 .cw-tile .cw-tile-icon{transition:transform .35s ease}
 .cw-tile:hover .cw-tile-icon{transform:scale(1.08)}
 .cw-suggest:hover{background:${T.input}!important}

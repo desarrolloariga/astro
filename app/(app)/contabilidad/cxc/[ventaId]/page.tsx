@@ -168,7 +168,7 @@ export default async function FichaCobroPage({
                           en bancos · {p.banco.cuenta} {p.banco.fecha.split('-').reverse().join('/')}
                         </span>
                       ) : (
-                        <span className="text-sky-700 dark:text-sky-300">en tránsito (sin registrar en bancos)</span>
+                        <span className="text-muted-foreground">en tránsito (sin registrar en bancos)</span>
                       )}
                     </span>
                   </span>

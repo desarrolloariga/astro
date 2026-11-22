@@ -59,7 +59,7 @@ export function HeroAmbassador({
     goals.push({
       title: `Superar el puesto #${above.pos}`,
       right: `Te faltan ${fmt(above.pts - me.pts + 1)} pts`,
-      color: T.blue,
+      color: T.ink,
       bar: T.blue,
       pct: (me.pts / (above.pts + 1)) * 100,
       hint: 'Con una o dos ventas más lo alcanzas.',
@@ -93,13 +93,13 @@ export function HeroAmbassador({
       <div style={{ flex: '1 1 400px', minWidth: 0, position: 'relative', overflow: 'hidden', borderRadius: 28, background: T.navy, color: '#fff', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
         <Icon name="trophy" size={260} stroke={0.8} color={T.navyLine} style={{ position: 'absolute', right: -40, bottom: -50 }} />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#B9C8E8' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#BDBDBD' }}>
             {live ? 'Tu posición' : 'Terminaste en'} · {scope.label}
           </span>
           <span
             style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-              background: me.move > 0 ? 'rgba(34,160,107,0.18)' : 'rgba(255,255,255,0.1)', color: me.move > 0 ? '#7EE2B1' : '#DCE6FA',
+              background: me.move > 0 ? 'rgba(34,160,107,0.18)' : 'rgba(255,255,255,0.1)', color: me.move > 0 ? '#7EE2B1' : '#BDBDBD',
             }}
           >
             <Icon name={moveIcon(me.move)} size={14} stroke={2.4} />
@@ -111,21 +111,21 @@ export function HeroAmbassador({
             #{me.pos}
           </span>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 4 }}>
-            <span style={{ fontSize: 15, color: '#DCE6FA' }}>
+            <span style={{ fontSize: 15, color: '#BDBDBD' }}>
               de {total} {scope.noun}
             </span>
-            <span style={{ fontSize: 13, color: '#B9C8E8' }}>Estás en el {percentile}% superior</span>
+            <span style={{ fontSize: 13, color: '#BDBDBD' }}>Estás en el {percentile}% superior</span>
           </span>
         </div>
         <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           <div style={stat}>
-            <span style={{ fontSize: 12, color: '#B9C8E8' }}>Puntos del ciclo</span>
+            <span style={{ fontSize: 12, color: '#BDBDBD' }}>Puntos del ciclo</span>
             <span aria-live="polite" style={{ fontSize: 26, fontWeight: 800 }}>
               {fmt(animPts)} pts
             </span>
           </div>
           <div style={stat}>
-            <span style={{ fontSize: 12, color: '#B9C8E8' }}>Nivel</span>
+            <span style={{ fontSize: 12, color: '#BDBDBD' }}>Nivel</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 800 }}>
               <span style={{ width: 26, height: 26, borderRadius: 13, background: lvl.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="star" size={14} fill="#fff" />
@@ -134,7 +134,7 @@ export function HeroAmbassador({
             </span>
           </div>
           <div style={stat}>
-            <span style={{ fontSize: 12, color: '#B9C8E8' }}>Racha de ventas</span>
+            <span style={{ fontSize: 12, color: '#BDBDBD' }}>Racha de ventas</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 800 }}>
               <Icon name="flame" size={20} fill="#F59E0B" /> {racha} {racha === 1 ? 'día' : 'días'}
             </span>
@@ -159,7 +159,7 @@ export function HeroAmbassador({
             <span style={{ fontSize: 12, color: T.muted }}>{g.hint}</span>
           </div>
         ))}
-        <button type="button" onClick={onHow} style={{ ...btn, alignSelf: 'flex-start', height: 36, gap: 6, color: T.blue, fontSize: 14, fontWeight: 700 }}>
+        <button type="button" onClick={onHow} style={{ ...btn, alignSelf: 'flex-start', height: 36, gap: 6, color: T.ink, fontSize: 14, fontWeight: 700, textDecoration: 'underline', textDecorationColor: T.blue, textUnderlineOffset: 4 }}>
           Ver cómo sumar más puntos <Icon name="arrowRight" size={16} stroke={2.2} />
         </button>
       </div>
@@ -292,7 +292,7 @@ export function Leaderboard({ rows, me, total, amb, niveles }: { rows: Fila[]; m
 
   const gap = (r: Fila) => {
     if (amb && me) {
-      if (r.isMe) return { text: 'Estás aquí', color: T.blue }
+      if (r.isMe) return { text: 'Estás aquí', color: T.ink }
       const d = r.pts - me.pts
       return d > 0 ? { text: `+${fmt(d)} sobre ti`, color: T.muted } : { text: `${fmt(-d)} detrás de ti`, color: T.green }
     }
@@ -378,14 +378,14 @@ export function Leaderboard({ rows, me, total, amb, niveles }: { rows: Fila[]; m
               style={{
                 minWidth: 576, display: 'grid', gridTemplateColumns: cols, gap: 12, alignItems: 'center', padding: '12px 28px',
                 margin: highlight ? '4px 12px' : 0, borderRadius: highlight ? 18 : 0, background: highlight ? T.blueSoft : '#fff',
-                borderTop: highlight ? 'none' : `1px solid ${T.lineSoft}`, boxShadow: highlight ? '0 6px 18px rgba(36,83,214,0.15)' : 'none',
+                borderTop: highlight ? 'none' : `1px solid ${T.lineSoft}`, boxShadow: highlight ? '0 6px 18px rgba(246,166,55,0.15)' : 'none',
               }}
             >
               <span role="cell" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span
                   style={{
                     minWidth: 32, height: 32, padding: '0 6px', boxSizing: 'border-box', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, fontWeight: 800, background: top ? MEDALS[r.pos - 1].c : highlight ? T.blue : T.lineSoft, color: top || highlight ? '#fff' : T.body,
+                    fontSize: 14, fontWeight: 800, background: top ? MEDALS[r.pos - 1].c : highlight ? T.blue : T.lineSoft, color: top ? '#fff' : highlight ? '#000' : T.body,
                   }}
                 >
                   {r.pos}
@@ -398,7 +398,7 @@ export function Leaderboard({ rows, me, total, amb, niveles }: { rows: Fila[]; m
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <Person name={r.name} mask={mask} isMe={highlight && amb} />
                     {highlight && (
-                      <span style={{ padding: '3px 8px', borderRadius: 999, background: T.blue, color: '#fff', fontSize: 11, fontWeight: 800 }}>Tú</span>
+                      <span style={{ padding: '3px 8px', borderRadius: 999, background: T.blue, color: '#000', fontSize: 11, fontWeight: 800 }}>Tú</span>
                     )}
                   </span>
                   {r.name ? (
@@ -432,7 +432,7 @@ export function Leaderboard({ rows, me, total, amb, niveles }: { rows: Fila[]; m
           <button
             type="button"
             onClick={() => setShowAll(!showAll)}
-            style={{ ...btn, height: 42, padding: '0 20px', borderRadius: 999, border: '1px solid #E2E7EF', background: '#fff', color: T.ink, fontSize: 14, fontWeight: 700 }}
+            style={{ ...btn, height: 42, padding: '0 20px', borderRadius: 999, border: '1px solid #EFEFEF', background: '#fff', color: T.ink, fontSize: 14, fontWeight: 700 }}
           >
             {showAll ? 'Ver solo el Top 10' : `Ver los ${total} participantes`}
           </button>
@@ -458,7 +458,7 @@ export function PrizesCard({ me, rows, amb, premios }: { me: Fila | null; rows: 
     return { ok: false, text: target ? `Te faltan ${fmt(target.pts - me.pts + 1)}` : 'Suma tu primer punto' }
   }
   const colores = (icon: string) =>
-    icon === 'crown' || icon === 'star' ? { bg: '#FFF6DD', fg: '#B7791F' } : icon === 'medal' ? { bg: '#F0F2F6', fg: '#4D5A70' } : { bg: '#EEF3FD', fg: '#2453D6' }
+    icon === 'crown' || icon === 'star' ? { bg: '#FFF6DD', fg: '#B7791F' } : icon === 'medal' ? { bg: '#F2F2F2', fg: '#4D5A70' } : { bg: '#FFF4E3', fg: '#F6A637' }
   return (
     <section aria-labelledby="rk-prem" style={{ ...card, flex: '1 1 400px', minWidth: 0, padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <h2 id="rk-prem" style={h2}>
@@ -520,7 +520,7 @@ export function LevelPath({ pts, amb, niveles }: { pts: number; amb: boolean; ni
                 <span
                   style={{
                     width: 48, height: 48, borderRadius: 24, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: reached ? l.color : '#fff', border: `3px solid ${cur ? T.navy : reached ? l.color : '#DDE3EC'}`, color: reached ? '#fff' : '#C3CAD6',
+                    background: reached ? l.color : '#fff', border: `3px solid ${cur ? T.navy : reached ? l.color : '#E2E2E2'}`, color: reached ? '#fff' : '#D4D4D4',
                   }}
                 >
                   <Icon name={iconoValido(l.icon, 'star')} size={20} fill="currentColor" />
@@ -582,7 +582,7 @@ export function Badges({ list, amb, onOpen }: { list: LogroRk[]; amb: boolean; o
                 {!ok && (
                   <span
                     style={{
-                      position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, background: '#fff', border: '1px solid #E2E7EF',
+                      position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, background: '#fff', border: '1px solid #EFEFEF',
                       color: T.faint, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                   >
@@ -592,7 +592,7 @@ export function Badges({ list, amb, onOpen }: { list: LogroRk[]; amb: boolean; o
               </span>
               <span style={{ fontSize: 14, fontWeight: 700 }}>{b.name}</span>
               <div style={{ width: '100%' }}>
-                <Bar pct={ok ? 100 : (b.have / Math.max(1, b.need)) * 100} color={ok ? b.color : '#B8C3D6'} height={6} />
+                <Bar pct={ok ? 100 : (b.have / Math.max(1, b.need)) * 100} color={ok ? b.color : '#D4D4D4'} height={6} />
               </div>
               <span style={{ fontSize: 12, fontWeight: 600, color: ok ? T.greenText : T.muted }}>
                 {ok ? 'Desbloqueado' : b.need > 1 ? `${fmt(b.have)} / ${fmt(b.need)}` : 'Bloqueado'}
@@ -607,7 +607,7 @@ export function Badges({ list, amb, onOpen }: { list: LogroRk[]; amb: boolean; o
 
 export function BadgeModal({ badge, onClose }: { badge: LogroRk; onClose: () => void }) {
   const ok = badge.unlocked
-  const confetti = ['#F2C94C', '#2453D6', '#22A06B', '#E04848', '#8E6CCF', '#F2C94C']
+  const confetti = ['#F2C94C', '#F6A637', '#22A06B', '#E04848', '#8E6CCF', '#F2C94C']
   return (
     <Modal label={`Logro: ${badge.name}`} onClose={onClose} maxWidth={400}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
@@ -633,7 +633,7 @@ export function BadgeModal({ badge, onClose }: { badge: LogroRk; onClose: () => 
         <h2 style={{ ...h2, fontSize: 22 }}>{badge.name}</h2>
         <span style={{ fontSize: 14, lineHeight: 1.55, color: T.muted }}>{badge.desc}</span>
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-          <Bar pct={ok ? 100 : (badge.have / Math.max(1, badge.need)) * 100} color={ok ? badge.color : '#B8C3D6'} />
+          <Bar pct={ok ? 100 : (badge.have / Math.max(1, badge.need)) * 100} color={ok ? badge.color : '#D4D4D4'} />
           <span style={{ fontSize: 13, fontWeight: 700, color: ok ? T.greenText : T.muted }}>
             {ok ? '¡Logro desbloqueado!' : `Progreso: ${fmt(badge.have)} / ${fmt(badge.need)}`}
           </span>

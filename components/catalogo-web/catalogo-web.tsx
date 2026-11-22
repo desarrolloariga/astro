@@ -1,6 +1,5 @@
 'use client'
 
-import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { slug } from '@/lib/catalogo-web/slug'
@@ -22,7 +21,6 @@ import { HomeView } from './inicio'
 import { CLAVE_NOVEDADES, CartDrawer, NewsModal, QuickViewModal } from './overlays'
 import { GLOBAL_CSS, PAGE_SIZE, SORTS, T, TOAST_MS, type Sort } from './tokens'
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' })
 
 export type AccionesCarritoWeb = {
   agregar: (productoId: number, cantidad: number) => Promise<ResultadoCarritoWeb>
@@ -365,7 +363,7 @@ export function CatalogoWeb(props: Props) {
   }
 
   return (
-    <div className={`cw ${jakarta.className}`} style={{ minHeight: '100vh', background: T.bg, color: T.text, fontFamily: `${jakarta.style.fontFamily}, system-ui, -apple-system, sans-serif` }}>
+    <div className="cw" style={{ minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'var(--font-marca), system-ui, -apple-system, sans-serif' }}>
       <style>{GLOBAL_CSS}</style>
       <AnnouncementBar anuncios={config.anuncios} />
       <Header app={app} />

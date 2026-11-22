@@ -5,7 +5,7 @@ import type { ModoWeb } from '@/lib/catalogo-web/tipos'
 import type { AppCatalogo } from './app-tipo'
 import { CountBubble, Foto } from './basicos'
 import { Icon } from './icono'
-import { ANN_INTERVAL_MS, T, btn, container, eyebrow, matchesQuery, norm, quetzal } from './tokens'
+import { ANN_INTERVAL_MS, T, astroIcon, btn, container, eyebrow, matchesQuery, norm, quetzal } from './tokens'
 
 export function AnnouncementBar({ anuncios }: { anuncios: string[] }) {
   const [i, setI] = useState(0)
@@ -20,20 +20,21 @@ export function AnnouncementBar({ anuncios }: { anuncios: string[] }) {
   return (
     <div
       style={{
-        background: T.navyDeep, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-        minHeight: 40, padding: '0 16px', fontSize: 13, fontWeight: 600,
+        background: T.primary, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+        minHeight: 38, padding: '0 16px', fontSize: 13, fontWeight: 700,
       }}
     >
       {n > 1 && (
-        <button type="button" onClick={() => setI((i + n - 1) % n)} aria-label="Anuncio anterior" style={{ ...btn, width: 32, height: 32, color: '#AFC3EA' }}>
+        <button type="button" onClick={() => setI((i + n - 1) % n)} aria-label="Anuncio anterior" style={{ ...btn, width: 32, height: 32, color: '#000' }}>
           <Icon name="back" size={16} stroke={2.2} />
         </button>
       )}
       <span aria-live="polite" style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'center' }}>
-        <Icon name="sparkle" size={16} color={T.gold} /> {actual}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={astroIcon('estrella', 'negro')} alt="" width={16} height={16} /> {actual}
       </span>
       {n > 1 && (
-        <button type="button" onClick={() => setI((i + 1) % n)} aria-label="Anuncio siguiente" style={{ ...btn, width: 32, height: 32, color: '#AFC3EA' }}>
+        <button type="button" onClick={() => setI((i + 1) % n)} aria-label="Anuncio siguiente" style={{ ...btn, width: 32, height: 32, color: '#000' }}>
           <Icon name="next" size={16} stroke={2.2} />
         </button>
       )}
@@ -53,11 +54,10 @@ function SearchBox({ app }: { app: AppCatalogo }) {
     <div style={{ flex: '1 1 280px', position: 'relative', minWidth: 0 }}>
       <label
         style={{
-          height: 46, display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 0 14px', background: T.input,
-          border: `1px solid ${open ? T.primary : T.border}`, borderRadius: 14, color: T.muted,
+          height: 46, display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px 0 18px', background: T.surface,
+          border: `2px solid ${open ? T.primary : '#000'}`, borderRadius: 999, color: T.muted,
         }}
       >
-        <Icon name="search" size={20} />
         <input
           type="search"
           value={app.query}
@@ -93,6 +93,18 @@ function SearchBox({ app }: { app: AppCatalogo }) {
             <Icon name="close" size={14} stroke={2.4} />
           </button>
         )}
+        <button
+          type="button"
+          aria-label="Buscar"
+          onClick={() => {
+            setOpen(false)
+            app.goCategory(app.view === 'category' ? app.cat : 'all')
+          }}
+          style={{ ...btn, width: 36, height: 36, borderRadius: 18, background: T.primary, flex: 'none' }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={astroIcon('lupa', 'negro')} alt="" width={18} height={18} />
+        </button>
       </label>
 
       {showDropdown && (
@@ -139,7 +151,7 @@ function SearchBox({ app }: { app: AppCatalogo }) {
               setOpen(false)
               app.goCategory('all')
             }}
-            style={{ ...btn, marginTop: 4, height: 42, borderRadius: 12, background: T.primarySoft, color: T.primary, fontSize: 14, fontWeight: 800 }}
+            style={{ ...btn, marginTop: 4, height: 42, borderRadius: 12, background: T.primarySoft, color: T.text, fontSize: 14, fontWeight: 800 }}
           >
             Ver todos los resultados
           </button>
@@ -155,7 +167,7 @@ function ModeToggle({ mode, setMode }: { mode: ModoWeb; setMode: (m: ModoWeb) =>
     { id: 'cliente' as const, icon: 'users' as const, label: 'Para un cliente' },
   ]
   return (
-    <div role="radiogroup" aria-label="Modo de compra" style={{ display: 'flex', padding: 4, background: T.surface, border: `1px solid ${T.borderStrong}`, borderRadius: 999 }}>
+    <div role="radiogroup" aria-label="Modo de compra" style={{ display: 'flex', padding: 3, background: 'transparent', border: '1px solid #3A3A3A', borderRadius: 999 }}>
       {opciones.map((o) => {
         const on = mode === o.id
         return (
@@ -166,8 +178,8 @@ function ModeToggle({ mode, setMode }: { mode: ModoWeb; setMode: (m: ModoWeb) =>
             aria-checked={on}
             onClick={() => setMode(o.id)}
             style={{
-              ...btn, height: 36, padding: '0 14px', gap: 6, borderRadius: 999, fontSize: 13, fontWeight: 800,
-              background: on ? T.primary : 'transparent', color: on ? '#fff' : T.textSoft, transition: 'background .15s',
+              ...btn, height: 32, padding: '0 14px', gap: 6, borderRadius: 999, fontSize: 12, fontWeight: 800,
+              background: on ? T.primary : 'transparent', color: on ? '#000' : '#fff', transition: 'background .15s',
             }}
           >
             <Icon name={o.icon} size={16} /> {o.label}
@@ -193,42 +205,23 @@ function textoModo(app: AppCatalogo) {
 }
 
 export function Header({ app }: { app: AppCatalogo }) {
-  const navBtn = (active: boolean) => ({
-    ...btn, height: 40, padding: '0 12px', gap: 6, borderRadius: 10, fontSize: 14, fontWeight: 700,
-    background: active ? T.band : 'transparent', color: T.text,
+  // Navegación en píldoras sobre la barra negra (Propuesta 2.2): contorno naranja; la activa, naranja con texto negro.
+  const pildora = (active: boolean) => ({
+    ...btn, height: 32, padding: '0 16px', gap: 6, borderRadius: 999, fontSize: 12, fontWeight: 800, letterSpacing: '0.04em',
+    textTransform: 'uppercase' as const, border: `1.5px solid ${T.primary}`,
+    background: active ? T.primary : 'transparent', color: active ? '#000' : '#fff',
   })
   const nNovedades = app.config.novedades.length
   return (
-    <header style={{ background: T.surface, borderBottom: `1px solid ${T.border}`, position: 'sticky', top: 0, zIndex: 20 }}>
-      <div style={{ ...container, paddingBlock: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px' }}>
-        <button type="button" onClick={app.goHome} aria-label="Ir al inicio del catálogo" style={{ ...btn, gap: 10, color: T.text }}>
-          <span style={{ width: 40, height: 40, borderRadius: 12, background: T.navy, color: T.gold, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="gem" size={22} stroke={1.8} />
-          </span>
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.1 }}>
-            <span style={{ fontSize: 17, fontWeight: 800 }}>{app.config.general.marca}</span>
-            <span style={{ ...eyebrow, letterSpacing: '0.06em' }}>
-              {app.vendedor ? `Catálogo de ${app.vendedor}` : app.config.general.subtitulo}
-            </span>
+    <header style={{ background: T.surface, position: 'sticky', top: 0, zIndex: 20 }}>
+      <div style={{ ...container, paddingBlock: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px 28px' }}>
+        <button type="button" onClick={app.goHome} aria-label="Ir al inicio del catálogo" style={{ ...btn, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/astro/brand/logo-principal.png" alt="ASTRO" width={150} height={29} style={{ display: 'block' }} />
+          <span style={{ ...eyebrow, letterSpacing: '0.06em', color: T.muted }}>
+            {app.vendedor ? `Catálogo de ${app.vendedor}` : app.config.general.subtitulo}
           </span>
         </button>
-
-        <nav aria-label="Secciones" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <button type="button" onClick={app.goHome} style={navBtn(app.view === 'home')} aria-current={app.view === 'home' ? 'page' : undefined}>
-            Inicio
-          </button>
-          <button
-            type="button"
-            onClick={() => app.goCategory('all')}
-            style={navBtn(app.view === 'category')}
-            aria-current={app.view === 'category' ? 'page' : undefined}
-          >
-            Todo el catálogo
-          </button>
-          <button type="button" onClick={app.goOffers} style={navBtn(false)}>
-            <Icon name="bolt" size={16} fill="#E3B341" /> Ofertas
-          </button>
-        </nav>
 
         <SearchBox app={app} />
 
@@ -238,17 +231,17 @@ export function Header({ app }: { app: AppCatalogo }) {
               type="button"
               onClick={() => app.setOverlay({ type: 'news' })}
               aria-label={`Novedades, ${nNovedades} sin leer`}
-              style={{ ...btn, position: 'relative', width: 46, height: 46, borderRadius: 14, border: `1px solid ${T.border}`, background: T.surface, color: T.text }}
+              style={{ ...btn, position: 'relative', width: 46, height: 46, borderRadius: 23, border: '2px solid #000', background: T.surface, color: '#000' }}
             >
-              <Icon name="bell" size={22} stroke={1.8} />
-              <CountBubble value={nNovedades} bg={T.heart} color="#fff" style={{ top: -5, right: -5, minWidth: 20, height: 20 }} />
+              <Icon name="bell" size={20} stroke={2} />
+              <CountBubble value={nNovedades} bg={T.primary} color="#000" style={{ top: -5, right: -5, minWidth: 20, height: 20 }} />
             </button>
           )}
           {app.puedeLink && (
             <button
               type="button"
               onClick={() => app.openLink()}
-              style={{ ...btn, height: 46, padding: '0 16px', gap: 8, borderRadius: 14, background: T.navy, color: '#fff', fontSize: 14, fontWeight: 800 }}
+              style={{ ...btn, height: 46, padding: '0 18px', gap: 8, borderRadius: 999, background: '#000', color: '#fff', fontSize: 13, fontWeight: 800 }}
             >
               <Icon name="link" size={18} /> Generar link
             </button>
@@ -257,39 +250,56 @@ export function Header({ app }: { app: AppCatalogo }) {
             type="button"
             onClick={() => app.setOverlay({ type: 'cart' })}
             aria-label={`Abrir carrito, ${app.cartCount} piezas`}
-            style={{ ...btn, position: 'relative', height: 46, padding: '0 14px', gap: 8, borderRadius: 14, background: T.primary, color: '#fff', fontSize: 14, fontWeight: 800 }}
+            style={{ ...btn, position: 'relative', height: 46, padding: '0 18px', gap: 10, borderRadius: 999, background: T.primary, color: '#000', fontSize: 14, fontWeight: 900 }}
           >
-            <Icon name="cart" size={20} /> {quetzal(app.cartTotal)}
-            {app.cartCount > 0 && <CountBubble value={app.cartCount} />}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/astro/brand/isotipo-negro.png" alt="" width={24} height={19} /> {quetzal(app.cartTotal)}
+            {app.cartCount > 0 && <CountBubble value={app.cartCount} bg="#000" color={T.primary} />}
           </button>
         </div>
       </div>
 
-      <div style={{ background: T.band, borderTop: `1px solid ${T.border}` }}>
-        <div style={{ ...container, paddingBlock: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 16px' }}>
+      <div style={{ background: '#000', color: '#fff' }}>
+        <div style={{ ...container, paddingBlock: 9, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 14px' }}>
+          <nav aria-label="Secciones" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <button type="button" onClick={app.goHome} style={pildora(app.view === 'home')} aria-current={app.view === 'home' ? 'page' : undefined}>
+              Inicio
+            </button>
+            <button
+              type="button"
+              onClick={() => app.goCategory('all')}
+              style={pildora(app.view === 'category')}
+              aria-current={app.view === 'category' ? 'page' : undefined}
+            >
+              Todo el catálogo
+            </button>
+            <button type="button" onClick={app.goOffers} style={pildora(false)}>
+              Rebajas
+            </button>
+          </nav>
           {app.contexto === 'backoffice' ? (
             <>
               {app.mayorista ? (
                 <span
                   style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 999,
-                    background: T.navy, color: '#fff', fontSize: 13, fontWeight: 800,
+                    display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: 999,
+                    background: T.primary, color: '#000', fontSize: 12, fontWeight: 800,
                   }}
                 >
-                  <Icon name="tag" size={16} /> Precio mayorista · {app.mayorista.politica}
+                  <Icon name="tag" size={15} /> Precio mayorista · {app.mayorista.politica}
                 </span>
               ) : (
                 <ModeToggle mode={app.mode} setMode={app.setMode} />
               )}
-              <span style={{ fontSize: 13, fontWeight: 600, color: T.textSoft }}>{textoModo(app)}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#BDBDBD' }}>{textoModo(app)}</span>
             </>
           ) : (
-            <span style={{ fontSize: 13, fontWeight: 600, color: T.textSoft }}>
-              Agrega piezas a tu carrito; se reservan por unos minutos mientras completas tu compra.
+            <span style={{ fontSize: 12, fontWeight: 500, color: '#BDBDBD' }}>
+              Agrega productos a tu carrito; se reservan por unos minutos mientras completas tu compra.
             </span>
           )}
-          <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: T.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 4, background: T.live }} /> Inventario en tiempo real · precios en quetzales
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#BDBDBD', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: T.primary }} /> Inventario en tiempo real · precios en quetzales
           </span>
         </div>
       </div>
@@ -304,7 +314,7 @@ export function Footer({ app }: { app: AppCatalogo }) {
       <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff' }}>{title}</span>
       {items.map((t) =>
         t.onClick ? (
-          <button key={t.texto} type="button" onClick={t.onClick} style={{ ...btn, justifyContent: 'flex-start', fontSize: 14, color: '#C9D6F2' }}>
+          <button key={t.texto} type="button" onClick={t.onClick} style={{ ...btn, justifyContent: 'flex-start', fontSize: 14, color: '#BDBDBD' }}>
             {t.texto}
           </button>
         ) : (
@@ -315,10 +325,11 @@ export function Footer({ app }: { app: AppCatalogo }) {
   )
   const contacto = [pie.telefono, pie.correo, pie.direccion].filter(Boolean).map((texto) => ({ texto }))
   return (
-    <footer style={{ marginTop: 56, background: T.navyDeep, color: '#C9D6F2' }}>
+    <footer style={{ marginTop: 56, background: T.navyDeep, color: '#BDBDBD' }}>
       <div style={{ ...container, paddingBlock: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 28 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{general.marca}</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/astro/brand/logo-naranja.png" alt={general.marca} width={130} height={25} style={{ display: 'block' }} />
           <span style={{ fontSize: 14, lineHeight: 1.55 }}>{pie.descripcion}</span>
         </div>
         {col('Catálogo', [

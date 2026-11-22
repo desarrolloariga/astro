@@ -237,11 +237,11 @@ export function Toast({ text, error = false, action }: { text: string; error?: b
       style={{
         position: 'fixed', left: '50%', bottom: 'calc(28px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 80,
         display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderRadius: 999, background: T.ink, color: '#fff',
-        boxShadow: '0 14px 34px rgba(20,33,61,0.25)', width: 'max-content', maxWidth: 'calc(100% - 32px)', fontSize: 14, fontWeight: 500,
+        boxShadow: '0 14px 34px rgba(0,0,0,0.25)', width: 'max-content', maxWidth: 'calc(100% - 32px)', fontSize: 14, fontWeight: 500,
         animation: 'pd-up .22s ease-out',
       }}
     >
-      <Icon name={error ? 'close' : 'check'} size={16} stroke={2.6} color={error ? '#FCA5A5' : '#6EE7B7'} /> {text}
+      <Icon name={error ? 'close' : 'check'} size={16} stroke={2.6} color={error ? '#FCA5A5' : '#F6A637'} /> {text}
       {action}
     </div>
   )

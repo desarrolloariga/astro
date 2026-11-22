@@ -4,7 +4,7 @@ import { ImagenProducto } from '@/components/app/imagen-producto'
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { NombreIcono } from '@/lib/catalogo-web/tipos'
 import { Icon } from './icono'
-import { T, btn, h2 } from './tokens'
+import { T, astroIcon, btn, h2, iconoCategoria } from './tokens'
 
 export function Badge({ children, tone = 'navy' }: { children: ReactNode; tone?: 'navy' | 'gold' | 'gray' }) {
   const tones = {
@@ -12,7 +12,7 @@ export function Badge({ children, tone = 'navy' }: { children: ReactNode; tone?:
     gold: { background: T.gold, color: T.navyDeep },
     gray: { background: T.muted, color: '#fff' },
   }
-  return <span style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 800, ...tones[tone] }}>{children}</span>
+  return <span style={{ padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 800, lineHeight: 1, ...tones[tone] }}>{children}</span>
 }
 
 export function CountBubble({
@@ -75,8 +75,8 @@ export function OptionChip({ active, onClick, children, height = 38 }: { active:
       onClick={onClick}
       aria-pressed={active}
       style={{
-        ...btn, height, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-        border: `1px solid ${active ? T.navy : T.borderStrong}`, background: active ? T.navy : T.surface, color: active ? '#fff' : T.text,
+        ...btn, height, padding: '0 14px', borderRadius: 999, fontSize: 13, fontWeight: 700,
+        border: `1.5px solid ${active ? T.primary : '#000'}`, background: active ? T.primary : T.surface, color: '#000',
       }}
     >
       {children}
@@ -94,10 +94,10 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       onClick={() => onChange(!checked)}
       style={{
         ...btn, width: 52, height: 30, borderRadius: 15, padding: 3, boxSizing: 'border-box',
-        background: checked ? T.primary : '#B8C3D6', justifyContent: checked ? 'flex-end' : 'flex-start', transition: 'background .15s',
+        background: checked ? T.primary : '#D4D4D4', justifyContent: checked ? 'flex-end' : 'flex-start', transition: 'background .15s',
       }}
     >
-      <span style={{ width: 24, height: 24, borderRadius: 12, background: '#fff', boxShadow: '0 1px 3px rgba(10,30,68,0.3)' }} />
+      <span style={{ width: 24, height: 24, borderRadius: 12, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
     </button>
   )
 }
@@ -178,7 +178,7 @@ export function circulosDe(color: string): string[] {
   const hex = color.replace('#', '')
   const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex.slice(0, 6)
   const n = parseInt(full, 16)
-  if (!Number.isFinite(n)) return ['#163676', '#1E4FD8', '#4F7BEA']
+  if (!Number.isFinite(n)) return ['#000000', '#F6A637', '#F6A637']
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
   const mezcla = (t: number) =>
     '#' + [r, g, b].map((c) => Math.round(c + (255 - c) * t).toString(16).padStart(2, '0')).join('')
@@ -194,6 +194,7 @@ export function Foto({
   sizes = '320px',
   bg = T.primarySoft,
   calidad = 'miniatura',
+  categoria,
 }: {
   src: string | null | undefined
   alt: string
@@ -203,7 +204,17 @@ export function Foto({
   bg?: string
   /** Las tarjetas usan la miniatura de 480 px; la vista rápida, la foto completa. */
   calidad?: 'miniatura' | 'completa'
+  /** Sin foto: ícono oficial ASTRO de la categoría en blanco sobre negro (manual de marca). */
+  categoria?: string
 }) {
+  if (!src && categoria) {
+    return (
+      <span style={{ position: 'absolute', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={astroIcon(iconoCategoria(categoria), 'blanco')} alt="" style={{ width: '30%', height: 'auto', opacity: 0.9 }} />
+      </span>
+    )
+  }
   if (!src) {
     return (
       <span style={{ position: 'absolute', inset: 0, background: bg, color: T.iconBlue, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -230,7 +241,7 @@ export function SectionHeader({ id, title, subtitle, action }: { id: string; tit
 
 export function LinkAction({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ ...btn, height: 40, gap: 6, color: T.primary, fontSize: 14, fontWeight: 800 }}>
+    <button type="button" onClick={onClick} style={{ ...btn, height: 40, gap: 6, color: T.text, fontSize: 14, fontWeight: 800 }}>
       {children} <Icon name="arrowRight" size={18} stroke={2.2} />
     </button>
   )
@@ -312,7 +323,7 @@ export function Modal({
           drawer
             ? {
                 position: 'relative', width: 440, maxWidth: '100%', height: '100%', background: T.surface, display: 'flex', flexDirection: 'column',
-                boxShadow: '-20px 0 60px rgba(10,30,68,0.25)', animation: 'cw-slide .28s cubic-bezier(.2,.8,.2,1)', outline: 'none',
+                boxShadow: '-20px 0 60px rgba(0,0,0,0.25)', animation: 'cw-slide .28s cubic-bezier(.2,.8,.2,1)', outline: 'none',
               }
             : {
                 position: 'relative', width: '100%', maxWidth, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', background: T.surface,
@@ -333,7 +344,7 @@ export function Toast({ text, error = false, onAction }: { text: string; error?:
       style={{
         position: 'fixed', left: '50%', bottom: 'calc(28px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 80,
         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 10px 10px 14px', borderRadius: 16, background: T.navyDeep,
-        color: '#fff', boxShadow: '0 18px 40px rgba(10,30,68,0.35)', width: 'max-content', maxWidth: 'calc(100% - 32px)',
+        color: '#fff', boxShadow: '0 18px 40px rgba(0,0,0,0.35)', width: 'max-content', maxWidth: 'calc(100% - 32px)',
         animation: 'cw-up .25s ease-out',
       }}
     >

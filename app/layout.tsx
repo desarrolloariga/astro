@@ -1,12 +1,14 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import { PwaRegister } from '@/components/pwa-register'
 import './globals.css'
 
-const inter = Inter({
+const fuenteMarca = Outfit({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-marca',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -30,10 +32,6 @@ export const metadata: Metadata = {
         url: '/icon-dark-32x32.png',
         media: '(prefers-color-scheme: dark)',
       },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
     ],
     apple: '/apple-icon.png',
   },
@@ -41,7 +39,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: 'light',
-  themeColor: '#001B59',
+  themeColor: '#F6A637',
   width: 'device-width',
   initialScale: 1,
   // Ocupa toda la pantalla del iPhone; las barras usan env(safe-area-inset-*)
@@ -55,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`light ${inter.variable} bg-background`}>
+    <html lang="es" className={`light ${fuenteMarca.variable} bg-background`}>
       <body className="antialiased font-sans">
         {children}
         <PwaRegister />

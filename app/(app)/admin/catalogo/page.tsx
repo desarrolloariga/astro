@@ -150,7 +150,7 @@ function Vista({ fila, banner }: { fila: Fila; banner: boolean }) {
   return (
     <div
       className="relative flex h-24 w-44 shrink-0 flex-col justify-end overflow-hidden rounded-lg p-2.5 text-white"
-      style={{ background: s(fila.color_fondo) || '#0F2A5C' }}
+      style={{ background: s(fila.color_fondo) || '#000000' }}
     >
       {s(fila.imagen_url) && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -159,7 +159,7 @@ function Vista({ fila, banner }: { fila: Fila; banner: boolean }) {
       {s(fila.etiqueta) && (
         <span
           className="relative mb-1 w-fit rounded-full px-1.5 py-0.5 text-[8px] font-extrabold uppercase"
-          style={{ background: banner ? s(fila.color_etiqueta) || '#F2D58A' : '#F6E9C4', color: '#0A1E44' }}
+          style={{ background: banner ? s(fila.color_etiqueta) || '#F6A637' : '#FFE6C2', color: '#000000' }}
         >
           {s(fila.etiqueta)}
         </span>
@@ -193,12 +193,12 @@ function FormularioPieza({ seccion, fila, categorias }: { seccion: 'banners' | '
       <CampoImagen actual={s(fila?.imagen_url) || null} recomendado={banner ? 'recomendado 1600×560 px' : 'recomendado 900×900 px'} />
       <div className="flex flex-wrap gap-4">
         <label className={cn(etiqueta, 'flex-row items-center gap-2')}>
-          <input name="color_fondo" type="color" defaultValue={s(fila?.color_fondo) || '#0F2A5C'} className="h-9 w-12 cursor-pointer rounded border border-input" />
+          <input name="color_fondo" type="color" defaultValue={s(fila?.color_fondo) || '#000000'} className="h-9 w-12 cursor-pointer rounded border border-input" />
           Color de fondo
         </label>
         {banner && (
           <label className={cn(etiqueta, 'flex-row items-center gap-2')}>
-            <input name="color_etiqueta" type="color" defaultValue={s(fila?.color_etiqueta) || '#F2D58A'} className="h-9 w-12 cursor-pointer rounded border border-input" />
+            <input name="color_etiqueta" type="color" defaultValue={s(fila?.color_etiqueta) || '#F6A637'} className="h-9 w-12 cursor-pointer rounded border border-input" />
             Color de la etiqueta
           </label>
         )}
@@ -378,11 +378,11 @@ function SeccionBloques({ config, categorias }: { config: Map<string, unknown>; 
                 <CamposCta fila={p} categorias={categorias} prefijo={`p${i}_`} />
                 <div className="flex flex-wrap items-end gap-4">
                   <label className={cn(etiqueta, 'flex-row items-center gap-2')}>
-                    <input name={`p${i}_color_fondo`} type="color" defaultValue={p?.color_fondo ?? '#DCE6FA'} className="h-9 w-12 rounded border border-input" />
+                    <input name={`p${i}_color_fondo`} type="color" defaultValue={p?.color_fondo ?? '#FFF4E3'} className="h-9 w-12 rounded border border-input" />
                     Fondo
                   </label>
                   <label className={cn(etiqueta, 'flex-row items-center gap-2')}>
-                    <input name={`p${i}_color_boton`} type="color" defaultValue={p?.color_boton ?? '#1E4FD8'} className="h-9 w-12 rounded border border-input" />
+                    <input name={`p${i}_color_boton`} type="color" defaultValue={p?.color_boton ?? '#000000'} className="h-9 w-12 rounded border border-input" />
                     Botón
                   </label>
                   <label className={etiqueta}>
@@ -598,7 +598,7 @@ function SeccionCategorias({ categorias }: { categorias: CategoriaFila[] }) {
             <div className="flex items-center gap-3">
               <span
                 className="relative flex h-16 w-16 shrink-0 items-end overflow-hidden rounded-lg"
-                style={{ background: c.color_catalogo || '#DCE6FA' }}
+                style={{ background: c.color_catalogo || '#FFF4E3' }}
               >
                 {c.imagen_catalogo && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -613,7 +613,7 @@ function SeccionCategorias({ categorias }: { categorias: CategoriaFila[] }) {
             <CampoImagen actual={c.imagen_catalogo} recomendado="recomendado 600×600 px" />
             <div className="flex flex-wrap items-center gap-4">
               <label className={cn(etiqueta, 'flex-row items-center gap-2')}>
-                <input name="color" type="color" defaultValue={c.color_catalogo || '#DCE6FA'} className="h-9 w-12 rounded border border-input" />
+                <input name="color" type="color" defaultValue={c.color_catalogo || '#FFF4E3'} className="h-9 w-12 rounded border border-input" />
                 Color de fondo
               </label>
               <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">

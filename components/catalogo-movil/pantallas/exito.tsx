@@ -36,7 +36,7 @@ export function SuccessScreen() {
             height: 76,
             borderRadius: 38,
             background: T.primary,
-            color: '#fff',
+            color: '#000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -57,7 +57,7 @@ export function SuccessScreen() {
         <button
           type="button"
           onClick={() => app.tab('home')}
-          style={{ ...btn, height: 54, borderRadius: 16, background: T.primary, color: '#fff', fontSize: 15, fontWeight: 800 }}
+          style={{ ...btn, height: 54, borderRadius: 16, background: T.primary, color: '#000', fontSize: 15, fontWeight: 800 }}
         >
           Seguir comprando
         </button>

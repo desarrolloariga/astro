@@ -6,7 +6,7 @@ import { FILTROS_VACIOS, type AppCatalogo } from './app-tipo'
 import { OptionChip, Switch } from './basicos'
 import { Icon } from './icono'
 import { ProductGrid } from './producto'
-import { PAGE_SIZE, SORTS, T, btn, container, discount, eyebrow, matchesQuery, piezas, quetzal, type Sort } from './tokens'
+import { PAGE_SIZE, SORTS, T, astroIcon, btn, container, discount, eyebrow, iconoCategoria, matchesQuery, piezas, quetzal, type Sort } from './tokens'
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -34,7 +34,7 @@ function FiltersSidebar({ app }: { app: AppCatalogo }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 17, fontWeight: 800 }}>Filtros</span>
-        <button type="button" onClick={app.clearFilters} style={{ ...btn, height: 32, color: T.primary, fontSize: 13, fontWeight: 800 }}>
+        <button type="button" onClick={app.clearFilters} style={{ ...btn, height: 32, color: T.text, fontSize: 13, fontWeight: 800 }}>
           Limpiar
         </button>
       </div>
@@ -125,7 +125,7 @@ function FiltersSidebar({ app }: { app: AppCatalogo }) {
       {app.contexto === 'backoffice' && app.conPrecioEmbajador && !app.mayorista && app.mode === 'mi' && (
         <div style={{ borderRadius: 16, background: T.goldSoft, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: T.navyDeep }}>¿Buscas algo para un cliente?</span>
-          <span style={{ fontSize: 13, color: '#4A3A10', lineHeight: 1.45 }}>
+          <span style={{ fontSize: 13, color: '#000000', lineHeight: 1.45 }}>
             Cambia a “Para un cliente” y verás el precio público y tu ganancia por pieza.
           </span>
           <button
@@ -145,7 +145,6 @@ export function CategoryView({ app }: { app: AppCatalogo }) {
   const { cat, filters, sort, setSort, cols, setCols, visible, setVisible, query, setQuery } = app
   const catInfo = app.categorias.find((c) => c.id === cat)
   const titulo = catInfo?.nombre ?? 'Todo el catálogo'
-  const icono: NombreIcono = catInfo?.icono ?? 'sparkle'
   const total = cat === 'all' ? app.productos.length : (catInfo?.total ?? 0)
 
   const filtered = useMemo(() => {
@@ -212,27 +211,40 @@ export function CategoryView({ app }: { app: AppCatalogo }) {
         )}
       </nav>
 
-      <div
-        style={{
-          borderRadius: 24, background: T.navy, color: '#fff', padding: '28px 32px', display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-          justifyContent: 'space-between', gap: 20, position: 'relative', overflow: 'hidden',
-        }}
-      >
-        <Icon name={icono} size={260} stroke={0.7} color="#25468A" style={{ position: 'absolute', right: 40, top: -40 }} />
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: '-0.02em' }}>{titulo}</h1>
-          <span style={{ fontSize: 15, color: '#C9D6F2' }}>{piezas(total)} · disponibles en tiempo real en toda la red</span>
+      <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span style={{ width: 68, height: 68, borderRadius: 34, background: T.primary, display: 'grid', placeItems: 'center', flex: 'none' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={astroIcon(catInfo ? iconoCategoria(catInfo.nombre) : 'estrella', 'negro')} alt="" width={34} height={34} />
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <h1 style={{ margin: 0, fontSize: 'clamp(30px, 3.4vw, 46px)', fontWeight: 950, lineHeight: 1.05 }}>
+              {query.trim() ? (
+                <>
+                  Resultados para <span style={{ color: T.primary }}>“{query.trim()}”</span>
+                </>
+              ) : catInfo ? (
+                titulo
+              ) : (
+                <>
+                  Todo el <span style={{ color: T.primary }}>catálogo</span>
+                </>
+              )}
+            </h1>
+            <span style={{ fontSize: 15 }}>{piezas(total)} · disponibles en tiempo real en toda la red</span>
+          </div>
         </div>
         {app.puedeLink && (
           <button
             type="button"
             onClick={() => app.openLink(cat === 'all' ? 'all' : 'cat', cat)}
-            style={{ ...btn, position: 'relative', height: 46, padding: '0 18px', gap: 8, borderRadius: 14, background: '#fff', color: T.navyDeep, fontSize: 14, fontWeight: 800 }}
+            className="cw-astro-btn cw-astro-btn--ghost"
+            style={{ height: 44, padding: '0 20px', fontSize: 12 }}
           >
-            <Icon name="link" size={18} /> {cat === 'all' ? 'Compartir el catálogo' : 'Compartir esta categoría'}
+            <Icon name="link" size={16} /> {cat === 'all' ? 'Compartir el catálogo' : 'Compartir esta categoría'}
           </button>
         )}
-      </div>
+      </header>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
         <FiltersSidebar app={app} />
@@ -297,7 +309,7 @@ export function CategoryView({ app }: { app: AppCatalogo }) {
             </div>
           )}
 
-          <ProductGrid products={shown} app={app} minCol={cols === 3 ? 260 : 200} />
+          <ProductGrid products={shown} app={app} minCol={cols === 3 ? 270 : 230} />
 
           {filtered.length === 0 && (
             <div
@@ -314,7 +326,7 @@ export function CategoryView({ app }: { app: AppCatalogo }) {
                   app.setFilters(FILTROS_VACIOS)
                   setQuery('')
                 }}
-                style={{ ...btn, marginTop: 6, height: 44, padding: '0 18px', borderRadius: 12, background: T.primary, color: '#fff', fontSize: 14, fontWeight: 800 }}
+                style={{ ...btn, marginTop: 6, height: 44, padding: '0 18px', borderRadius: 12, background: T.primary, color: '#000', fontSize: 14, fontWeight: 800 }}
               >
                 Limpiar filtros
               </button>

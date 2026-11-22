@@ -83,7 +83,7 @@ export function PopupNovedades() {
         </div>
 
         <div className="cat-noscroll" style={{ padding: '18px 20px calc(20px + env(safe-area-inset-bottom, 0px))', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.primary }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.text }}>
             Novedades · {i + 1} de {n}
           </span>
           {item.etiqueta && (
@@ -100,7 +100,7 @@ export function PopupNovedades() {
                 closeNews()
                 app.runCta(item.cta)
               }}
-              style={{ ...btn, height: 48, borderRadius: 14, background: T.primary, color: '#fff', fontSize: 15, fontWeight: 800, gap: 6 }}
+              style={{ ...btn, height: 48, borderRadius: 14, background: T.primary, color: '#000', fontSize: 15, fontWeight: 800, gap: 6 }}
             >
               {item.cta.texto}
               <Icon name="chevronRight" size={16} stroke={2.4} />

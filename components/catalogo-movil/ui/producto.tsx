@@ -5,6 +5,7 @@ import { miniaturaDe } from '@/lib/imagenes'
 import { formatearPrecio } from '@/lib/formato'
 import type { Producto } from '@/lib/catalogo-movil/tipos'
 import { Icon } from '../iconos'
+import { astroIcon, iconoCategoria } from '@/components/catalogo-web/tokens'
 import { T, btn, card } from '../tokens'
 import { useCatalogo } from '../store'
 
@@ -22,6 +23,7 @@ export function ProductThumb({
   onClick,
   label,
   square = false,
+  categoria,
 }: {
   src: string | null | undefined
   alt?: string
@@ -34,6 +36,8 @@ export function ProductThumb({
   label?: string
   /** Cuadrada según el ancho disponible (rejilla de 3 columnas). */
   square?: boolean
+  /** Sin foto: ícono oficial de la categoría en blanco sobre negro (manual de marca). */
+  categoria?: string | null
 }) {
   const style: CSSProperties = {
     ...btn,
@@ -41,8 +45,8 @@ export function ProductThumb({
     height: square ? 'auto' : (height ?? width),
     aspectRatio: square ? '1 / 1' : undefined,
     borderRadius: radius,
-    background: T.primarySoft,
-    color: T.primary,
+    background: src ? T.primarySoft : '#111',
+    color: T.text,
     flex: 'none',
     overflow: 'hidden',
   }
@@ -58,7 +62,8 @@ export function ProductThumb({
       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
     />
   ) : (
-    <Icon name="gem" size={iconSize} stroke={stroke} />
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={astroIcon(iconoCategoria(categoria), 'blanco')} alt="" style={{ width: Math.max(iconSize * 0.6, 22), height: 'auto', opacity: 0.9 }} />
   )
   return onClick ? (
     <button type="button" onClick={onClick} aria-label={label ?? 'Ver producto'} style={style}>
@@ -107,7 +112,7 @@ export function AddButton({ product, size = 40, radius = 12 }: { product: Produc
         type="button"
         onClick={() => app.go('cart')}
         aria-label={`${product.nombre} ya está en tu carrito`}
-        style={{ ...btn, flex: 'none', width: size, height: size, borderRadius: radius, background: T.primarySoft, color: T.primary }}
+        style={{ ...btn, flex: 'none', width: size, height: size, borderRadius: radius, background: T.primarySoft, color: T.text }}
       >
         <Icon name="check" size={20} stroke={2.6} />
       </button>
@@ -126,7 +131,7 @@ export function AddButton({ product, size = 40, radius = 12 }: { product: Produc
         height: size,
         borderRadius: radius,
         background: out ? T.disabledBg : T.primary,
-        color: out ? T.disabledFg : '#fff',
+        color: out ? T.disabledFg : '#000',
       }}
     >
       <Icon name="plus" size={20} stroke={2.4} />
@@ -152,8 +157,8 @@ function BadgeAgotado() {
         position: 'absolute',
         top: 10,
         left: 10,
-        padding: '4px 8px',
-        borderRadius: 8,
+        padding: '5px 9px',
+        borderRadius: 999,
         background: T.navy,
         color: '#fff',
         fontSize: 11,
@@ -173,7 +178,8 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
     <div
       style={{
         ...card,
-        borderRadius: compact ? 16 : 20,
+        borderRadius: 16,
+        boxShadow: '0 2px 14px rgba(0,0,0,0.07)',
         padding: compact ? '6px 6px 8px' : '8px 8px 12px',
         display: 'flex',
         flexDirection: 'column',
@@ -188,7 +194,8 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
           height={compact ? undefined : 128}
           square={compact}
           iconSize={compact ? 40 : 62}
-          radius={compact ? 12 : 14}
+          radius={compact ? 10 : 12}
+          categoria={product.categoria}
           onClick={() => app.openDetail(product.id)}
           label={`Ver ${product.nombre}`}
         />
@@ -200,7 +207,7 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
           style={{ position: 'absolute', top: compact ? 4 : 6, right: compact ? 4 : 6 }}
         />
         {product.nuevo && compact && product.disponible && (
-          <span style={{ position: 'absolute', top: 6, left: 6, padding: '2px 6px', borderRadius: 6, background: T.primary, color: '#fff', fontSize: 9, fontWeight: 800 }}>
+          <span style={{ position: 'absolute', top: 6, left: 6, padding: '3px 7px', borderRadius: 999, background: T.primary, color: '#000', fontSize: 9, fontWeight: 800 }}>
             Nuevo
           </span>
         )}
@@ -222,9 +229,9 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
       >
         <span
           style={{
-            fontSize: compact ? 12 : 14,
-            fontWeight: 700,
-            lineHeight: 1.25,
+            fontSize: compact ? 12 : 15,
+            fontWeight: compact ? 800 : 900,
+            lineHeight: 1.2,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -239,8 +246,8 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: compact ? '0 2px' : '0 4px' }}>
         <span
           style={{
-            fontSize: compact ? (product.precio >= 10000 ? 11 : 12) : 16,
-            fontWeight: 800,
+            fontSize: compact ? (product.precio >= 10000 ? 11 : 12) : 17,
+            fontWeight: 900,
             minWidth: 0,
             whiteSpace: 'nowrap',
             letterSpacing: compact ? '-0.01em' : undefined,
@@ -248,7 +255,7 @@ export function ProductCard({ product, compact = false }: { product: Producto; c
         >
           {money(product.precio)}
         </span>
-        <AddButton product={product} size={compact ? 26 : 40} radius={compact ? 9 : 12} />
+        <AddButton product={product} size={compact ? 26 : 40} radius={compact ? 13 : 20} />
       </div>
     </div>
   )
@@ -276,7 +283,7 @@ export function ProductRow({ product }: { product: Producto }) {
         <MetaLine product={product} extra={product.disponible ? 'Disponible' : 'Agotado'} />
         <span style={{ fontSize: 16, fontWeight: 800 }}>{money(product.precio)}</span>
       </button>
-      <AddButton product={product} size={44} radius={14} />
+      <AddButton product={product} size={44} radius={22} />
     </div>
   )
 }

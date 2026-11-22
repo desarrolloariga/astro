@@ -3,29 +3,29 @@ import type { CSSProperties } from 'react'
 /** Tokens del diseño aprobado (ProductoDetalle.jsx). Valores exactos. */
 export const T = {
   bg: '#FFFFFF',
-  soft: '#F5F7FA',
-  ink: '#14213D',
-  body: '#3C4A66',
-  muted: '#64708A',
-  faint: '#8A94A8',
-  line: '#EDF0F5',
-  lineSoft: '#F0F2F6',
-  input: '#E2E7EF',
-  btnLine: '#D5DCE8',
-  radioOff: '#C7CFDC',
-  blue: '#2453D6',
-  blueSoft: '#EEF3FD',
-  navy: '#102A5C',
-  gold: '#F2D58A',
-  amber: '#C98A0B',
-  green: '#157A52',
-  greenLive: '#22A06B',
-  greenSoft: '#F3F8F5',
+  soft: '#F7F7F7',
+  ink: '#000000',
+  body: '#1A1A1A',
+  muted: '#6B6B6B',
+  faint: '#8A8A8A',
+  line: '#F2F2F2',
+  lineSoft: '#F4F4F4',
+  input: '#EFEFEF',
+  btnLine: '#E2E2E2',
+  radioOff: '#D4D4D4',
+  blue: '#F6A637',
+  blueSoft: '#FFF9F0',
+  navy: '#000000',
+  gold: '#F6A637',
+  amber: '#F6A637',
+  green: '#000000',
+  greenLive: '#000000',
+  greenSoft: '#F7F7F7',
   danger: '#B42318',
   heart: '#E04848',
-  iconBlue: '#3A5BA8',
-  tints: ['#EEF2FA', '#F1F4FA', '#ECF1F9', '#F4F6FA'],
-  overlay: 'rgba(20,33,61,0.40)',
+  iconBlue: '#000000',
+  tints: ['#F2F2F2', '#F4F4F4', '#F2F2F2', '#F7F7F7'],
+  overlay: 'rgba(0,0,0,0.40)',
   maxW: 1240,
 } as const
 
@@ -114,7 +114,7 @@ export const h2: CSSProperties = { margin: 0, fontSize: 22, fontWeight: 700, let
 
 export const GLOBAL_CSS = `
 .pd button:disabled{cursor:not-allowed}
-.pd button:focus-visible,.pd input:focus-visible,.pd select:focus-visible,.pd a:focus-visible{outline:3px solid #9DB5F0;outline-offset:2px}
+.pd button:focus-visible,.pd input:focus-visible,.pd select:focus-visible,.pd a:focus-visible{outline:3px solid #BDBDBD;outline-offset:2px}
 .pd input[type=search]::-webkit-search-cancel-button{display:none}
 .pd-rel-img{transition:transform .25s ease}
 .pd-rel:hover .pd-rel-img{transform:translateY(-3px)}

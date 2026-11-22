@@ -6,9 +6,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BannerWeb, CtaTipo, NombreIcono, PromoLateral } from '@/lib/catalogo-web/tipos'
 import type { AppCatalogo } from './app-tipo'
 import { ArtPlaceholder, LinkAction, SectionHeader, circulosDe } from './basicos'
+import { Orbitas } from '@/components/marca/orbitas'
 import { Icon } from './icono'
 import { ProductCard, ProductGrid } from './producto'
-import { HERO_INTERVAL_MS, OFFER_CARD_W, OFFER_GAP, T, btn, container, eyebrow, h2, pad, piezas } from './tokens'
+import { HERO_INTERVAL_MS, OFFER_CARD_W, OFFER_GAP, T, astroIcon, btn, container, eyebrow, h2, iconoCategoria, pad, piezas } from './tokens'
 
 export function iconoCta(tipo: CtaTipo): NombreIcono {
   if (tipo === 'ofertas') return 'tag'
@@ -34,7 +35,7 @@ function HeroCarousel({ app, banners }: { app: AppCatalogo; banners: BannerWeb[]
       onBlur={() => setPaused(false)}
       aria-roledescription="carrusel"
       aria-label="Promociones"
-      style={{ flex: '999 1 640px', minWidth: 0, position: 'relative', borderRadius: 28, overflow: 'hidden', background: T.navy }}
+      style={{ flex: '999 1 640px', minWidth: 0, position: 'relative', borderRadius: 20, overflow: 'hidden', background: T.navy }}
     >
       <div style={{ display: 'flex', transition: 'transform .6s cubic-bezier(.2,.8,.2,1)', transform: `translateX(-${i * 100}%)` }}>
         {banners.map((sl, k) => {
@@ -45,8 +46,9 @@ function HeroCarousel({ app, banners }: { app: AppCatalogo; banners: BannerWeb[]
               aria-roledescription="diapositiva"
               aria-label={`${k + 1} de ${n}`}
               aria-hidden={!activo}
-              style={{ flex: 'none', width: '100%', minHeight: 440, background: sl.colorFondo, color: '#fff', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}
+              style={{ flex: 'none', width: '100%', minHeight: 440, background: sl.colorFondo, color: '#fff', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', position: 'relative', overflow: 'hidden' }}
             >
+              <Orbitas className="cw-hero-orbitas" tamano={520} color={T.primary} />
               <div
                 className="cw-hero-copy"
                 style={{ flex: '1 1 320px', padding: '48px 48px 72px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, boxSizing: 'border-box' }}
@@ -61,17 +63,17 @@ function HeroCarousel({ app, banners }: { app: AppCatalogo; banners: BannerWeb[]
                     {sl.etiqueta}
                   </span>
                 )}
-                <h2 className="cw-hero-title" style={{ margin: 0, fontSize: 42, lineHeight: 1.08, fontWeight: 800, letterSpacing: '-0.02em', maxWidth: 440 }}>
+                <h2 className="cw-hero-title" style={{ margin: 0, fontSize: 44, lineHeight: 1.05, fontWeight: 950, letterSpacing: '-0.01em', maxWidth: 460 }}>
                   {sl.titulo}
                 </h2>
-                {sl.texto && <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: '#C9D6F2', maxWidth: 400 }}>{sl.texto}</p>}
+                {sl.texto && <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: '#BDBDBD', maxWidth: 400 }}>{sl.texto}</p>}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
                   {sl.cta.texto && (
                     <button
                       type="button"
                       tabIndex={activo ? 0 : -1}
                       onClick={() => app.runCta(sl.cta)}
-                      style={{ ...btn, height: 50, padding: '0 22px', gap: 8, borderRadius: 14, background: '#fff', color: T.navyDeep, fontSize: 15, fontWeight: 800 }}
+                      style={{ ...btn, height: 48, padding: '0 24px', gap: 8, borderRadius: 999, background: T.primary, color: '#000', fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}
                     >
                       {sl.cta.texto} <Icon name="arrowRight" size={18} stroke={2.4} />
                     </button>
@@ -172,45 +174,42 @@ function SidePromo({ promo, app }: { promo: PromoLateral; app: AppCatalogo }) {
 }
 
 function CategoryGrid({ app }: { app: AppCatalogo }) {
+  // Propuesta 2.2: círculos blancos con el ícono oficial en naranja y el nombre debajo.
   return (
     <section aria-labelledby="h-cats" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <SectionHeader
         id="h-cats"
         title="Compra por categoría"
-        subtitle="Piezas disponibles en tiempo real en toda la red."
+        subtitle="Productos disponibles en tiempo real en toda la red."
         action={<LinkAction onClick={() => app.goCategory('all')}>Ver todo el catálogo</LinkAction>}
       />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(180px, 100%), 1fr))', gap: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '18px 28px' }}>
         {app.categorias.map((c) => (
           <button
             key={c.id}
             type="button"
-            className="cw-tile cw-card"
+            className="cw-tile"
             onClick={() => app.goCategory(c.id)}
-            style={{ ...btn, display: 'block', position: 'relative', height: 240, borderRadius: 22, overflow: 'hidden', background: c.color ?? T.primarySoft, textAlign: 'left', color: '#fff' }}
+            style={{ ...btn, flexDirection: 'column', gap: 10, width: 112, color: '#000' }}
           >
-            {c.imagen ? (
-              <span className="cw-tile-icon" style={{ position: 'absolute', inset: '0 0 64px 0' }}>
-                <ImagenProducto src={c.imagen} alt="" sizes="240px" />
-              </span>
-            ) : (
-              <span style={{ position: 'absolute', top: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', color: T.iconBlue }}>
-                <Icon name={c.icono} size={96} stroke={1} className="cw-tile-icon" />
-              </span>
-            )}
             <span
               style={{
-                position: 'absolute', left: 0, right: 0, bottom: 0, padding: '16px 18px', background: T.navyDeep, display: 'flex',
-                alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                position: 'relative', width: 96, height: 96, borderRadius: 48, overflow: 'hidden', background: '#fff',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'grid', placeItems: 'center',
               }}
             >
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre}</span>
-                <span style={{ ...eyebrow, color: '#AFC3EA' }}>{piezas(c.total)}</span>
-              </span>
-              <span style={{ flex: 'none', width: 32, height: 32, borderRadius: 16, background: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="arrowRight" size={16} stroke={2.4} />
-              </span>
+              {c.imagen ? (
+                <span className="cw-tile-icon" style={{ position: 'absolute', inset: 0 }}>
+                  <ImagenProducto src={c.imagen} alt="" sizes="96px" />
+                </span>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="cw-tile-icon" src={astroIcon(iconoCategoria(c.nombre), 'naranja')} alt="" width={44} height={44} />
+              )}
+            </span>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', maxWidth: '100%' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre}</span>
+              <span style={{ fontSize: 11, color: T.muted }}>{piezas(c.total)}</span>
             </span>
           </button>
         ))}
@@ -298,13 +297,13 @@ function FlashOffers({ app }: { app: AppCatalogo }) {
             <h2 id="h-flash" style={{ ...h2, fontSize: 26 }}>
               {oferta.titulo}
             </h2>
-            <span style={{ fontSize: 14, color: '#C9D6F2' }}>{oferta.subtitulo}</span>
+            <span style={{ fontSize: 14, color: '#BDBDBD' }}>{oferta.subtitulo}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {secs != null && (
             <>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#C9D6F2' }}>Terminan en</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#BDBDBD' }}>Terminan en</span>
               <Countdown seconds={secs} />
             </>
           )}
@@ -431,7 +430,7 @@ export function HomeView({ app }: { app: AppCatalogo }) {
             <div key={b.titulo} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 18, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 18 }}>
               <span
                 style={{
-                  flex: 'none', width: 48, height: 48, borderRadius: 14, background: T.primarySoft, color: T.primary,
+                  flex: 'none', width: 48, height: 48, borderRadius: 14, background: T.primarySoft, color: T.text,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
@@ -453,17 +452,17 @@ export function HomeView({ app }: { app: AppCatalogo }) {
       {app.puedeLink && banda.activa && (
         <section
           style={{
-            borderRadius: 28, background: T.primary, color: '#fff', padding: 36, display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+            borderRadius: 28, background: T.primary, color: '#000', padding: 36, display: 'flex', flexWrap: 'wrap', alignItems: 'center',
             justifyContent: 'space-between', gap: 20, position: 'relative', overflow: 'hidden',
           }}
         >
           <svg width="320" height="320" viewBox="0 0 320 320" aria-hidden="true" style={{ position: 'absolute', right: -60, top: -100 }}>
-            <circle cx="160" cy="160" r="150" fill="#2C5EE6" />
-            <circle cx="160" cy="160" r="96" fill="#3D6DF0" />
+            <circle cx="160" cy="160" r="150" fill="#F6A637" />
+            <circle cx="160" cy="160" r="96" fill="#F6A637" />
           </svg>
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 620 }}>
             <h2 style={h2}>{banda.titulo}</h2>
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: '#DCE6FA' }}>{banda.texto}</p>
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: '#FFE6C2' }}>{banda.texto}</p>
           </div>
           <button
             type="button"

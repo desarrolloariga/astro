@@ -8,7 +8,7 @@ import type { Chip as ChipFiltro } from '../store'
 export function CountBadge({
   value,
   bg = T.primary,
-  color = '#fff',
+  color = '#000',
   ring = T.bg,
   style,
 }: {
@@ -114,7 +114,7 @@ export function FilterButton({ count, onClick }: { count: number; onClick: () =>
       type="button"
       onClick={onClick}
       aria-label="Abrir filtros"
-      style={{ ...btn, position: 'relative', flex: 'none', width: 50, height: 50, borderRadius: 16, background: T.primary, color: '#fff' }}
+      style={{ ...btn, position: 'relative', flex: 'none', width: 50, height: 50, borderRadius: 16, background: T.primary, color: '#000' }}
     >
       <Icon name="sliders" size={22} />
       {count > 0 && <CountBadge value={count} bg={T.navy} />}
@@ -155,7 +155,7 @@ export function Chip({
         fontWeight: 700,
         border: `1px solid ${active ? T.primary : T.border}`,
         background: active ? T.primary : T.surface,
-        color: active ? '#fff' : T.text,
+        color: active ? '#000' : T.text,
         transition: 'background .15s, color .15s',
         ...style,
       }}
@@ -231,7 +231,7 @@ export function EmptyState({
             height: d,
             borderRadius: d / 2,
             background: T.primarySoft,
-            color: T.primary,
+            color: T.text,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -253,7 +253,7 @@ export function EmptyState({
             padding: '0 20px',
             borderRadius: 14,
             background: T.primary,
-            color: '#fff',
+            color: '#000',
             fontSize: 14,
             fontWeight: 800,
           }}

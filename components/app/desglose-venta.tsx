@@ -99,10 +99,10 @@ export function DesgloseVenta({
           <div
             className={cn(
               'rounded-lg px-3 py-2',
-              r.bolsa > 0 ? 'bg-gradient-to-br from-[#0B2E8A] via-[#1D4ED8] to-[#F59E0B] text-white' : 'bg-secondary/60',
+              r.bolsa > 0 ? 'bg-black text-white' : 'bg-secondary/60',
             )}
           >
-            <p className={cn('flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide', r.bolsa > 0 ? 'text-amber-200' : 'text-muted-foreground')}>
+            <p className={cn('flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide', r.bolsa > 0 ? 'text-[#F6A637]' : 'text-muted-foreground')}>
               <Wallet className="h-3 w-3" /> Billetera ASTRO
             </p>
             <p className={cn('text-base font-bold', r.bolsa > 0 ? 'text-white' : 'text-foreground')}>{formatearPrecio(r.bolsa)}</p>

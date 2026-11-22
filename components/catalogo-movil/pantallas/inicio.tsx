@@ -25,23 +25,14 @@ export function HomeScreen() {
       <BarraAnuncios />
       <div style={{ padding: '16px 20px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: T.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Catálogo de {app.info.vendedor}
-            </span>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 28,
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {app.info.titulo}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+            <h1 style={{ margin: 0, lineHeight: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/astro/brand/logo-principal.png" alt={`ASTRO · ${app.info.titulo}`} width={128} height={25} style={{ display: 'block' }} />
             </h1>
+            <span style={{ fontSize: 12, fontWeight: 500, color: T.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {app.info.titulo !== 'Catálogo' ? `${app.info.titulo} · ` : ''}Catálogo de {app.info.vendedor}
+            </span>
           </div>
           <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
           {nNovedades > 0 && (
@@ -137,9 +128,9 @@ export function HomeScreen() {
             }}
           >
             <svg width="220" height="220" viewBox="0 0 220 220" aria-hidden="true" style={{ position: 'absolute', right: -60, top: -50 }}>
-              <circle cx="110" cy="110" r="100" fill="#1D4ED8" />
-              <circle cx="110" cy="110" r="62" fill="#3B82F6" />
-              <circle cx="110" cy="110" r="28" fill="#93C5FD" />
+              <circle cx="110" cy="110" r="100" fill="#F6A637" />
+              <circle cx="110" cy="110" r="62" fill="#F6A637" />
+              <circle cx="110" cy="110" r="28" fill="#BDBDBD" />
             </svg>
             <span
               style={{

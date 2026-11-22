@@ -1,34 +1,34 @@
 import type { CSSProperties } from 'react'
 
-/** Tokens del diseño aprobado (RankingGamificado.jsx). Valores exactos. */
+/** Tokens del ranking con la marca ASTRO (naranja, negro y blanco; medallas y verde/rojo de movimiento se conservan). */
 export const T = {
-  bg: '#F7F9FC',
+  bg: '#F7F7F7',
   card: '#FFFFFF',
-  ink: '#14213D',
-  body: '#3C4A66',
-  muted: '#64708A',
-  faint: '#8A94A8',
-  line: '#EDF0F5',
-  lineSoft: '#F0F2F6',
-  soft: '#F5F7FA',
-  track: '#EEF1F6',
-  blue: '#2453D6',
-  blueSoft: '#EEF3FD',
-  navy: '#102A5C',
-  navyLine: '#1C3B78',
-  gold: '#F2D58A',
+  ink: '#000000',
+  body: '#1A1A1A',
+  muted: '#6B6B6B',
+  faint: '#8A8A8A',
+  line: '#EFEFEF',
+  lineSoft: '#F2F2F2',
+  soft: '#F7F7F7',
+  track: '#F2F2F2',
+  blue: '#F6A637',
+  blueSoft: '#FFF4E3',
+  navy: '#000000',
+  navyLine: '#262626',
+  gold: '#F6A637',
   green: '#22A06B',
   greenText: '#157A52',
   greenSoft: '#E7F6EE',
   red: '#E04848',
   danger: '#B42318',
-  neutral: '#A0A9BA',
-  overlay: 'rgba(20,33,61,0.40)',
+  neutral: '#A3A3A3',
+  overlay: 'rgba(0,0,0,0.40)',
 } as const
 
 export const MEDALS = [
   { c: '#E0AC1E', t: '#8A6508', base: '#FFF6DD' }, // oro
-  { c: '#9AA6BA', t: '#4D5A70', base: '#F0F2F6' }, // plata
+  { c: '#9AA6BA', t: '#4D5A70', base: '#F2F2F2' }, // plata
   { c: '#C07A3E', t: '#8A531F', base: '#FBF1E7' }, // bronce
 ]
 
@@ -119,7 +119,7 @@ export const srOnly: CSSProperties = { position: 'absolute', width: 1, height: 1
 export const GLOBAL_CSS = `
 .rk button:focus-visible,.rk select:focus-visible{outline:3px solid #9DB5F0;outline-offset:2px}
 .rk-badge{transition:transform .2s ease, box-shadow .2s ease}
-.rk-badge:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(20,33,61,0.08)}
+.rk-badge:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,0.08)}
 .rk-bar{transition:width .7s cubic-bezier(.2,.8,.2,1)}
 @keyframes rk-fade{from{opacity:0}to{opacity:1}}
 @keyframes rk-pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}

@@ -17,7 +17,7 @@ import type { CategoriaWeb, ConfigCatalogo, Contexto, LineaWeb, NombreIcono, Pro
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
-const PALETA = ['#DCE6FA', '#E4ECFB', '#F6E9C4', '#E8EEF8', '#D7E3F8', '#EFE6CF']
+const PALETA = ['#FFF4E3', '#F7F7F7', '#FFE6C2', '#F2F2F2', '#FFF9F0', '#EFEFEF']
 
 /** Fila de fn_catalogo_piezas: la pieza con precio embajador, "Nuevo", vendidos y entrega inmediata en una sola respuesta. */
 export type FilaPieza = {
@@ -164,8 +164,8 @@ export async function cargarConfigCatalogo(
         texto: cadena(b.texto),
         cta: { texto: cadena(b.cta_texto), tipo: ctaTipo(b.cta_tipo), valor: cadena(b.cta_valor) },
         imagen: cadena(b.imagen_url),
-        colorFondo: colorValido(b.color_fondo, '#0F2A5C'),
-        colorEtiqueta: colorValido(b.color_etiqueta, '#F2D58A'),
+        colorFondo: colorValido(b.color_fondo, '#000000'),
+        colorEtiqueta: colorValido(b.color_etiqueta, '#F6A637'),
       })),
     novedades: filtrar(novedades.data)
       .filter((n) => ctaVisible(String(n.cta_tipo)))
@@ -176,7 +176,7 @@ export async function cargarConfigCatalogo(
         texto: cadena(n.texto),
         cta: { texto: cadena(n.cta_texto), tipo: ctaTipo(n.cta_tipo), valor: cadena(n.cta_valor) },
         imagen: cadena(n.imagen_url),
-        colorFondo: colorValido(n.color_fondo, '#0F2A5C'),
+        colorFondo: colorValido(n.color_fondo, '#000000'),
       })),
     promos: paraContexto(leerPromos(bloques.get('promos_laterales'))).filter((p) => ctaVisible(p.cta_tipo)),
     beneficios: paraContexto(leerBeneficios(bloques.get('beneficios'))),

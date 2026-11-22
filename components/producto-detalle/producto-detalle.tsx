@@ -1,6 +1,5 @@
 'use client'
 
-import { Plus_Jakarta_Sans } from 'next/font/google'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
@@ -21,7 +20,6 @@ import { SellDrawer, ShareModal } from './overlays'
 import { DeliverySection, DetailsTabs, Gallery, NetworkList, RelatedSection } from './secciones'
 import { GLOBAL_CSS, Icon, T, TOAST_MS, btn, linkBtn, quetzal, sectionTop } from './tokens'
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' })
 
 export type AccionesCarritoFicha = {
   agregar: (productoId: number, cantidad: number) => Promise<ResultadoCarritoWeb>
@@ -209,7 +207,7 @@ export function ProductoDetalle(props: Props) {
   const puedeSeparar = contexto === 'backoffice' && v?.puedeSeparar && !agotado && p.modo === 'pieza_unica'
 
   return (
-    <div className={`pd ${jakarta.className}`} style={{ minHeight: '100vh', background: T.bg, color: T.ink, fontFamily: `${jakarta.style.fontFamily}, system-ui, -apple-system, sans-serif` }}>
+    <div className="pd" style={{ minHeight: '100vh', background: T.bg, color: T.ink, fontFamily: 'var(--font-marca), system-ui, -apple-system, sans-serif' }}>
       <style>{GLOBAL_CSS}</style>
 
       {/* Encabezado */}
@@ -510,7 +508,7 @@ export function ProductoDetalle(props: Props) {
           error={toast.error}
           action={
             toast.cart ? (
-              <Link href={props.rutaCarrito} style={{ marginLeft: 6, color: '#9DB5F0', fontWeight: 700, textDecoration: 'none' }}>
+              <Link href={props.rutaCarrito} style={{ marginLeft: 6, color: '#BDBDBD', fontWeight: 700, textDecoration: 'none' }}>
                 Ver carrito
               </Link>
             ) : undefined

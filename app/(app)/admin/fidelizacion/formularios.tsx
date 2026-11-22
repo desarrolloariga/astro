@@ -130,7 +130,7 @@ function FormInsignia({ i }: { i?: InsigniaAdm }) {
       </label>
       <label className={etiqueta}>
         Color
-        <input name="color" type="color" defaultValue={i?.color ?? '#2453D6'} className="h-9 w-full cursor-pointer rounded border border-input" />
+        <input name="color" type="color" defaultValue={i?.color ?? '#F6A637'} className="h-9 w-full cursor-pointer rounded border border-input" />
       </label>
       <label className={`${etiqueta} col-span-2 sm:col-span-4`}>
         Descripción

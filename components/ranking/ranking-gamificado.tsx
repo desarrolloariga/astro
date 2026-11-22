@@ -103,7 +103,7 @@ export function RankingGamificado({ datos, filtros }: { datos: DatosRanking; fil
             <label
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 6px 0 14px', borderRadius: 999, background: '#fff',
-                border: '1px solid #E2E7EF', fontSize: 13, color: T.muted,
+                border: '1px solid #EFEFEF', fontSize: 13, color: T.muted,
               }}
             >
               Ciclo
@@ -122,7 +122,7 @@ export function RankingGamificado({ datos, filtros }: { datos: DatosRanking; fil
             <button
               type="button"
               onClick={() => setModal({ type: 'how' })}
-              style={{ ...btn, height: 44, padding: '0 18px', gap: 8, borderRadius: 999, background: T.blue, color: '#fff', fontSize: 14, fontWeight: 700 }}
+              style={{ ...btn, height: 44, padding: '0 18px', gap: 8, borderRadius: 999, background: T.blue, color: '#000', fontSize: 14, fontWeight: 700 }}
             >
               <Icon name="bolt" size={17} stroke={2} /> ¿Cómo gano puntos?
             </button>
@@ -139,7 +139,7 @@ export function RankingGamificado({ datos, filtros }: { datos: DatosRanking; fil
                 aria-label="Filtrar por rol"
                 value={filtros.rol}
                 onChange={(e) => navegar({ rol: e.target.value || null })}
-                style={{ height: 40, padding: '0 12px', borderRadius: 999, border: '1px solid #E2E7EF', background: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: T.ink }}
+                style={{ height: 40, padding: '0 12px', borderRadius: 999, border: '1px solid #EFEFEF', background: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: T.ink }}
               >
                 {ROLES.map((r) => (
                   <option key={r.valor} value={r.valor}>
@@ -151,7 +151,7 @@ export function RankingGamificado({ datos, filtros }: { datos: DatosRanking; fil
                 aria-label="Filtrar por tienda"
                 value={filtros.tienda}
                 onChange={(e) => navegar({ tienda: e.target.value || null })}
-                style={{ height: 40, padding: '0 12px', borderRadius: 999, border: '1px solid #E2E7EF', background: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: T.ink }}
+                style={{ height: 40, padding: '0 12px', borderRadius: 999, border: '1px solid #EFEFEF', background: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: T.ink }}
               >
                 <option value="">Todas las tiendas</option>
                 {datos.tiendas.map((t) => (
@@ -172,7 +172,7 @@ export function RankingGamificado({ datos, filtros }: { datos: DatosRanking; fil
                 {periodo.en_curso ? (ciclo.dias <= 1 ? 'Termina hoy' : ciclo.dias === 2 ? 'Termina mañana' : `Termina en ${ciclo.dias} días`) : 'Resultados finales'}
               </span>
             </div>
-            <Bar pct={ciclo.pct} color={T.blue} height={6} bg="#E5E9F0" />
+            <Bar pct={ciclo.pct} color={T.blue} height={6} bg="#EFEFEF" />
           </div>
         </div>
 

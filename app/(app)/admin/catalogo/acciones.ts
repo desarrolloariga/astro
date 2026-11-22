@@ -101,8 +101,8 @@ export async function guardarContenido(formData: FormData) {
       cta_tipo: ctaTipo(txt(formData, 'cta_tipo')),
       cta_valor: opcional(formData, 'cta_valor'),
       imagen_url: imagen,
-      color_fondo: color(formData, 'color_fondo', '#0F2A5C'),
-      ...(seccion === 'banners' ? { color_etiqueta: color(formData, 'color_etiqueta', '#F2D58A') } : {}),
+      color_fondo: color(formData, 'color_fondo', '#000000'),
+      ...(seccion === 'banners' ? { color_etiqueta: color(formData, 'color_etiqueta', '#F6A637') } : {}),
     }
   }
 
@@ -160,8 +160,8 @@ export async function guardarBloques(formData: FormData) {
           cta_texto: txt(formData, `p${i}_cta_texto`) || 'Ver catálogo',
           cta_tipo: ctaTipo(txt(formData, `p${i}_cta_tipo`)),
           cta_valor: opcional(formData, `p${i}_cta_valor`),
-          color_fondo: color(formData, `p${i}_color_fondo`, '#DCE6FA'),
-          color_boton: color(formData, `p${i}_color_boton`, '#1E4FD8'),
+          color_fondo: color(formData, `p${i}_color_fondo`, '#FFF4E3'),
+          color_boton: color(formData, `p${i}_color_boton`, '#000000'),
           imagen_url: await resolverImagen(formData, `p${i}_imagen`, 'promos'),
           icono: icono(txt(formData, `p${i}_icono`), 'gift'),
           audiencia: audiencia(txt(formData, `p${i}_audiencia`)),

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Gem, ArrowRight, Megaphone } from 'lucide-react'
+import { Orbitas } from '@/components/marca/orbitas'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerUsuarioActual } from '@/lib/usuario'
 import { seccionesParaRol, nombresRol } from '@/lib/navegacion'
@@ -40,9 +41,7 @@ export default async function InicioPage() {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-8 md:px-6">
       {/* Hero de bienvenida */}
       <section className="relative overflow-hidden rounded-2xl bg-brand-deeper text-brand-deeper-foreground">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-deep-muted/20 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-deep-foreground/5" />
-        <div className="pointer-events-none absolute -bottom-20 right-24 h-48 w-48 rounded-full bg-brand-deep-foreground/5" />
+        <Orbitas className="absolute -right-40 top-1/2 -translate-y-1/2 opacity-90" tamano={460} />
 
         <div className="relative flex flex-col gap-4 px-6 py-10 md:px-10 md:py-12">
           <span className="flex w-fit items-center gap-2 rounded-full bg-brand-deep-foreground/10 px-3 py-1 text-xs font-semibold text-brand-deep-foreground/85">
@@ -53,7 +52,7 @@ export default async function InicioPage() {
             Hola, {usuario.nombre.split(' ')[0]}
           </h1>
           <p className="max-w-xl text-pretty text-sm leading-relaxed text-brand-deep-foreground/80 md:text-base">
-            Bienvenido al ecosistema comercial de ASTRO Joyería. Este es tu panel de{' '}
+            Bienvenido al universo de compras ASTRO. Este es tu panel de{' '}
             {nombresRol[usuario.rol].toLowerCase()}: desde aquí controlas cada pieza, desde
             producción hasta la venta.
           </p>

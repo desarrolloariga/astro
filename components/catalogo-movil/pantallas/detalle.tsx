@@ -53,7 +53,7 @@ export function DetailScreen() {
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div ref={scrollRef} className="cat-noscroll" style={scrollY}>
-        <div style={{ position: 'relative', height: 330, background: T.primarySoft, color: T.primary }}>
+        <div style={{ position: 'relative', height: 330, background: T.primarySoft, color: T.text }}>
           <div
             ref={galeriaRef}
             className="cat-noscroll cat-snap"
@@ -101,7 +101,7 @@ export function DetailScreen() {
               {fotos.map((_, i) => (
                 <span
                   key={i}
-                  style={{ width: i === foto ? 20 : 6, height: 6, borderRadius: 3, background: i === foto ? T.primary : '#9DB6EA', transition: 'width .2s' }}
+                  style={{ width: i === foto ? 20 : 6, height: 6, borderRadius: 3, background: i === foto ? T.primary : '#BDBDBD', transition: 'width .2s' }}
                 />
               ))}
             </div>
@@ -122,7 +122,7 @@ export function DetailScreen() {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {p.categoria && (
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.primary }}>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.text }}>
                 {p.categoria}
               </span>
             )}
@@ -244,7 +244,7 @@ export function DetailScreen() {
               fontSize: 15,
               fontWeight: 800,
               background: p.disponible ? T.primary : T.disabledBg,
-              color: p.disponible ? '#fff' : T.disabledFg,
+              color: p.disponible ? '#000' : T.disabledFg,
               opacity: app.estado.ocupado ? 0.7 : 1,
             }}
           >

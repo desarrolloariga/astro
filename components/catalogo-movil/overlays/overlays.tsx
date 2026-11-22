@@ -66,6 +66,7 @@ export function MiniCart() {
           padding: '0 14px',
           borderRadius: 13,
           background: T.primary,
+          color: '#000',
           display: 'flex',
           alignItems: 'center',
           gap: 4,
@@ -170,6 +171,7 @@ export function Toast() {
           height: 28,
           borderRadius: 14,
           background: error ? 'rgba(255,255,255,0.2)' : T.primary,
+          color: error ? '#fff' : '#000',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -342,7 +344,7 @@ export function FilterSheet() {
           <button
             type="button"
             onClick={app.applySheet}
-            style={{ ...btn, flex: 2, height: 54, borderRadius: 16, background: T.primary, color: '#fff', fontSize: 15, fontWeight: 800 }}
+            style={{ ...btn, flex: 2, height: 54, borderRadius: 16, background: T.primary, color: '#000', fontSize: 15, fontWeight: 800 }}
           >
             Ver {plural(count, 'resultado', 'resultados')}
           </button>

@@ -1,6 +1,5 @@
 'use client'
 
-import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useEffect, useMemo } from 'react'
 import type { ConfigCatalogo, ProductoWeb } from '@/lib/catalogo-web/tipos'
 import { adaptarDesdeWeb, calcularRangosPrecio } from '@/lib/catalogo-movil/datos'
@@ -18,7 +17,6 @@ import { SuccessScreen } from './pantallas/exito'
 import { FilterSheet, MiniCart, TabBar, Toast } from './overlays/overlays'
 import { CLAVE_NOVEDADES_MUTE, CLAVE_NOVEDADES_SESION, PopupNovedades } from './overlays/novedades'
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' })
 
 function Pantallas() {
   const { estado, cartCount, config, openNews } = useCatalogo()
@@ -89,7 +87,7 @@ export function CatalogoMovil(props: {
   return (
     <div className="fixed inset-0 z-50 md:hidden" style={{ background: T.bg }}>
       <div
-        className={`cat-app ${jakarta.className}`}
+        className="cat-app"
         style={{
           width: '100%',
           maxWidth: 430,
@@ -102,6 +100,7 @@ export function CatalogoMovil(props: {
           color: T.text,
           display: 'flex',
           flexDirection: 'column',
+          fontFamily: 'var(--font-marca), system-ui, -apple-system, sans-serif',
         }}
       >
         <style>{GLOBAL_CSS}</style>

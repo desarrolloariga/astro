@@ -80,7 +80,7 @@ export function ShareModal({
         aria-label="Compartir pieza"
         style={{
           position: 'relative', width: '100%', maxWidth: 480, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', background: '#fff', borderRadius: 28, padding: 32,
-          display: 'flex', flexDirection: 'column', gap: 22, boxSizing: 'border-box', boxShadow: '0 24px 60px rgba(20,33,61,0.22)', animation: 'pd-pop .22s ease-out', outline: 'none',
+          display: 'flex', flexDirection: 'column', gap: 22, boxSizing: 'border-box', boxShadow: '0 24px 60px rgba(0,0,0,0.22)', animation: 'pd-pop .22s ease-out', outline: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -238,7 +238,7 @@ export function SellDrawer({
         aria-label={vender ? 'Vender directamente' : 'Separar para un cliente'}
         style={{
           position: 'relative', width: 440, maxWidth: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column',
-          boxShadow: '-16px 0 48px rgba(20,33,61,0.16)', animation: 'pd-slide .28s cubic-bezier(.2,.8,.2,1)', outline: 'none',
+          boxShadow: '-16px 0 48px rgba(0,0,0,0.16)', animation: 'pd-slide .28s cubic-bezier(.2,.8,.2,1)', outline: 'none',
         }}
       >
         <form action={accion} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

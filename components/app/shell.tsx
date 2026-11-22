@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Gem, Menu, X, LogOut, Search, ChevronDown, ShoppingCart, LayoutGrid } from 'lucide-react'
+import { Menu, X, LogOut, Search, ChevronDown, ShoppingCart, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LogoAstro } from '@/components/marca/logo-astro'
 import { cerrarSesion } from '@/app/(auth)/acciones'
 import { seccionesParaRol, nombresRol, agruparPorSubgrupo, type ItemNav } from '@/lib/navegacion'
 import type { Rol } from '@/lib/usuario'
@@ -185,16 +186,9 @@ export function AppShell({
         )}
       >
         <div className="flex h-16 shrink-0 items-center gap-2 px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deeper text-brand-deeper-foreground">
-            <Gem className="h-5 w-5" strokeWidth={1.8} />
-          </div>
-          <div className="leading-tight">
-            <span className="block text-base font-bold tracking-tight text-sidebar-foreground">
-              ASTRO
-            </span>
-            <span className="block text-[11px] font-medium text-sidebar-foreground/55">
-              {nombresRol[usuario.rol]}
-            </span>
+          <div className="flex flex-col gap-1 leading-tight">
+            <LogoAstro version="naranja" ancho={104} prioridad />
+            <span className="block text-[11px] font-medium text-sidebar-foreground/60">{nombresRol[usuario.rol]}</span>
           </div>
           <button
             onClick={() => setAbierto(false)}
@@ -265,8 +259,8 @@ export function AppShell({
                               className={cn(
                                 'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:gap-2.5 md:py-1.5 md:text-xs',
                                 activo
-                                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+                                  ? 'bg-sidebar-primary font-semibold text-sidebar-primary-foreground'
+                                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground',
                               )}
                             >
                               <item.icono className="h-4 w-4 shrink-0" strokeWidth={2} />
@@ -320,15 +314,7 @@ export function AppShell({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-deeper text-brand-deeper-foreground">
-              <Gem className="h-5 w-5" strokeWidth={1.8} />
-            </div>
-            <div className="leading-tight">
-              <span className="block text-base font-bold tracking-tight text-foreground">ASTRO</span>
-              <span className="block text-[11px] font-medium text-muted-foreground">
-                Ecosistema Comercial
-              </span>
-            </div>
+            <LogoAstro ancho={96} />
             {unidadesCarrito != null && (
               <div className="ml-auto">
                 <BotonCarrito unidades={unidadesCarrito} />
@@ -340,7 +326,7 @@ export function AppShell({
               <BotonCarrito unidades={unidadesCarrito} />
             </div>
           )}
-          <div className="h-1.5 bg-brand-deeper" />
+          <div className="h-1.5 bg-primary" />
         </header>
 
         <div className="pb-barra-movil flex-1">{children}</div>

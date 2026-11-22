@@ -136,7 +136,7 @@ export function CartScreen() {
             <button
               type="button"
               onClick={() => app.tab('home')}
-              style={{ ...btn, alignSelf: 'flex-start', height: 44, gap: 6, color: T.primary, fontSize: 14, fontWeight: 800 }}
+              style={{ ...btn, alignSelf: 'flex-start', height: 44, gap: 6, color: T.text, fontSize: 14, fontWeight: 800 }}
             >
               <Icon name="plus" size={18} stroke={2.2} /> Seguir comprando
             </button>
@@ -145,7 +145,7 @@ export function CartScreen() {
               <SummaryRow label="Subtotal" value={money(app.subtotal)} />
               <SummaryRow label="Envío" value={app.envio === 0 ? 'Gratis' : money(app.envio)} />
               {app.faltaEnvioGratis != null && app.faltaEnvioGratis > 0 && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: T.primary }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>
                   Agrega {money(app.faltaEnvioGratis)} más y tu envío es gratis
                 </span>
               )}
@@ -166,7 +166,7 @@ export function CartScreen() {
                 padding: '0 20px',
                 borderRadius: 18,
                 background: T.primary,
-                color: '#fff',
+                color: '#000',
                 fontSize: 16,
                 fontWeight: 800,
               }}

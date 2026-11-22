@@ -43,7 +43,7 @@ export function NewsModal({ app, startIndex = 0 }: { app: AppCatalogo; startInde
         </div>
         <div style={{ flex: '1 1 360px', padding: 32, display: 'flex', flexDirection: 'column', gap: 14, boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ ...eyebrow, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.primary }}>
+            <span style={{ ...eyebrow, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text }}>
               <Icon name="sparkle" size={16} /> Novedades · {i + 1} de {n}
             </span>
             <RoundButton icon="close" label="Cerrar" onClick={close} size={40} />
@@ -59,7 +59,7 @@ export function NewsModal({ app, startIndex = 0 }: { app: AppCatalogo; startInde
             <button
               type="button"
               onClick={() => app.runCta(item.cta)}
-              style={{ ...btn, alignSelf: 'flex-start', marginTop: 4, height: 50, padding: '0 22px', gap: 8, borderRadius: 14, background: T.primary, color: '#fff', fontSize: 15, fontWeight: 800 }}
+              style={{ ...btn, alignSelf: 'flex-start', marginTop: 4, height: 50, padding: '0 22px', gap: 8, borderRadius: 14, background: T.primary, color: '#000', fontSize: 15, fontWeight: 800 }}
             >
               {item.cta.texto} <Icon name="arrowRight" size={18} stroke={2.4} />
             </button>
@@ -168,7 +168,7 @@ export function QuickViewModal({ app, productId }: { app: AppCatalogo; productId
 
         <div style={{ flex: '1 1 380px', padding: '32px 32px 28px 12px', display: 'flex', flexDirection: 'column', gap: 14, boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-            <span style={{ ...eyebrow, fontSize: 12, color: T.primary, paddingTop: 10 }}>{p.categoria}</span>
+            <span style={{ ...eyebrow, fontSize: 12, color: T.text, paddingTop: 10 }}>{p.categoria}</span>
             <RoundButton icon="close" label="Cerrar" onClick={app.closeOverlay} size={40} />
           </div>
           <h2 style={{ ...h2, lineHeight: 1.15 }}>{p.nombre}</h2>
@@ -232,7 +232,7 @@ export function QuickViewModal({ app, productId }: { app: AppCatalogo; productId
             )}
           </div>
           {app.puedeLink && (
-            <Link href={app.rutaFicha(p.id)} style={{ fontSize: 13, fontWeight: 700, color: T.primary, alignSelf: 'flex-start' }}>
+            <Link href={app.rutaFicha(p.id)} style={{ fontSize: 13, fontWeight: 700, color: T.text, alignSelf: 'flex-start' }}>
               Ver ficha completa
             </Link>
           )}
@@ -341,18 +341,18 @@ export function CartDrawer({ app }: { app: AppCatalogo }) {
               type="button"
               onClick={app.checkout}
               disabled={app.cartBusy}
-              style={{ ...btn, marginTop: 4, height: 54, borderRadius: 16, background: T.primary, color: '#fff', fontSize: 16, fontWeight: 800 }}
+              style={{ ...btn, marginTop: 4, height: 54, borderRadius: 16, background: T.primary, color: '#000', fontSize: 16, fontWeight: 800 }}
             >
               Finalizar pedido
             </button>
-            <button type="button" onClick={app.closeOverlay} style={{ ...btn, height: 44, borderRadius: 14, color: T.primary, fontSize: 14, fontWeight: 800 }}>
+            <button type="button" onClick={app.closeOverlay} style={{ ...btn, height: 44, borderRadius: 14, color: T.text, fontSize: 14, fontWeight: 800 }}>
               Seguir comprando
             </button>
           </div>
         </>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32, textAlign: 'center' }}>
-          <span style={{ width: 88, height: 88, borderRadius: 44, background: T.primarySoft, color: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ width: 88, height: 88, borderRadius: 44, background: T.primarySoft, color: T.text, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="cart" size={38} stroke={1.6} />
           </span>
           <span style={{ fontSize: 18, fontWeight: 800 }}>Tu carrito está vacío</span>
@@ -360,7 +360,7 @@ export function CartDrawer({ app }: { app: AppCatalogo }) {
           <button
             type="button"
             onClick={app.closeOverlay}
-            style={{ ...btn, marginTop: 6, height: 46, padding: '0 20px', borderRadius: 14, background: T.primary, color: '#fff', fontSize: 14, fontWeight: 800 }}
+            style={{ ...btn, marginTop: 6, height: 46, padding: '0 20px', borderRadius: 14, background: T.primary, color: '#000', fontSize: 14, fontWeight: 800 }}
           >
             Explorar catálogo
           </button>

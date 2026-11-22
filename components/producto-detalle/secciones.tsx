@@ -443,7 +443,7 @@ export function RelatedSection({
                     aria-label={yaEsta ? `${r.nombre} ya está en tu carrito` : `Agregar ${r.nombre} al carrito`}
                     style={{
                       ...btn, position: 'absolute', right: 12, bottom: 12, width: 44, height: 44, borderRadius: 22, background: '#fff',
-                      color: yaEsta ? T.green : T.blue, boxShadow: '0 4px 14px rgba(20,33,61,0.10)',
+                      color: yaEsta ? T.green : T.blue, boxShadow: '0 4px 14px rgba(0,0,0,0.10)',
                     }}
                   >
                     <Icon name={yaEsta ? 'check' : 'plus'} size={18} stroke={2.2} />

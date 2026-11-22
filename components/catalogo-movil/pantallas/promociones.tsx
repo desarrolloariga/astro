@@ -205,7 +205,7 @@ export function Beneficios() {
           key={b.titulo}
           style={{ ...card, flex: 'none', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 16, minWidth: 200 }}
         >
-          <span style={{ flex: 'none', width: 36, height: 36, borderRadius: 12, background: T.primarySoft, color: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ flex: 'none', width: 36, height: 36, borderRadius: 12, background: T.primarySoft, color: T.text, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <IconoWeb name={b.icono} size={18} stroke={1.9} />
           </span>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>

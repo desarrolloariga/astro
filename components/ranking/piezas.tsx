@@ -8,7 +8,7 @@ export function Pills<V extends string>({
   value,
   onChange,
   label,
-  bg = '#EEF1F6',
+  bg = '#F2F2F2',
   height = 36,
 }: {
   options: { id: V; label: string }[]
@@ -31,7 +31,7 @@ export function Pills<V extends string>({
             onClick={() => onChange(o.id)}
             style={{
               ...btn, height, padding: '0 16px', borderRadius: 999, fontSize: 13, fontWeight: 700,
-              background: on ? '#fff' : 'transparent', color: on ? T.ink : T.muted, boxShadow: on ? '0 1px 3px rgba(20,33,61,0.08)' : 'none',
+              background: on ? '#fff' : 'transparent', color: on ? T.ink : T.muted, boxShadow: on ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             }}
           >
             {o.label}
@@ -121,7 +121,7 @@ export function Modal({ label, onClose, children, maxWidth = 520 }: { label: str
         aria-label={label}
         style={{
           position: 'relative', width: '100%', maxWidth, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', background: '#fff', borderRadius: 28,
-          padding: 30, boxSizing: 'border-box', boxShadow: '0 24px 60px rgba(20,33,61,0.22)', animation: 'rk-pop .22s ease-out',
+          padding: 30, boxSizing: 'border-box', boxShadow: '0 24px 60px rgba(0,0,0,0.22)', animation: 'rk-pop .22s ease-out',
         }}
       >
         {children}
