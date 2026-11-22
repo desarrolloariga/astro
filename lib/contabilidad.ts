@@ -74,4 +74,6 @@ export const nombresOrigen: Record<string, string> = {
   otro: 'Otro',
   nota_debito: 'Nota de débito',
   nota_credito: 'Nota de crédito',
+  pago_planilla: 'Pago de planilla',
+  pago_liquidacion: 'Pago de liquidación laboral',
 }

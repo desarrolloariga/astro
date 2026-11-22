@@ -111,6 +111,8 @@ export const ORIGENES_CONTABLES: Record<string, string> = {
   factura_proveedor: 'Factura de proveedor',
   depreciacion: 'Depreciación de activos fijos',
   baja_activo: 'Baja de activo fijo',
+  planilla: 'Planilla',
+  liquidacion_laboral: 'Liquidación laboral',
   cierre: 'Cierre del ejercicio',
   apertura: 'Apertura',
   reversion: 'Reversión',

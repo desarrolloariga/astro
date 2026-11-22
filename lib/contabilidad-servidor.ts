@@ -107,6 +107,10 @@ export async function enlacesOrigen(
                       ? `/contabilidad/cxp/${id}`
                       : origen === 'toma'
                       ? `/inventario/toma-fisica/${id}`
+                      : origen === 'planilla'
+                      ? `/rrhh/planillas/${id}`
+                      : origen === 'liquidacion_laboral'
+                      ? `/rrhh/finalizaciones/${id}`
                       : origen === 'reversion'
                       ? `/contabilidad/partidas/${id}`
                       : null
