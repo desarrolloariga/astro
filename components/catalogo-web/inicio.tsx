@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import { ImagenProducto } from '@/components/app/imagen-producto'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BannerWeb, CtaTipo, NombreIcono, PromoLateral } from '@/lib/catalogo-web/tipos'
 import type { AppCatalogo } from './app-tipo'
@@ -185,7 +184,7 @@ function CategoryGrid({ app }: { app: AppCatalogo }) {
       />
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '18px 28px' }}>
         {app.categorias.map((c) => {
-          // Primero el ícono oficial de la categoría; la foto solo si la categoría no tiene ícono propio.
+          // Ícono oficial de la categoría; si no tiene uno propio, la estrella ASTRO (nunca fotos).
           const oficial = iconoAstroDe(c.nombre)
           return (
           <button
@@ -201,14 +200,8 @@ function CategoryGrid({ app }: { app: AppCatalogo }) {
                 boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'grid', placeItems: 'center',
               }}
             >
-              {!oficial && c.imagen ? (
-                <span className="cw-tile-icon" style={{ position: 'absolute', inset: 0 }}>
-                  <ImagenProducto src={c.imagen} alt="" sizes="96px" />
-                </span>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="cw-tile-icon" src={astroIcon(oficial ?? 'estrella', 'naranja')} alt="" width={52} height={52} />
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="cw-tile-icon" src={astroIcon(oficial ?? 'estrella', 'naranja')} alt="" width={52} height={52} />
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', maxWidth: '100%' }}>
               <span style={{ fontSize: 14, fontWeight: 700, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre}</span>

@@ -4,22 +4,17 @@ import { useMemo } from 'react'
 import { ORDENES } from '@/lib/catalogo-movil/tipos'
 import { valoresUnicos } from '@/lib/catalogo-movil/datos'
 import { Icon } from '../iconos'
+import { astroIcon, iconoAstroDe } from '@/components/catalogo-web/tokens'
 import { T, btn, card, scrollY, sectionTitle } from '../tokens'
 import { useCatalogo } from '../store'
 import { ActiveFilters, BackButton, EmptyState, FilterButton, SearchField } from '../ui/basicos'
-import { ProductRow, ProductThumb } from '../ui/producto'
+import { ProductRow } from '../ui/producto'
 import { plural } from './inicio'
 
 export function SearchScreen() {
   const app = useCatalogo()
   const { query, filtros, recientes } = app.estado
   const categorias = useMemo(() => valoresUnicos(app.productos, 'categoria'), [app.productos])
-  // Foto de muestra por categoría: la primera pieza con imagen.
-  const fotoCategoria = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const p of app.productos) if (p.categoria && p.imagenes[0] && !m.has(p.categoria)) m.set(p.categoria, p.imagenes[0])
-    return m
-  }, [app.productos])
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -80,7 +75,15 @@ export function SearchScreen() {
                       textAlign: 'left',
                     }}
                   >
-                    <ProductThumb src={fotoCategoria.get(c.valor)} width={48} iconSize={26} stroke={1.6} radius={14} />
+                    <span
+                      style={{
+                        width: 48, height: 48, borderRadius: 24, flex: 'none', background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+                        display: 'grid', placeItems: 'center',
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={astroIcon(iconoAstroDe(c.valor) ?? 'estrella', 'naranja')} alt="" width={26} height={26} />
+                    </span>
                     <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <span style={{ fontSize: 15, fontWeight: 700 }}>{c.valor}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: T.muted }}>{plural(c.total, 'producto', 'productos')}</span>
