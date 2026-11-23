@@ -78,17 +78,21 @@ export const quetzal = (n: number) =>
 export const astroIcon = (slug: string, color: 'negro' | 'naranja' | 'blanco' = 'negro') => `/astro/icons/${slug}-${color}.png`
 
 const ICONOS_CATEGORIA: [RegExp, string][] = [
-  [/joy|anillo|collar|arete|pulsera|cadena|oro|plata/, 'joyeria'],
-  [/reloj/, 'relojeria'],
-  [/perfum|fragan|colonia/, 'perfumeria'],
-  [/cosm|maquill|belleza|cuidado/, 'cosmeticos'],
-  [/hogar|casa|cocina/, 'hogar'],
-  [/mascot|perro|gato/, 'mascotas'],
+  [/reloj|smartwatch/, 'relojeria'],
+  [/joy|anillo|collar|arete|argolla|pulsera|brazalete|esclava|cadena|dije|gargantilla|oro|plata|bisuter/, 'joyeria'],
+  [/perfum|fragan|colonia|locion|body mist|eau de/, 'perfumeria'],
+  [/cosm|maquill|belleza|cuidado|labial|crema|piel|skin|unas/, 'cosmeticos'],
+  [/hogar|casa|cocina|deco|tupper|recipiente/, 'hogar'],
+  [/mascot|perro|gato|pet/, 'mascotas'],
 ]
+/** Ícono oficial ASTRO de la categoría por su nombre (sin tildes); null si no corresponde a ninguno de los seis. */
+export function iconoAstroDe(nombre: string | null | undefined): string | null {
+  const n = norm(nombre)
+  return ICONOS_CATEGORIA.find(([re]) => re.test(n))?.[1] ?? null
+}
 /** Ícono oficial de una categoría por su nombre o slug; la estrella ASTRO si no hay uno propio. */
 export function iconoCategoria(nombre: string | null | undefined): string {
-  const n = norm(nombre)
-  return ICONOS_CATEGORIA.find(([re]) => re.test(n))?.[1] ?? 'estrella'
+  return iconoAstroDe(nombre) ?? 'estrella'
 }
 export const norm = (t: string | null | undefined) =>
   String(t || '')

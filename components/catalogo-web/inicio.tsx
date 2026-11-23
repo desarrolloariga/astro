@@ -9,7 +9,7 @@ import { ArtPlaceholder, LinkAction, SectionHeader, circulosDe } from './basicos
 import { Orbitas } from '@/components/marca/orbitas'
 import { Icon } from './icono'
 import { ProductCard, ProductGrid } from './producto'
-import { HERO_INTERVAL_MS, OFFER_CARD_W, OFFER_GAP, T, astroIcon, btn, container, eyebrow, h2, iconoCategoria, pad, piezas } from './tokens'
+import { HERO_INTERVAL_MS, OFFER_CARD_W, OFFER_GAP, T, astroIcon, btn, container, eyebrow, h2, iconoAstroDe, pad, piezas } from './tokens'
 
 export function iconoCta(tipo: CtaTipo): NombreIcono {
   if (tipo === 'ofertas') return 'tag'
@@ -184,7 +184,10 @@ function CategoryGrid({ app }: { app: AppCatalogo }) {
         action={<LinkAction onClick={() => app.goCategory('all')}>Ver todo el catálogo</LinkAction>}
       />
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '18px 28px' }}>
-        {app.categorias.map((c) => (
+        {app.categorias.map((c) => {
+          // Primero el ícono oficial de la categoría; la foto solo si la categoría no tiene ícono propio.
+          const oficial = iconoAstroDe(c.nombre)
+          return (
           <button
             key={c.id}
             type="button"
@@ -198,13 +201,13 @@ function CategoryGrid({ app }: { app: AppCatalogo }) {
                 boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'grid', placeItems: 'center',
               }}
             >
-              {c.imagen ? (
+              {!oficial && c.imagen ? (
                 <span className="cw-tile-icon" style={{ position: 'absolute', inset: 0 }}>
                   <ImagenProducto src={c.imagen} alt="" sizes="96px" />
                 </span>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img className="cw-tile-icon" src={astroIcon(iconoCategoria(c.nombre), 'naranja')} alt="" width={44} height={44} />
+                <img className="cw-tile-icon" src={astroIcon(oficial ?? 'estrella', 'naranja')} alt="" width={52} height={52} />
               )}
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', maxWidth: '100%' }}>
@@ -212,7 +215,8 @@ function CategoryGrid({ app }: { app: AppCatalogo }) {
               <span style={{ fontSize: 11, color: T.muted }}>{piezas(c.total)}</span>
             </span>
           </button>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

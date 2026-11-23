@@ -22,18 +22,16 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'ASTRO',
   },
+  // Isotipo principal ASTRO (carrito negro con franjas naranjas sobre blanco).
   icons: {
     icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
+      { url: '/astro-icono-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/astro-icono-48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/astro-icono-96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/astro-icono-192.png', sizes: '192x192', type: 'image/png' },
     ],
-    apple: '/apple-icon.png',
+    shortcut: '/favicon.ico',
+    apple: [{ url: '/astro-icono-180.png', sizes: '180x180', type: 'image/png' }],
   },
 }
 

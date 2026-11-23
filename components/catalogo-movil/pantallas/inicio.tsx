@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { ORDENES } from '@/lib/catalogo-movil/tipos'
 import { valoresUnicos } from '@/lib/catalogo-movil/datos'
 import { Icon } from '../iconos'
+import { astroIcon, iconoAstroDe } from '@/components/catalogo-web/tokens'
 import { T, btn, scrollY } from '../tokens'
 import { useCatalogo } from '../store'
 import { ActiveFilters, Chip, CountBadge, EmptyState, FilterButton, SearchField } from '../ui/basicos'
@@ -95,6 +96,10 @@ export function HomeScreen() {
                 radius={21}
                 fontSize={14}
               >
+                {iconoAstroDe(c.valor) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={astroIcon(iconoAstroDe(c.valor) as string, 'negro')} alt="" width={20} height={20} style={{ flex: 'none' }} />
+                )}
                 {c.valor}
               </Chip>
             ))}

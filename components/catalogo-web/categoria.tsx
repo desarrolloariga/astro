@@ -6,7 +6,7 @@ import { FILTROS_VACIOS, type AppCatalogo } from './app-tipo'
 import { OptionChip, Switch } from './basicos'
 import { Icon } from './icono'
 import { ProductGrid } from './producto'
-import { PAGE_SIZE, SORTS, T, astroIcon, btn, container, discount, eyebrow, iconoCategoria, matchesQuery, piezas, quetzal, type Sort } from './tokens'
+import { PAGE_SIZE, SORTS, T, astroIcon, btn, container, discount, eyebrow, iconoAstroDe, iconoCategoria, matchesQuery, piezas, quetzal, type Sort } from './tokens'
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -54,7 +54,11 @@ function FiltersSidebar({ app }: { app: AppCatalogo }) {
                   background: on ? T.navy : 'transparent', color: on ? '#fff' : T.text, textAlign: 'left', gap: 8,
                 }}
               >
-                <span>{c.nombre}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={astroIcon(iconoAstroDe(c.nombre) ?? 'estrella', on ? 'blanco' : 'negro')} alt="" width={18} height={18} style={{ flex: 'none' }} />
+                  {c.nombre}
+                </span>
                 <span style={{ fontSize: 12, opacity: 0.75 }}>{c.total}</span>
               </button>
             )

@@ -12,6 +12,6 @@ export const config = {
      * - _next/static, _next/image, favicon, archivos de public/
      * - /astro: logotipos, íconos y fuentes de la marca (públicos)
      */
-    '/((?!_next/static|_next/image|favicon.ico|astro/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|otf|woff2?|ttf)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|astro/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|otf|woff2?|ttf)$).*)',
   ],
 }
