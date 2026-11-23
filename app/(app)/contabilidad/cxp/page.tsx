@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 import { hoyGuatemala, rangoMes } from '@/lib/contabilidad'
 import { clasesCampo, esFecha, montoContable } from '@/lib/contabilidad-general'
 import { ESTADOS_PAGO, TIPOS_DOCUMENTO_CXP, documentoProveedor, type ConsultaCxp } from '@/lib/cxp'
-import { Encabezado, Mensajes } from '@/components/contabilidad/comunes'
-import { facturaDesdeOrden } from './acciones'
+import { AvisoContabilizacion, Encabezado, Mensajes } from '@/components/contabilidad/comunes'
+import { facturaDesdeOrden, marcarOrdenSinFactura } from './acciones'
 
 export const metadata = { title: 'Cuentas por pagar — ASTRO' }
 
@@ -34,7 +34,7 @@ export default async function CxpPage({
   const url = (extra: Record<string, string>) => `?${new URLSearchParams({ ...filtros, ...extra }).toString()}`
 
   const supabase = await createClient()
-  const [puedeVer, puedeRegistrar, { data, error }, { data: extra }, { data: sinFactura }] = await Promise.all([
+  const [puedeVer, puedeRegistrar, { data, error }, { data: extra }, { data: sinFactura }, { data: empresa }] = await Promise.all([
     tienePermiso('contabilidad', 'ver'),
     tienePermiso('contabilidad', 'registrar'),
     supabase.rpc('fn_cxp_consulta', {
@@ -48,11 +48,23 @@ export default async function CxpPage({
     }),
     supabase.rpc('fn_cxp_catalogos'),
     supabase.rpc('fn_cxp_ordenes_sin_factura'),
+    supabase.from('empresa_contable').select('contabilizacion_automatica, fecha_inicio_contable').eq('id', 1).maybeSingle(),
   ])
+  const empresaCtb = empresa as { contabilizacion_automatica: boolean; fecha_inicio_contable: string | null } | null
   if (!puedeVer) redirect('/inicio')
   const c = (data as ConsultaCxp | null) ?? { total: 0, totales: { total: 0, iva_credito: 0, pagado: 0, saldo: 0, vencido: 0 }, filas: [] }
   const proveedores = ((extra as { proveedores?: { id: number; nombre: string }[] } | null)?.proveedores ?? [])
-  const ordenes = (sinFactura ?? []) as { id: number; proveedor: string | null; estado: string; total: number; fecha: string }[]
+  const todas = (sinFactura ?? []) as {
+    id: number
+    proveedor: string | null
+    estado: string
+    total: number
+    fecha: string
+    sin_factura: boolean
+    sin_factura_motivo: string | null
+  }[]
+  const ordenes = todas.filter((o) => !o.sin_factura)
+  const marcadas = todas.filter((o) => o.sin_factura)
   const exportar = (formato: string) => `/contabilidad/cxp/exportar${url({ formato, reporte: 'documentos' })}`
 
   return (
@@ -60,7 +72,7 @@ export default async function CxpPage({
       <Encabezado
         icono={ReceiptText}
         titulo="Cuentas por pagar"
-        descripcion="Facturas de proveedores y sus pagos. Cada factura se contabiliza contra Proveedores y cada pago sale del libro de bancos. Reemplaza el registro de Gastos."
+        descripcion="Facturas, pólizas de importación (DUCA) y documentos de proveedores y sus pagos. Cada documento se contabiliza contra Proveedores y cada pago sale del libro de bancos."
       >
         <Link href="/contabilidad/cxp/antiguedad" className="text-sm font-semibold text-primary hover:underline">
           Cartera por pagar →
@@ -76,6 +88,7 @@ export default async function CxpPage({
         )}
       </Encabezado>
       <Mensajes ok={sp.ok} error={sp.error ?? error?.message} />
+      <AvisoContabilizacion activa={Boolean(empresaCtb?.contabilizacion_automatica && empresaCtb.fecha_inicio_contable)} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
@@ -91,24 +104,73 @@ export default async function CxpPage({
         ))}
       </div>
 
-      {ordenes.length > 0 && puedeRegistrar && (
-        <details className="rounded-xl border border-amber-500/40 bg-amber-500/5">
+      {(ordenes.length > 0 || marcadas.length > 0) && puedeRegistrar && (
+        <details className="rounded-xl border border-amber-500/40 bg-amber-500/5" open={ordenes.length > 0 && ordenes.length <= 5}>
           <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-amber-800 dark:text-amber-300">
             {ordenes.length} orden(es) de compra recibida(s) sin factura de proveedor
+            {marcadas.length > 0 ? ` · ${marcadas.length} marcada(s) sin factura` : ''}
           </summary>
+          <p className="px-4 pb-2 text-xs text-muted-foreground">
+            El inventario y la deuda con el proveedor ya se registraron al recibir cada orden. Registra la factura cuando llegue (queda en el libro de compras)
+            o márcala como &quot;sin factura&quot; si el proveedor no la emitirá; puedes deshacerlo.
+          </p>
           <ul className="divide-y divide-border/60 px-4 pb-3 text-sm">
             {ordenes.map((o) => (
-              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <li key={o.id} className="flex flex-col gap-2 py-2">
                 <span>
                   <Link href={`/compras/${o.id}`} className="font-semibold text-primary hover:underline">
                     OC #{o.id}
                   </Link>{' '}
                   · {o.proveedor ?? '—'} · {o.fecha?.split('-').reverse().join('/')} · Q {montoContable(o.total)}
                 </span>
-                <form action={facturaDesdeOrden}>
+                <div className="flex flex-wrap gap-3">
+                  <details className="flex-1">
+                    <summary className="cursor-pointer text-xs font-semibold text-primary">Registrar su factura</summary>
+                    <form action={facturaDesdeOrden} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-6">
+                      <input type="hidden" name="orden_compra_id" value={o.id} />
+                      <input name="serie" placeholder="Serie" className={cn(clasesCampo, 'py-1.5 text-xs uppercase')} />
+                      <input name="numero" required placeholder="Número *" className={cn(clasesCampo, 'py-1.5 text-xs')} />
+                      <input name="autorizacion" placeholder="Autorización (UUID)" className={cn(clasesCampo, 'py-1.5 text-xs sm:col-span-2')} />
+                      <label className="flex flex-col text-[11px] font-semibold">
+                        Fecha de emisión *
+                        <input name="fecha" type="date" required defaultValue={o.fecha} className={cn(clasesCampo, 'py-1 text-xs')} />
+                      </label>
+                      <label className="flex flex-col text-[11px] font-semibold">
+                        Vencimiento
+                        <input name="vencimiento" type="date" className={cn(clasesCampo, 'py-1 text-xs')} />
+                      </label>
+                      <button type="submit" className="col-span-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground sm:col-span-6">
+                        Guardar factura
+                      </button>
+                    </form>
+                  </details>
+                  <details>
+                    <summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">No tiene factura</summary>
+                    <form action={marcarOrdenSinFactura} className="mt-2 flex flex-wrap gap-2">
+                      <input type="hidden" name="orden_compra_id" value={o.id} />
+                      <input type="hidden" name="sin_factura" value="si" />
+                      <input name="motivo" required placeholder="Motivo (ej. proveedor informal)" className={cn(clasesCampo, 'w-64 py-1.5 text-xs')} />
+                      <button type="submit" className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+                        Marcar sin factura
+                      </button>
+                    </form>
+                  </details>
+                </div>
+              </li>
+            ))}
+            {marcadas.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-muted-foreground">
+                <span>
+                  <Link href={`/compras/${o.id}`} className="font-semibold hover:underline">
+                    OC #{o.id}
+                  </Link>{' '}
+                  · {o.proveedor ?? '—'} · Q {montoContable(o.total)} · sin factura: {o.sin_factura_motivo}
+                </span>
+                <form action={marcarOrdenSinFactura}>
                   <input type="hidden" name="orden_compra_id" value={o.id} />
-                  <button type="submit" className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted">
-                    Registrar su factura
+                  <input type="hidden" name="sin_factura" value="no" />
+                  <button type="submit" className="text-xs font-semibold text-primary hover:underline">
+                    Deshacer
                   </button>
                 </form>
               </li>

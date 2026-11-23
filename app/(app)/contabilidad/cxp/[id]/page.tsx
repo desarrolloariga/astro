@@ -7,9 +7,9 @@ import { tienePermiso } from '@/lib/permisos'
 import { cn } from '@/lib/utils'
 import { hoyGuatemala } from '@/lib/contabilidad'
 import { clasesCampo, montoContable } from '@/lib/contabilidad-general'
-import { ESTADOS_PAGO, TIPOS_DOCUMENTO_CXP, documentoProveedor, type FilaCxp } from '@/lib/cxp'
+import { ESTADOS_PAGO, TIPOS_COMPRA, TIPOS_DOCUMENTO_CXP, documentoProveedor, type FilaCxp } from '@/lib/cxp'
 import { BotonConfirmar } from '@/components/app/boton-confirmar'
-import { Encabezado, EnlaceVolver, Mensajes } from '@/components/contabilidad/comunes'
+import { AvisoContabilizacion, Encabezado, EnlaceVolver, Mensajes } from '@/components/contabilidad/comunes'
 import { anularFacturaProveedor, anularPagoProveedor, completarFacturaProveedor, registrarPagoProveedor } from '../acciones'
 
 export const metadata = { title: 'Factura de proveedor — ASTRO' }
@@ -31,6 +31,8 @@ type Ficha = {
   }[]
   pagos_oc: { fecha: string; monto: number; cuenta: string; referencia: string | null }[]
   partida_id: number | null
+  compra: { tipo_compra: string | null; combustible: string | null; galones: number | null; idp: number } | null
+  contabilizacion_automatica: boolean | null
 }
 
 const fecha = (f: string | null) => (f ? f.split('-').reverse().join('/') : '—')
@@ -72,12 +74,19 @@ export default async function FichaFacturaProveedorPage({
         <EnlaceVolver href="/contabilidad/cxp">← Cuentas por pagar</EnlaceVolver>
       </Encabezado>
       <Mensajes ok={sp.ok} error={sp.error ?? error?.message} />
+      {f.origen === 'manual' && vigente && !ficha.partida_id && <AvisoContabilizacion activa={Boolean(ficha.contabilizacion_automatica)} />}
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
         <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', ESTADOS_PAGO[f.estado_pago]?.clase)}>
           {ESTADOS_PAGO[f.estado_pago]?.etiqueta}
         </span>
         <span>Correlativo #{f.correlativo}</span>
+        {ficha.compra?.tipo_compra && <span>Compra: {TIPOS_COMPRA[ficha.compra.tipo_compra] ?? ficha.compra.tipo_compra}</span>}
+        {ficha.compra?.combustible && (
+          <span>
+            {ficha.compra.combustible} · {Number(ficha.compra.galones ?? 0).toLocaleString('es-GT')} gal · IDP Q {montoContable(ficha.compra.idp)}
+          </span>
+        )}
         <span>Emisión {fecha(f.fecha_emision)}</span>
         <span className={cn(f.dias_vencida && 'font-semibold text-destructive')}>
           Vence {fecha(f.fecha_vencimiento)}

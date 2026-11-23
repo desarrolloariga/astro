@@ -39,7 +39,7 @@ export function FormularioReversion({
         Revertir partida
       </p>
       <input type="hidden" name="id" value={partidaId} />
-      <Mensajes error={estado.error} />
+      <Mensajes error={estado.error} sinAutorizacion />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[10rem_1fr]">
         <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
           Fecha de la reversión
@@ -89,7 +89,7 @@ export function FormularioDescartar({
     >
       <input type="hidden" name="id" value={partidaId} />
       <input type="hidden" name="fecha" value={fecha} />
-      <Mensajes error={estado.error} />
+      <Mensajes error={estado.error} sinAutorizacion />
       {cerrada && <CamposAutorizacion mensaje="El borrador está en un mes cerrado: descartarlo requiere tu PIN contable y el motivo." />}
       <div>
         <button

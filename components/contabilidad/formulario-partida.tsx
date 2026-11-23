@@ -141,7 +141,7 @@ export function FormularioPartida({
         ))}
       </datalist>
 
-      <Mensajes error={estado.error} />
+      <Mensajes error={estado.error} sinAutorizacion />
 
       <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-[10rem_10rem_1fr]">
         <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">

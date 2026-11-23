@@ -1,8 +1,13 @@
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2, Lock, type LucideIcon } from 'lucide-react'
 import { clasesCampo } from '@/lib/contabilidad-general'
+import { autorizarMesCerrado } from '@/app/(app)/contabilidad/autorizacion-acciones'
 
-export function Mensajes({ ok, error }: { ok?: string; error?: string }) {
+const MES_CERRADO = /El mes de (\d{2}\/\d{4}) está cerrado en contabilidad/
+
+/** sinAutorizacion: el llamador ya pide el PIN en su propio formulario (evita un formulario anidado). */
+export function Mensajes({ ok, error, sinAutorizacion }: { ok?: string; error?: string; sinAutorizacion?: boolean }) {
+  const mesCerrado = sinAutorizacion ? undefined : error?.match(MES_CERRADO)?.[1]
   return (
     <>
       {ok && (
@@ -17,7 +22,35 @@ export function Mensajes({ ok, error }: { ok?: string; error?: string }) {
           <span>{error}</span>
         </div>
       )}
+      {mesCerrado && (
+        // Autorización en el mismo lugar del error: luego se repite la operación (un uso, 10 minutos).
+        <form action={autorizarMesCerrado} className="flex flex-col gap-3">
+          <input type="hidden" name="mes" value={mesCerrado} />
+          <CamposAutorizacion mensaje={`${mesCerrado} está cerrado. Autoriza una operación en ese mes con tu PIN contable y el motivo; después repite la operación.`} />
+          <button type="submit" className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+            Autorizar
+          </button>
+        </form>
+      )}
     </>
+  )
+}
+
+/** Aviso cuando la contabilización automática está apagada: los módulos no generan partidas. */
+export function AvisoContabilizacion({ activa }: { activa: boolean }) {
+  if (activa) return null
+  return (
+    <div className="flex flex-wrap items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-200">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <span className="flex-1">
+        La contabilización automática está apagada: facturas, pagos, bancos, ventas e inventario se registran en su módulo pero <b>no generan partidas</b> ni
+        afectan las cuentas.{' '}
+        <Link href="/contabilidad/configuracion" className="font-semibold underline">
+          Actívala en Configuración contable
+        </Link>{' '}
+        con la fecha de inicio de la contabilidad.
+      </span>
+    </div>
   )
 }
 

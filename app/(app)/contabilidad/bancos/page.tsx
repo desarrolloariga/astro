@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { AlertCircle, ArrowLeftRight, CheckCircle2, Clock, DollarSign, FileSpreadsheet, FileText, Landmark, Plus, Scale, TrendingUp, Wallet } from 'lucide-react'
+import { ArrowLeftRight, Clock, DollarSign, FileSpreadsheet, FileText, Landmark, Plus, Scale, TrendingUp, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { formatearFecha, formatearPrecio } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { hoyGuatemala, nombresOrigen, rangoMes } from '@/lib/contabilidad'
 import { BotonConfirmar } from '@/components/app/boton-confirmar'
+import { AvisoContabilizacion, Mensajes } from '@/components/contabilidad/comunes'
 import { cargarCatalogosCaptura } from '@/lib/contabilidad-servidor'
 import { anularMovimiento, guardarCuenta, guardarTipoCambio, movimientoManual, notaBancaria, registrarPendiente, transferencia } from './acciones'
 
@@ -90,14 +91,17 @@ export default async function BancosPage({
     .order('id', { ascending: false })
   if (cuentaFiltro) consultaMov = consultaMov.eq('cuenta_id', cuentaFiltro)
 
-  const [{ data: cuentasData }, { data: saldosData }, { data: pendData }, { data: movData }, { data: tcData }, catalogos] = await Promise.all([
+  const [{ data: cuentasData }, { data: saldosData }, { data: pendData }, { data: movData }, { data: tcData }, catalogos, { data: empresa }] = await Promise.all([
     supabase.from('cuentas_bancarias').select('id, nombre, banco, numero, tipo, saldo_inicial, fecha_saldo_inicial, activa, moneda').order('nombre'),
     supabase.rpc('fn_flujo_caja', { p_desde: hoy, p_hasta: hoy }),
     supabase.rpc('fn_bancos_pendientes'),
     consultaMov,
     supabase.from('tipos_cambio').select('fecha, tasa').order('fecha', { ascending: false }).limit(1).maybeSingle(),
     cargarCatalogosCaptura(supabase),
+    supabase.from('empresa_contable').select('contabilizacion_automatica, fecha_inicio_contable').eq('id', 1).maybeSingle(),
   ])
+  const empresaCtb = empresa as { contabilizacion_automatica: boolean; fecha_inicio_contable: string | null } | null
+  const contabilizaSolo = Boolean(empresaCtb?.contabilizacion_automatica && empresaCtb.fecha_inicio_contable)
   const cuentas = (cuentasData ?? []) as Cuenta[]
   const tipoCambio = tcData as { fecha: string; tasa: number } | null
   const monedaCuenta = new Map(cuentas.map((c) => [c.id, c.moneda]))
@@ -143,18 +147,8 @@ export default async function BancosPage({
         </div>
       </div>
 
-      {ok && (
-        <div className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm text-primary">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{ok}</span>
-        </div>
-      )}
-      {error && (
-        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      <Mensajes ok={ok} error={error} />
+      <AvisoContabilizacion activa={contabilizaSolo} />
 
       {/* Cuentas */}
       <section className="flex flex-col gap-3">
@@ -302,7 +296,34 @@ export default async function BancosPage({
           </details>
           <details className="rounded-xl border border-border bg-card p-4">
             <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary">
-              <Plus className="h-4 w-4" /> Movimiento manual (comisión bancaria, ajuste, otro)
+              <Landmark className="h-4 w-4" /> Comisión bancaria
+            </summary>
+            <form action={movimientoManual} className="mt-3 grid grid-cols-2 gap-2">
+              <input type="hidden" name="volver" value={rutaActual} />
+              <input type="hidden" name="origen" value="comision_bancaria" />
+              <input type="hidden" name="tipo" value="egreso" />
+              <SelectorCuenta cuentas={activas} />
+              <input type="date" name="fecha" defaultValue={hoy} required className={clasesMini} />
+              <input name="monto" type="number" step="0.01" min="0.01" required placeholder="Monto de la comisión" className={clasesMini} />
+              <input name="referencia" placeholder="Referencia del estado de cuenta" className={clasesMini} />
+              <input
+                name="descripcion"
+                required
+                defaultValue="Comisión bancaria"
+                placeholder="Concepto (manejo de cuenta, transferencia, chequera…)"
+                className={cn(clasesMini, 'col-span-2')}
+              />
+              <p className="col-span-2 text-[11px] text-muted-foreground">
+                Sale de la cuenta y se contabiliza contra el gasto «Comisiones bancarias» (cuenta del mapeo banco.comision).
+              </p>
+              <button type="submit" className="col-span-2 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground">
+                Registrar comisión
+              </button>
+            </form>
+          </details>
+          <details className="rounded-xl border border-border bg-card p-4">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary">
+              <Plus className="h-4 w-4" /> Ajuste u otro movimiento manual
             </summary>
             <form action={movimientoManual} className="mt-3 grid grid-cols-2 gap-2">
               <input type="hidden" name="volver" value={rutaActual} />

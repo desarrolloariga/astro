@@ -3,9 +3,20 @@
 export const TIPOS_DOCUMENTO_CXP: Record<string, { etiqueta: string; ivaCredito: boolean }> = {
   factura: { etiqueta: 'Factura FEL', ivaCredito: true },
   factura_pequeno_contribuyente: { etiqueta: 'Factura de pequeño contribuyente', ivaCredito: false },
+  poliza_importacion: { etiqueta: 'Póliza de importación (DUCA)', ivaCredito: true },
   recibo: { etiqueta: 'Recibo', ivaCredito: false },
   otro: { etiqueta: 'Otro documento', ivaCredito: false },
 }
+
+/** Tipo de compra: define la columna del libro de compras. */
+export const TIPOS_COMPRA: Record<string, string> = {
+  bien: 'Bien (mercadería, activo, insumos)',
+  servicio: 'Servicio',
+  combustible: 'Combustible',
+  importacion: 'Importación',
+}
+
+export type Combustible = { clave: string; nombre: string; idp_por_galon: number }
 
 export const ESTADOS_PAGO: Record<string, { etiqueta: string; clase: string }> = {
   pendiente: { etiqueta: 'Pendiente', clase: 'bg-amber-500/15 text-amber-700 dark:text-amber-300' },

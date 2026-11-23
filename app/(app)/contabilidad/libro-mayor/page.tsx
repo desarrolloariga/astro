@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { BookText } from 'lucide-react'
+import { BookText, FileSpreadsheet, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tienePermiso } from '@/lib/permisos'
 import { cn } from '@/lib/utils'
@@ -69,7 +69,14 @@ export default async function LibroMayorPage({
         icono={BookText}
         titulo="Libro mayor"
         descripcion="Movimientos de una cuenta con saldo corrido. Si eliges una cuenta Madre, incluye todas sus subcuentas."
-      />
+      >
+        <a
+          href={`/contabilidad/libro-mayor/exportar?${new URLSearchParams({ desde, hasta, formato: 'xlsx' })}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-secondary"
+        >
+          <FileSpreadsheet className="h-4 w-4 text-primary" /> Excel de todas las cuentas
+        </a>
+      </Encabezado>
       <Mensajes error={mayorRes.error?.message} />
 
       <FiltroRango desde={desde} hasta={hasta}>
@@ -102,6 +109,21 @@ export default async function LibroMayorPage({
 
       {mayor && (
         <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-wrap justify-end gap-3 text-sm font-semibold">
+            <a
+              href={`/contabilidad/libro-mayor/exportar?${new URLSearchParams({ desde, hasta, cuenta: String(cuentaId), ...(cc ? { cc: String(cc) } : {}), formato: 'xlsx' })}`}
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <FileSpreadsheet className="h-4 w-4" /> Excel de esta cuenta
+            </a>
+            <a
+              href={`/contabilidad/libro-mayor/exportar?${new URLSearchParams({ desde, hasta, cuenta: String(cuentaId), ...(cc ? { cc: String(cc) } : {}), formato: 'pdf' })}`}
+              target="_blank"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <FileText className="h-4 w-4" /> PDF
+            </a>
+          </div>
           <EncabezadoReporte
             razonSocial={(empresa as { razon_social: string } | null)?.razon_social ?? '—'}
             nit={(empresa as { nit: string } | null)?.nit ?? '—'}

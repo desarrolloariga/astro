@@ -332,7 +332,7 @@ async function libroCompras(supabase: SupabaseClient, p: ParametrosReporte) {
   const { data, error } = await supabase.rpc('fn_libro_compras', { p_desde: p.desde, p_hasta: p.hasta })
   if (error) throw new Error(error.message)
   const l = data as { filas: Record<string, unknown>[]; totales: Record<string, number> }
-  const tipos: Record<string, string> = { factura: 'FACT', factura_pequeno_contribuyente: 'FPEQ', recibo: 'REC', otro: 'OTRO' }
+  const tipos: Record<string, string> = { factura: 'FACT', factura_pequeno_contribuyente: 'FPEQ', poliza_importacion: 'DUCA', recibo: 'REC', otro: 'OTRO' }
   return {
     columnas: [
       { titulo: 'Fecha', clave: 'fecha_emision', ancho: 9, tipo: 'fecha' },
@@ -340,10 +340,13 @@ async function libroCompras(supabase: SupabaseClient, p: ParametrosReporte) {
       { titulo: 'Serie', clave: 'serie', ancho: 8 },
       { titulo: 'Número', clave: 'numero', ancho: 11 },
       { titulo: 'NIT', clave: 'nit', ancho: 10 },
-      { titulo: 'Proveedor', clave: 'proveedor', ancho: 22 },
-      { titulo: 'Bienes', clave: 'bienes', ancho: 11, tipo: 'monto' },
-      { titulo: 'Servicios', clave: 'servicios', ancho: 11, tipo: 'monto' },
-      { titulo: 'Sin crédito fiscal', clave: 'sin_credito', ancho: 11, tipo: 'monto' },
+      { titulo: 'Proveedor', clave: 'proveedor', ancho: 20 },
+      { titulo: 'Bienes', clave: 'bienes', ancho: 10, tipo: 'monto' },
+      { titulo: 'Servicios', clave: 'servicios', ancho: 10, tipo: 'monto' },
+      { titulo: 'Combustibles', clave: 'combustibles', ancho: 10, tipo: 'monto' },
+      { titulo: 'Importaciones', clave: 'importaciones', ancho: 11, tipo: 'monto' },
+      { titulo: 'Exento (IDP)', clave: 'exento', ancho: 9, tipo: 'monto' },
+      { titulo: 'Sin crédito fiscal', clave: 'sin_credito', ancho: 10, tipo: 'monto' },
       { titulo: 'IVA', clave: 'iva', ancho: 10, tipo: 'monto' },
       { titulo: 'Total', clave: 'total', ancho: 11, tipo: 'monto' },
     ] as Columna[],
@@ -353,7 +356,7 @@ async function libroCompras(supabase: SupabaseClient, p: ParametrosReporte) {
       proveedor: f.estado === 'anulada' ? `ANULADA · ${f.nombre}` : f.nombre,
     })),
     totales: { proveedor: `Total (${l.totales.documentos} documentos)`, ...l.totales },
-    nota: 'Sin crédito fiscal: facturas de pequeño contribuyente, recibos y otros documentos que no generan IVA crédito.',
+    nota: 'Combustibles: base sin IVA ni IDP; el IDP va como exento. Importaciones: pólizas de importación (DUCA). Sin crédito fiscal: facturas de pequeño contribuyente, recibos y otros documentos que no generan IVA crédito. Bienes + servicios + combustibles + importaciones + exento + sin crédito + IVA = total.',
   }
 }
 

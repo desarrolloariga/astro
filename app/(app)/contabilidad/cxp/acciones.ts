@@ -11,7 +11,10 @@ const MAX_BYTES = 9 * 1024 * 1024
 const txt = (f: FormData, k: string) => String(f.get(k) ?? '').trim()
 const num = (f: FormData, k: string) => Number(txt(f, k).replace(/,/g, '')) || 0
 
-export type EstadoCxp = { error?: string }
+/** pedirPin: la fecha cae en un mes cerrado y hace falta el PIN contable + motivo. */
+export type EstadoCxp = { error?: string; pedirPin?: boolean }
+
+const MES_CERRADO = /está cerrado en contabilidad/
 
 function refrescar(id?: number | string) {
   revalidatePath('/contabilidad/cxp')
@@ -46,6 +49,20 @@ export async function registrarFacturaProveedor(_previo: EstadoCxp, formData: Fo
   }
 
   const supabase = await createClient()
+  // Mes cerrado: con PIN y motivo se crea la autorización (un uso, 10 minutos) que consume el registro.
+  if (txt(formData, 'pin')) {
+    const { data: aut, error: errAut } = await supabase.rpc('fn_autorizar_periodo_cerrado', {
+      p_fecha: fecha,
+      p_pin: txt(formData, 'pin'),
+      p_motivo: txt(formData, 'motivo_cierre'),
+      p_accion: 'operacion_en_periodo_cerrado',
+    })
+    const r = aut as { ok: boolean; error?: string } | null
+    if (errAut || !r?.ok) {
+      if (ruta) await createAdminClient().storage.from(BUCKET).remove([ruta])
+      return { error: errAut?.message ?? r?.error ?? 'No se pudo autorizar', pedirPin: true }
+    }
+  }
   const { data, error } = await supabase.rpc('fn_cxp_registrar_factura', {
     p_proveedor_id: Number(txt(formData, 'proveedor_id')) || null,
     p_tipo: txt(formData, 'tipo') || 'factura',
@@ -61,10 +78,13 @@ export async function registrarFacturaProveedor(_previo: EstadoCxp, formData: Fo
     p_iva: num(formData, 'iva'),
     p_lineas: lineas,
     p_soporte: ruta,
+    p_tipo_compra: txt(formData, 'tipo_compra') || null,
+    p_combustible: txt(formData, 'combustible') || null,
+    p_galones: num(formData, 'galones') || null,
   })
   if (error) {
     if (ruta) await createAdminClient().storage.from(BUCKET).remove([ruta])
-    return { error: error.message }
+    return { error: error.message, pedirPin: MES_CERRADO.test(error.message) }
   }
   refrescar()
   redirect(`/contabilidad/cxp/${data as number}?ok=${encodeURIComponent('Factura registrada')}`)
@@ -123,13 +143,27 @@ export async function facturaDesdeOrden(formData: FormData) {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('fn_cxp_crear_desde_oc', {
     p_oc_id: Number(txt(formData, 'orden_compra_id')),
-    p_serie: null,
-    p_numero: null,
-    p_autorizacion: null,
-    p_fecha: null,
-    p_vencimiento: null,
+    p_serie: txt(formData, 'serie') || null,
+    p_numero: txt(formData, 'numero') || null,
+    p_autorizacion: txt(formData, 'autorizacion') || null,
+    p_fecha: txt(formData, 'fecha') || null,
+    p_vencimiento: txt(formData, 'vencimiento') || null,
   })
   if (error) redirect(`/contabilidad/cxp?error=${encodeURIComponent(error.message)}`)
   refrescar()
-  volver(data as number, 'ok', 'Factura creada desde la orden de compra: completa serie, número y autorización')
+  volver(data as number, 'ok', 'Factura de la orden de compra registrada')
+}
+
+/** Marca una orden de compra recibida como "sin factura" (o lo deshace). */
+export async function marcarOrdenSinFactura(formData: FormData) {
+  const supabase = await createClient()
+  const sinFactura = txt(formData, 'sin_factura') === 'si'
+  const { error } = await supabase.rpc('fn_cxp_marcar_oc_sin_factura', {
+    p_oc_id: Number(txt(formData, 'orden_compra_id')),
+    p_sin_factura: sinFactura,
+    p_motivo: txt(formData, 'motivo') || null,
+  })
+  if (error) redirect(`/contabilidad/cxp?error=${encodeURIComponent(error.message)}`)
+  refrescar()
+  redirect(`/contabilidad/cxp?ok=${encodeURIComponent(sinFactura ? 'Orden marcada sin factura' : 'La orden vuelve a la lista de pendientes de factura')}`)
 }
