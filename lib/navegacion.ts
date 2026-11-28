@@ -170,6 +170,14 @@ export const secciones: SeccionNav[] = [
         roles: ['admin', 'supervisor', 'asesor', 'embajador'],
       },
       {
+        etiqueta: 'Registro de embajadores',
+        descripcion: 'Enlaces públicos para que nuevos embajadores creen su cuenta',
+        href: '/admin/usuarios/registro',
+        icono: UserPlus,
+        roles: ['admin', 'asesor'],
+        permiso: { modulo: 'usuarios', accion: 'crear_embajador' },
+      },
+      {
         etiqueta: 'Ranking',
         descripcion: 'Posiciones del período por puntos acumulados',
         href: '/ranking',

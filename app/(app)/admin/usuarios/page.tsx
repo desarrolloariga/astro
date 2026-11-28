@@ -67,6 +67,14 @@ export default async function AdminUsuariosPage({
             {listaUsuarios.length} usuarios · crea cuentas, asigna rol, tienda y jerarquía.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Link
+          href="/admin/usuarios/registro"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          <UserPlus className="h-4 w-4" />
+          Enlaces de registro
+        </Link>
         <Link
           href="/admin/usuarios/jerarquia"
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
@@ -74,6 +82,7 @@ export default async function AdminUsuariosPage({
           <Network className="h-4 w-4" />
           Ver jerarquía
         </Link>
+        </div>
       </div>
 
       {ok && (

@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /** Rutas accesibles sin sesión */
-const RUTAS_PUBLICAS = ['/login', '/recuperar', '/c/']
+const RUTAS_PUBLICAS = ['/login', '/recuperar', '/c/', '/registro/']
 
 function esRutaPublica(pathname: string) {
   return RUTAS_PUBLICAS.some(

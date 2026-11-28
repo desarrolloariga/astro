@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { LogoAstro } from '@/components/marca/logo-astro'
 
 /** El catálogo y la ficha del producto traen su propio encabezado de marca: aquí no se repite. */
-const CON_ENCABEZADO_PROPIO = /^\/c\/[^/]+(\/p\/[^/]+)?\/?$/
+const CON_ENCABEZADO_PROPIO = /^\/(c\/[^/]+(\/p\/[^/]+)?|registro\/.+)\/?$/
 
 export function EncabezadoPublico() {
   const ruta = usePathname()

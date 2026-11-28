@@ -235,12 +235,21 @@ export default async function MiRedPage({
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Mi red</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {embajadores.length} embajador{embajadores.length !== 1 ? 'es' : ''} · tu descuento por desempeño: {' '}
           <span className="font-semibold text-foreground">{formatearNumero(Number(descuento ?? 0))}%</span>
         </p>
+      </div>
+        <Link
+          href="/admin/usuarios/registro"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+        >
+          <UserPlus className="h-4 w-4" />
+          Enlace de registro
+        </Link>
       </div>
 
       {ok && (
